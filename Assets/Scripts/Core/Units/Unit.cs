@@ -23,7 +23,8 @@ public class Unit : MonoBehaviour
         }
     }
 
-    public static Unit Create(string name, Vector2Int cell, bool isEnemy, Color color, float scale = 0.8f)
+    public static Unit Create(string name, Vector2Int cell, bool isEnemy, Color color,
+        float scale = 0.8f, int maxHealth = 10, int maxAP = 3)
     {
         GameObject go = new GameObject(name);
         go.transform.position = new Vector3(cell.x, cell.y, 0);
@@ -38,6 +39,10 @@ public class Unit : MonoBehaviour
         unit.isEnemy = isEnemy;
         unit.currentGridPos = cell;
         unit.spriteRenderer = sr;
+        unit.maxHealth = maxHealth;
+        unit.currentHealth = maxHealth;
+        unit.maxAP = maxAP;
+        unit.currentAP = maxAP;
 
         if (!isEnemy)
         {

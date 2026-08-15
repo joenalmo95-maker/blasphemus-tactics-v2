@@ -19,6 +19,12 @@ public class TurnManager : MonoBehaviour
     void Start()
     {
         playerUnit = GetPlayer();
+        if (playerUnit != null) StartPlayerTurn();
+    }
+
+    public void BeginGame()
+    {
+        if (currentState != TurnState.WaitingForPlayer) return;
         StartPlayerTurn();
     }
 

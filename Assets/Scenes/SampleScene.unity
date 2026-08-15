@@ -225,6 +225,7 @@ GameObject:
   - component: {fileID: 669588798}
   - component: {fileID: 669588802}
   - component: {fileID: 669588803}
+  - component: {fileID: 669588804}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -244,6 +245,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 246ab4fb7f918294f972a59876dbf509, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bootstrap
+  availableClasses: []
 --- !u!114 &669588799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -312,6 +314,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatController
   basicAttack: {fileID: 11400000, guid: 7b98058f97cc187449724bfadd8a92cd, type: 2}
   rangedAttack: {fileID: 11400000, guid: 50b0de6957435e748b1f3672b918f637, type: 2}
+--- !u!114 &669588804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 669588797}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 246ab4fb7f918294f972a59876dbf509, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Bootstrap
+  availableClasses:
+  - {fileID: 11400000, guid: cbc92553655b8274798989452fff954c, type: 2}
+  - {fileID: 11400000, guid: 56022bb516103424faff227149e6da92, type: 2}
+  - {fileID: 11400000, guid: 428183bfc0f07f04292dc516847dd62e, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
