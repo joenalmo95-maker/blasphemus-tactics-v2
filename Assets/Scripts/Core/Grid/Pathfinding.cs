@@ -51,11 +51,16 @@ public static class Pathfinding
 
     public static bool IsOccupied(Vector2Int cell)
     {
+        return UnitAt(cell) != null;
+    }
+
+    public static Unit UnitAt(Vector2Int cell)
+    {
         Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
         foreach (Unit u in units)
         {
-            if (u.currentGridPos == cell) return true;
+            if (u.currentGridPos == cell) return u;
         }
-        return false;
+        return null;
     }
 }

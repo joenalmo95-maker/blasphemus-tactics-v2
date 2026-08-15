@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class Unit : MonoBehaviour
 {
@@ -9,6 +10,18 @@ public class Unit : MonoBehaviour
     public Vector2Int currentGridPos;
     public bool isEnemy = false;
     public SpriteRenderer spriteRenderer;
+
+    private Color originalColor;
+    private bool colorCached = false;
+
+    void CacheColor()
+    {
+        if (!colorCached && spriteRenderer != null)
+        {
+            originalColor = spriteRenderer.color;
+            colorCached = true;
+        }
+    }
 
     public static Unit Create(string name, Vector2Int cell, bool isEnemy, Color color, float scale = 0.8f)
     {
@@ -37,5 +50,34 @@ public class Unit : MonoBehaviour
     public void ResetAP()
     {
         currentAP = maxAP;
+    }
+
+    public void TakeDamage(int amount)
+    {
+        CacheColor();
+        currentHealth -= amount;
+        Debug.Log(gameObject.name + " recibió " + amount + " de daño. HP: " + currentHealth);
+
+        CombatFeedback.SpawnDamage(transform.position, amount);
+        CombatFeedback.SpawnImpact(transform.position, isEnemy ? Color.yellow : Color.red);
+        StartCoroutine(Flash());
+
+        if (currentHealth <= 0)
+        {
+            Debug.Log(gameObject.name + " ha sido derrotado.");
+            bool wasEnemy = isEnemy;
+            Destroy(gameObject);
+            if (TurnManager.Instance != null) TurnManager.Instance.NotifyUnitDeath(wasEnemy);
+        }
+    }
+
+    IEnumerator Flash()
+    {
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = Color.white;
+            yield return new WaitForSeconds(0.15f);
+            spriteRenderer.color = originalColor;
+        }
     }
 }

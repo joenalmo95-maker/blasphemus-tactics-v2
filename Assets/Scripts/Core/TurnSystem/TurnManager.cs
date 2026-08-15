@@ -64,6 +64,7 @@ public class TurnManager : MonoBehaviour
         foreach (Unit enemy in currentEnemies)
         {
             if (enemy == null || !enemy.isEnemy) continue;
+            if (currentState == TurnState.GameOver) yield break;
 
             Debug.Log("Turno de: " + enemy.gameObject.name);
             EnemyAI ai = enemy.GetComponent<EnemyAI>();
@@ -74,8 +75,41 @@ public class TurnManager : MonoBehaviour
             yield return new WaitForSeconds(0.5f);
         }
 
+        if (currentState == TurnState.GameOver) yield break;
         yield return new WaitForSeconds(0.3f);
         StartPlayerTurn();
+    }
+
+    public void NotifyUnitDeath(bool wasEnemy)
+    {
+        if (!wasEnemy)
+        {
+            ForceGameOver();
+            Debug.Log("=== DERROTA ===");
+            return;
+        }
+
+        Unit[] remaining = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        bool anyEnemyVivo = false;
+        foreach (Unit u in remaining)
+        {
+            if (u.isEnemy && u.currentHealth > 0)
+            {
+                anyEnemyVivo = true;
+                break;
+            }
+        }
+
+        if (!anyEnemyVivo)
+        {
+            ForceGameOver();
+            Debug.Log("=== VICTORIA ===");
+        }
+    }
+
+    public void ForceGameOver()
+    {
+        currentState = TurnState.GameOver;
     }
 
     public bool IsPlayerTurn()
