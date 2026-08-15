@@ -33,4 +33,9 @@ public class Unit : MonoBehaviour
 
         return unit;
     }
+
+    public void ResetAP()
+    {
+        currentAP = maxAP;
+    }
 }

@@ -1,0 +1,85 @@
+using UnityEngine;
+using System.Collections;
+
+public class TurnManager : MonoBehaviour
+{
+    public static TurnManager Instance { get; private set; }
+
+    public enum TurnState { WaitingForPlayer, PlayerTurn, EnemyTurn, GameOver }
+    public TurnState currentState = TurnState.WaitingForPlayer;
+
+    private Unit playerUnit;
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+    }
+
+    void Start()
+    {
+        playerUnit = GetPlayer();
+        StartPlayerTurn();
+    }
+
+    Unit GetPlayer()
+    {
+        if (playerUnit != null) return playerUnit;
+
+        Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        foreach (Unit u in units)
+        {
+            if (!u.isEnemy) return u;
+        }
+        return null;
+    }
+
+    public void StartPlayerTurn()
+    {
+        if (currentState == TurnState.GameOver) return;
+        currentState = TurnState.PlayerTurn;
+        Debug.Log("=== TURNO DEL JUGADOR ===");
+
+        playerUnit = GetPlayer();
+        if (playerUnit != null)
+        {
+            playerUnit.ResetAP();
+            Debug.Log("AP restaurados: " + playerUnit.currentAP);
+        }
+    }
+
+    public void EndPlayerTurn()
+    {
+        if (currentState != TurnState.PlayerTurn) return;
+        Debug.Log("Jugador termina turno.");
+        currentState = TurnState.EnemyTurn;
+        StartCoroutine(ExecuteEnemyTurns());
+    }
+
+    IEnumerator ExecuteEnemyTurns()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        Unit[] currentEnemies = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        foreach (Unit enemy in currentEnemies)
+        {
+            if (enemy == null || !enemy.isEnemy) continue;
+
+            Debug.Log("Turno de: " + enemy.gameObject.name);
+            EnemyAI ai = enemy.GetComponent<EnemyAI>();
+            if (ai != null)
+            {
+                yield return ai.ExecuteTurn();
+            }
+            yield return new WaitForSeconds(0.5f);
+        }
+
+        yield return new WaitForSeconds(0.3f);
+        StartPlayerTurn();
+    }
+
+    public bool IsPlayerTurn()
+    {
+        return currentState == TurnState.PlayerTurn;
+    }
+}
