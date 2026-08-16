@@ -18,7 +18,8 @@ public class Bootstrap : MonoBehaviour
         Debug.Log("[Bootstrap] Awake correcto.");
         LootSystem.ClearCombatLog();
 
-        Unit enemy = Unit.Create("Cruzado", new Vector2Int(7, 4), true, new Color(0.35f, 0.36f, 0.40f));
+        // Enemigo con arte de caballero penitente
+        Unit enemy = Unit.Create("Cruzado", new Vector2Int(7, 4), true, Color.white, 0.8f, 10, 3, "penitent");
         enemy.gameObject.AddComponent<EnemyAI>();
 
         GameObject cdObj = new GameObject("CharacterData");
@@ -72,8 +73,20 @@ public class Bootstrap : MonoBehaviour
             ? CharacterData.Instance.GetTotalStats()
             : new StatBlock();
 
+        
+        string art = "circle";
+        if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
+        {
+            switch (CharacterData.Instance.classData.role)
+            {
+                case ClassRole.Tank: art = "tank"; break;
+                case ClassRole.Healer: art = "healer"; break;
+                default: art = "dps"; break;
+            }
+        }
+
         Unit player = Unit.Create("Renacido", new Vector2Int(1, 1), false,
-            new Color(0.45f, 0.08f, 0.08f), 0.8f, stats.maxHP, stats.apMove);
+            Color.white, 0.8f, stats.maxHP, stats.apMove, art);
         player.stats = stats.Clone();
 
         string className = (CharacterData.Instance != null && CharacterData.Instance.classData != null)

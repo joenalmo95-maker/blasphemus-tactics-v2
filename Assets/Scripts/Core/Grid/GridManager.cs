@@ -31,7 +31,7 @@ public class GridManager : MonoBehaviour
                 tileObj.transform.position = new Vector3(x, y, 0);
 
                 SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
-                sr.sprite = SpriteFactory.Square();
+                sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
                 sr.sortingOrder = 0;
 
                 Tile tile = tileObj.AddComponent<Tile>();

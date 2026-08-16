@@ -18,28 +18,16 @@ public class Unit : MonoBehaviour
     public int buffDefense = 0;
     public int buffTurns = 0;
 
-    private Color originalColor;
-    private bool colorCached = false;
-
-    void CacheColor()
-    {
-        if (!colorCached && spriteRenderer != null)
-        {
-            originalColor = spriteRenderer.color;
-            colorCached = true;
-        }
-    }
-
     public static Unit Create(string name, Vector2Int cell, bool isEnemy, Color color,
-        float scale = 0.8f, int maxHealth = 10, int maxAP = 3)
+        float scale = 0.8f, int maxHealth = 10, int maxAP = 3, string artKey = "circle")
     {
         GameObject go = new GameObject(name);
         go.transform.position = new Vector3(cell.x, cell.y, 0);
         go.transform.localScale = Vector3.one * scale;
 
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = SpriteFactory.Circle();
-        sr.color = color;
+        sr.sprite = ArtProvider.Get(artKey);
+        sr.color = artKey == "circle" ? color : Color.white;
         sr.sortingOrder = 2;
 
         Unit unit = go.AddComponent<Unit>();
@@ -162,9 +150,10 @@ public class Unit : MonoBehaviour
     {
         if (spriteRenderer != null)
         {
+            Color current = spriteRenderer.color;
             spriteRenderer.color = Color.white;
             yield return new WaitForSeconds(0.15f);
-            spriteRenderer.color = originalColor;
+            spriteRenderer.color = current;
         }
     }
 }
