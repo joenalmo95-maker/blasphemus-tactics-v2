@@ -47,6 +47,14 @@ public class Bootstrap : MonoBehaviour
             ui.onFinished = () => { SpawnPlayer(); if (TurnManager.Instance != null) TurnManager.Instance.BeginGame(); };
             ui.Build();
         }
+        // Si venimos de abrir un cofre, dar loot directo al inicio del combate
+        if (WorldChestManager.PendingChestLoot.HasValue)
+        {
+            EnemyTier chestTier = WorldChestManager.PendingChestLoot.Value;
+            WorldChestManager.PendingChestLoot = null;
+            LootSystem.DropFrom(null, chestTier);
+            Debug.Log("Cofre abierto: botín de tier " + chestTier);
+        }
     }
 
     public void SpawnPlayer()

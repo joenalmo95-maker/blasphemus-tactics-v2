@@ -30,6 +30,7 @@ public static class ArtProvider
             case "angel": return PixelSpriteFactory.FromMap(AngelMap, Common(), 12);
             case "inquisitor": return PixelSpriteFactory.FromMap(InquisitorMap, Common(), 12);
             case "capitan": return PixelSpriteFactory.FromMap(CapitanMap, Common(), 12);
+            case "chest": return PixelSpriteFactory.FromMap(ChestMap, ChestPalette(), 16);            
             default: return SpriteFactory.Circle();
         }
     }
@@ -322,4 +323,34 @@ public static class ArtProvider
         "kkkkkkkkkkkkkkkk",
         "kkkkkkkkkkkkkkkk"
     };
+
+    static readonly string[] ChestMap =
+    {
+        "kkkkkkkkkkkkkkkk",
+        "kkkkkkkkkkkkkkkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkGGGGGGGGGGGGkk",
+        "kkbbbbbbbbbbbbkk",
+        "kkbbbbbbbbbbbbkk",
+        "kkkkkkkkkkkkkkkk",
+        "kkkkkkkkkkkkkkkk"
+    };
+
+    static System.Collections.Generic.Dictionary<char, Color> ChestPalette()
+    {
+        return new System.Collections.Generic.Dictionary<char, Color>
+        {
+            { 'k', Color.clear },
+            { 'G', new Color(0.85f, 0.70f, 0.15f) },
+            { 'b', new Color(0.45f, 0.30f, 0.15f) }
+        };
+    }
 }
