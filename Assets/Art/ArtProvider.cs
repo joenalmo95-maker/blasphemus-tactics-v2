@@ -43,7 +43,6 @@ public static class ArtProvider
     {
         return new Dictionary<char, Color>
         {
-            { 'k', new Color(0.05f, 0.05f, 0.06f) },
             { 'r', new Color(0.70f, 0.10f, 0.10f) },
             { 'w', new Color(0.95f, 0.95f, 0.95f) },
             { 'g', new Color(0.45f, 0.46f, 0.50f) },

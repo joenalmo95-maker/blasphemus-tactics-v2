@@ -6,6 +6,7 @@ public class CharacterData : MonoBehaviour
     public static CharacterData Instance { get; private set; }
 
     public ClassData classData;
+
     public int level = 0;
     public int xp = 0;
     public int gold = 0;
@@ -14,6 +15,8 @@ public class CharacterData : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        // FIX: autopersistencia garantizada (la clase y el oro sobreviven a cambios de escena)
+        DontDestroyOnLoad(gameObject);
     }
 
     public void SetClass(ClassData data)
@@ -45,7 +48,6 @@ public class CharacterData : MonoBehaviour
     public StatBlock GetDerivedStats()
     {
         if (classData == null) return new StatBlock();
-
         StatBlock s = classData.baseStats.Clone();
         for (int i = 0; i < level; i++)
         {
@@ -73,7 +75,6 @@ public class CharacterData : MonoBehaviour
     {
         xp += amount;
         bool leveled = false;
-
         while (level < 20 && xp >= XpToNextLevel())
         {
             xp -= XpToNextLevel();
@@ -81,7 +82,6 @@ public class CharacterData : MonoBehaviour
             leveled = true;
             Debug.Log("¡Nivel " + level + " alcanzado!");
         }
-
         if (leveled)
         {
             if (InventorySystem.Instance != null) InventorySystem.Instance.ApplyToUnit();

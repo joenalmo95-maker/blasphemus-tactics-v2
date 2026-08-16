@@ -16,12 +16,11 @@ public class GridManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        
-        // Generar obstáculos de terreno antes de crear el grid
+
         Vector2Int playerCell = new Vector2Int(1, 1);
         Vector2Int enemyCell = new Vector2Int(7, 4);
         TerrainMap.GenerateCombatObstacles(gridWidth, gridHeight, playerCell, enemyCell);
-        
+
         GenerateGrid();
     }
 
@@ -36,19 +35,20 @@ public class GridManager : MonoBehaviour
                 GameObject tileObj = new GameObject("Tile_" + x + "_" + y);
                 tileObj.transform.position = new Vector3(x, y, 0);
 
+                // El tile base SIEMPRE se dibuja (evita huecos negros)
                 SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
+                sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
                 sr.sortingOrder = 0;
 
-                // Verificar si hay obstáculo de terreno
                 TerrainType terrain = TerrainMap.Get(pos);
                 if (terrain != TerrainType.Caminable)
                 {
-                    sr.sprite = ArtProvider.Get(terrain == TerrainType.Roca ? "rock" : (terrain == TerrainType.Agua ? "water" : "ruins"));
-                    sr.sortingOrder = 1;
-                }
-                else
-                {
-                    sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
+                    GameObject ob = new GameObject("Obstacle");
+                    ob.transform.SetParent(tileObj.transform);
+                    ob.transform.localPosition = Vector3.zero;
+                    SpriteRenderer osr = ob.AddComponent<SpriteRenderer>();
+                    osr.sprite = ArtProvider.Get(terrain == TerrainType.Roca ? "rock" : (terrain == TerrainType.Agua ? "water" : "ruins"));
+                    osr.sortingOrder = 1;
                 }
 
                 Tile tile = tileObj.AddComponent<Tile>();

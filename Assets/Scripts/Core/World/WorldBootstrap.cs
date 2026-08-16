@@ -3,10 +3,14 @@ using System.Collections.Generic;
 
 public class WorldBootstrap : MonoBehaviour
 {
-    public const int WorldWidth = 30;
-    public const int WorldHeight = 20;
+    public const int WorldWidth = 60;
+    public const int WorldHeight = 40;
 
     public static Vector2Int PlayerSpawn = new Vector2Int(2, 2);
+
+    // Si aparece vacío en el Inspector de WorldMap, arrastre aquí los 3 assets
+    // de ScriptableObjects/Classes (igual que en el Bootstrap de combate).
+    public List<ClassData> availableClasses = new List<ClassData>();
 
     public class ZoneDef
     {
@@ -16,13 +20,12 @@ public class WorldBootstrap : MonoBehaviour
         public List<WaveDef> dungeon;
     }
 
-    // 3 zonas-mazmorra data-driven (básicos → elite → elite fuerte → jefe)
     public static List<ZoneDef> Zones = new List<ZoneDef>
     {
         new ZoneDef
         {
             name = "Cripta de los Penitentes",
-            center = new Vector2Int(8, 5),
+            center = new Vector2Int(10, 8),
             tier = EnemyTier.Basico,
             dungeon = new List<WaveDef>
             {
@@ -33,7 +36,7 @@ public class WorldBootstrap : MonoBehaviour
         new ZoneDef
         {
             name = "Coro de Querubines",
-            center = new Vector2Int(15, 10),
+            center = new Vector2Int(30, 20),
             tier = EnemyTier.Medio,
             dungeon = new List<WaveDef>
             {
@@ -44,7 +47,7 @@ public class WorldBootstrap : MonoBehaviour
         new ZoneDef
         {
             name = "Trono del Capitán",
-            center = new Vector2Int(25, 15),
+            center = new Vector2Int(50, 32),
             tier = EnemyTier.EliteFuerte,
             dungeon = new List<WaveDef>
             {
@@ -56,22 +59,58 @@ public class WorldBootstrap : MonoBehaviour
 
     void Awake()
     {
-        // Regla documentada: garantizar cámara con Tag MainCamera en WorldMap
-        if (Camera.main == null)
+        // Singletons persistentes (patrón del Bootstrap de combate)
+        if (Object.FindAnyObjectByType<CharacterData>() == null)
+            new GameObject("CharacterData").AddComponent<CharacterData>();
+        if (Object.FindAnyObjectByType<InventorySystem>() == null)
+            new GameObject("InventorySystem").AddComponent<InventorySystem>();
+
+        // Persistencia garantizada entre escenas
+        if (Object.FindAnyObjectByType<PersistentManagers>() == null)
+            new GameObject("PersistentManagers").AddComponent<PersistentManagers>();
+
+        // Cámara: Tag MainCamera + fondo NEGRO
+        Camera cam = Camera.main;
+        if (cam == null)
         {
-            Camera cam = Object.FindAnyObjectByType<Camera>();
+            cam = Object.FindAnyObjectByType<Camera>();
             if (cam != null) cam.tag = "MainCamera";
         }
+        if (cam != null)
+        {
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = Color.black;
+        }
 
-        TerrainMap.GenerateWorldObstacles(WorldWidth, WorldHeight);
+        // Mapa dibujado por el usuario; si no existe, respaldo procedural
+        if (!TerrainMap.TryLoadWorldMap(WorldWidth, WorldHeight))
+            TerrainMap.GenerateWorldObstacles(WorldWidth, WorldHeight);
 
-        // Nunca bloquear spawn del jugador ni accesos a zonas
         ClearAround(PlayerSpawn);
         foreach (ZoneDef z in Zones) ClearAround(z.center);
 
         BuildGround();
         BuildZoneMarkers();
-        SpawnPlayer();
+
+        // UI global disponible en mundo
+        new GameObject("HUDUI").AddComponent<HUDUI>();
+        new GameObject("InventoryUI").AddComponent<InventoryUI>();
+        new GameObject("ShopUI").AddComponent<ShopUI>();
+
+        // La creación/continuación de personaje vive en MUNDO, no en mazmorra
+        if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
+        {
+            SpawnPlayer();
+        }
+        else
+        {
+            GameObject c = new GameObject("CharacterCreation");
+            CharacterCreationUI ui = c.AddComponent<CharacterCreationUI>();
+            ui.availableClasses = availableClasses;
+            ui.showContinue = SaveSystem.HasSave();
+            ui.onFinished = () => { SpawnPlayer(); };
+            ui.Build();
+        }
     }
 
     static void ClearAround(Vector2Int c)
@@ -93,17 +132,18 @@ public class WorldBootstrap : MonoBehaviour
                 GameObject t = new GameObject("WTile_" + x + "_" + y);
                 t.transform.position = new Vector3(x, y, 0);
                 SpriteRenderer sr = t.AddComponent<SpriteRenderer>();
+                sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
+                sr.sortingOrder = 0;
 
                 TerrainType terrain = TerrainMap.Get(cell);
                 if (terrain != TerrainType.Caminable)
                 {
-                    sr.sprite = ArtProvider.Get(terrain == TerrainType.Roca ? "rock" : (terrain == TerrainType.Agua ? "water" : "ruins"));
-                    sr.sortingOrder = 1;
-                }
-                else
-                {
-                    sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
-                    sr.sortingOrder = 0;
+                    GameObject ob = new GameObject("Obstacle");
+                    ob.transform.SetParent(t.transform);
+                    ob.transform.localPosition = Vector3.zero;
+                    SpriteRenderer osr = ob.AddComponent<SpriteRenderer>();
+                    osr.sprite = ArtProvider.Get(terrain == TerrainType.Roca ? "rock" : (terrain == TerrainType.Agua ? "water" : "ruins"));
+                    osr.sortingOrder = 1;
                 }
             }
         }
@@ -130,6 +170,8 @@ public class WorldBootstrap : MonoBehaviour
         SpriteRenderer sr = p.AddComponent<SpriteRenderer>();
         sr.sprite = ArtProvider.Get(PlayerArt());
         sr.sortingOrder = 2;
+        p.transform.localScale = Vector3.one * 0.8f;
+        p.AddComponent<SelectionIndicator>();
         p.AddComponent<WorldPlayerController>();
     }
 

@@ -13,6 +13,7 @@ public class InventorySystem : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     public ItemData GetEquipped(ItemSlot slot)
