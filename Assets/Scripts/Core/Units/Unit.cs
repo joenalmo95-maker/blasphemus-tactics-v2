@@ -111,10 +111,16 @@ public class Unit : MonoBehaviour
         int before = currentHealth;
         currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
         int real = currentHealth - before;
+
         if (real > 0)
         {
             Debug.Log(gameObject.name + " se cura " + real + ". HP: " + currentHealth);
             CombatFeedback.SpawnText(transform.position, "+" + real, Color.green);
+        }
+        else
+        {
+            Debug.Log(gameObject.name + " está al máximo de HP.");
+            CombatFeedback.SpawnText(transform.position, "MAX", Color.gray);
         }
     }
 
