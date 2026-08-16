@@ -51,6 +51,17 @@
       ]
     },
     {
+      "name": "Catedral Profanada",
+      "tier": "Elite",
+      "x": 35,
+      "y": 28,
+      "waves": [
+        { "spawns": [ { "archetype": "cherub", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "penitent", "tier": "Medio", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "inquisitor", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Elite", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "capitan", "tier": "EliteFuerte", "x": 7, "y": 4 } ] }
+      ]
+    },
+    {
       "name": "Trono del Capitán",
       "tier": "EliteFuerte",
       "x": 50,
