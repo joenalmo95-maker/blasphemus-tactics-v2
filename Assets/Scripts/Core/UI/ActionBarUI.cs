@@ -74,7 +74,6 @@ public class ActionBarUI : MonoBehaviour
         colors.disabledColor = new Color(0.15f, 0.15f, 0.15f, 0.5f);
         button.colors = colors;
 
-        // Añadir trigger de eventos para tooltips
         ActionButtonTrigger trigger = btn.button.AddComponent<ActionButtonTrigger>();
         trigger.buttonIndex = actionButtons.Count;
         trigger.actionBar = this;
@@ -94,10 +93,12 @@ public class ActionBarUI : MonoBehaviour
         actionButtons.Add(btn);
     }
 
+    // --- TOOLTIPS (Bloque 1.4) ---
     public void OnPointerEnterButton(int index)
     {
+        if (TooltipUI.Instance == null) return;
         ActionButton btn = actionButtons[index];
-        
+
         switch (btn.actionType)
         {
             case "skill":
@@ -121,7 +122,7 @@ public class ActionBarUI : MonoBehaviour
 
     public void OnPointerExitButton(int index)
     {
-        TooltipUI.Instance.Hide();
+        if (TooltipUI.Instance != null) TooltipUI.Instance.Hide();
     }
 
     void ShowUtilityTooltip()
@@ -129,7 +130,7 @@ public class ActionBarUI : MonoBehaviour
         ClassRole role = GetRole();
         string name = "";
         string desc = "";
-        
+
         switch (role)
         {
             case ClassRole.Tank:
@@ -151,13 +152,16 @@ public class ActionBarUI : MonoBehaviour
         fakeSkill.description = desc;
         fakeSkill.actionPointCost = 1;
         fakeSkill.unlockLevel = 0;
-        
+
         TooltipUI.Instance.ShowSkillTooltip(fakeSkill, true, 0);
     }
 
+    // --- ACCIONES ---
     void OnActionButtonClicked(int index)
     {
-        if (playerUnit == null || TurnManager.Instance == null || !TurnManager.Instance.IsPlayerTurn()) return;
+        // En mundo (sin TurnManager) la barra es informativa: sin acciones reales.
+        if (TurnManager.Instance == null) return;
+        if (playerUnit == null || !TurnManager.Instance.IsPlayerTurn()) return;
 
         ActionButton btn = actionButtons[index];
         CombatController cc = Object.FindAnyObjectByType<CombatController>();
@@ -210,9 +214,11 @@ public class ActionBarUI : MonoBehaviour
 
     void UpdateButtonStates()
     {
-        if (playerUnit == null || CharacterData.Instance == null) return;
+        if (CharacterData.Instance == null) return;
 
-        bool isPlayerTurn = TurnManager.Instance != null && TurnManager.Instance.IsPlayerTurn();
+        // worldMode: en mundo la barra se muestra activa e informativa.
+        bool worldMode = TurnManager.Instance == null;
+        bool isPlayerTurn = worldMode || TurnManager.Instance.IsPlayerTurn();
         int playerLevel = CharacterData.Instance.level;
 
         for (int i = 0; i < actionButtons.Count; i++)
@@ -228,12 +234,12 @@ public class ActionBarUI : MonoBehaviour
                 case "skill":
                     SkillData skill = SkillCatalog.Get(GetRole(), btn.actionIndex);
                     bool isUnlocked = SkillCatalog.IsSkillUnlocked(GetRole(), btn.actionIndex, playerLevel);
-                    
+
                     if (skill != null)
                     {
                         labelText = skill.skillName;
                         costText = skill.actionPointCost + " AP";
-                        
+
                         if (!isUnlocked)
                         {
                             labelText = "Nv " + skill.unlockLevel;
@@ -243,7 +249,7 @@ public class ActionBarUI : MonoBehaviour
                         }
                         else
                         {
-                            canUse = canUse && playerUnit.currentAP >= skill.actionPointCost;
+                            canUse = canUse && (worldMode || (playerUnit != null && playerUnit.currentAP >= skill.actionPointCost));
                             btn.background.color = (armedSkill == skill)
                                 ? new Color(0.3f, 0.55f, 0.3f)
                                 : (canUse ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.15f, 0.15f, 0.15f, 0.5f));
@@ -259,7 +265,7 @@ public class ActionBarUI : MonoBehaviour
                         default: labelText = "Ojos"; break;
                     }
                     costText = "1 AP";
-                    canUse = canUse && playerUnit.currentAP >= 1;
+                    canUse = canUse && (worldMode || (playerUnit != null && playerUnit.currentAP >= 1));
                     btn.background.color = canUse ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.15f, 0.15f, 0.15f, 0.5f);
                     break;
 
@@ -290,7 +296,7 @@ public class ActionBarUI : MonoBehaviour
     }
 }
 
-// Componente auxiliar para detectar hover en botones
+// Componente auxiliar para detectar hover en botones y disparar tooltips
 public class ActionButtonTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     public int buttonIndex;

@@ -20,6 +20,8 @@ public class HUDUI : MonoBehaviour
     private RectTransform bossHpFill;
     private Text bossHpText;
 
+    private string currentPortraitKey = "";
+
     private Unit playerUnit;
     private readonly List<GameObject> activeBuffIcons = new List<GameObject>();
     private readonly List<GameObject> activeDebuffIcons = new List<GameObject>();
@@ -27,12 +29,14 @@ public class HUDUI : MonoBehaviour
     void Awake()
     {
         Build();
+
+        // ActionBar y botón de huida: exclusivos de combate
         gameObject.AddComponent<ActionBarUI>();
-        gameObject.AddComponent<FleeUI>();
-        if (TooltipUI.Instance == null)
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "SampleScene")
         {
-            new GameObject("TooltipUI").AddComponent<TooltipUI>();
+            gameObject.AddComponent<FleeUI>();
         }
+
     }
 
     void Build()
@@ -68,30 +72,25 @@ public class HUDUI : MonoBehaviour
         bossBarRoot.SetActive(false);
 
         // --- HUD DEL JUGADOR (inferior izquierda) ---
-        // Cuadrícula: retrato+nivel a la izquierda; HP/AP y estados a la derecha.
         RectTransform playerHud = UIFactory.CreatePanel(root.transform, "PlayerHUD",
             new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0),
             new Vector2(20, 40), new Vector2(320, 105));
 
-        // Retrato alineado al tope con las barras
         RectTransform portrait = UIFactory.CreatePanel(playerHud, "Portrait",
             new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
             new Vector2(0, 0), new Vector2(70, 70), Color.gray);
         portraitImage = portrait.GetComponent<Image>();
-        if (portraitImage != null) portraitImage.sprite = SpriteFactory.Square();
+        SetPortrait();
 
-        // Nivel debajo del retrato
         levelText = UIFactory.CreateText(playerHud, "Level", "Nv 1", 16, TextAnchor.UpperCenter, Color.white,
             new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
             new Vector2(0, -75), new Vector2(70, 25));
 
-        // Barras HP/AP a la derecha del retrato, alineadas al tope
         hpBar = UIFactory.CreateBar(playerHud, "HP", new Vector2(80, 0), new Vector2(220, 28),
             new Color(0.4f, 0f, 0f), new Color(0.9f, 0.1f, 0.1f));
         apBar = UIFactory.CreateBar(playerHud, "AP", new Vector2(80, -33), new Vector2(220, 28),
             new Color(0f, 0.2f, 0.4f), new Color(0.1f, 0.5f, 0.9f));
 
-        // Buffs/Debuffs en fila propia DEBAJO de la barra de AP
         RectTransform statusContainer = UIFactory.CreatePanel(playerHud, "StatusIcons",
             new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
             new Vector2(80, -66), new Vector2(240, 30));
@@ -141,6 +140,27 @@ public class HUDUI : MonoBehaviour
         rt.offsetMax = Vector2.zero;
     }
 
+    void SetPortrait()
+    {
+        if (portraitImage == null) return;
+        string art = "dps";
+        if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
+        {
+            switch (CharacterData.Instance.classData.role)
+            {
+                case ClassRole.Tank: art = "tank"; break;
+                case ClassRole.Healer: art = "healer"; break;
+                default: art = "dps"; break;
+            }
+        }
+        if (art != currentPortraitKey)
+        {
+            currentPortraitKey = art;
+            portraitImage.sprite = ArtProvider.Get(art);
+            portraitImage.color = Color.white;
+        }
+    }
+
     void Update()
     {
         if (playerUnit == null)
@@ -159,6 +179,7 @@ public class HUDUI : MonoBehaviour
                 xpFill.sizeDelta = new Vector2(xpBarWidth * t, 16);
             }
             if (levelText != null) levelText.text = "Nv " + cd.level;
+            SetPortrait();
         }
 
         if (playerUnit != null)
@@ -205,7 +226,6 @@ public class HUDUI : MonoBehaviour
         }
     }
 
-    // Un GameObject UI solo admite UNA Graphic: Image en el padre, Text como hijo estirado.
     GameObject CreateStatusIcon(Transform parent, string label, Color color, int turns)
     {
         RectTransform rt = UIFactory.CreatePanel(parent, "StatusIcon",
