@@ -21,6 +21,7 @@ public class CharacterData : MonoBehaviour
         classData = data;
         level = 0;
         xp = 0;
+        gold = 20;
     }
 
     public void LoadFrom(SaveData data, List<ClassData> classes)

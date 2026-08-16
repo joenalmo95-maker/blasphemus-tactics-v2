@@ -40,6 +40,11 @@ public class CombatController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha2)) ToggleSkill(rangedAttack);
         if (Input.GetKeyDown(KeyCode.Alpha3)) TryHeal();
 
+        if (Input.GetKeyDown(KeyCode.Alpha4)) TryUse(ConsumableType.PocionHP);
+        if (Input.GetKeyDown(KeyCode.Alpha5)) TryUse(ConsumableType.PocionAP);
+        if (Input.GetKeyDown(KeyCode.Alpha6)) TryUse(ConsumableType.ComidaDano);
+        if (Input.GetKeyDown(KeyCode.Alpha7)) TryUse(ConsumableType.ComidaDefensa);
+
         if (armedSkill != null && Input.GetMouseButtonDown(1))
         {
             Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -54,7 +59,8 @@ public class CombatController : MonoBehaviour
                 if (distance <= armedSkill.range && playerUnit.currentAP >= armedSkill.actionPointCost)
                 {
                     playerUnit.currentAP -= armedSkill.actionPointCost;
-                    target.ReceiveAttack(playerUnit, armedSkill.damage + playerUnit.stats.damage);
+                    int raw = armedSkill.damage + playerUnit.stats.damage + playerUnit.buffDamage;
+                    target.ReceiveAttack(playerUnit, raw);
                     Debug.Log(armedSkill.skillName + " ejecutado. AP restantes: " + playerUnit.currentAP);
                     armedSkill = null;
                 }
@@ -64,6 +70,11 @@ public class CombatController : MonoBehaviour
                 }
             }
         }
+    }
+
+    void TryUse(ConsumableType t)
+    {
+        if (InventorySystem.Instance != null) InventorySystem.Instance.UseConsumable(t);
     }
 
     void TryHeal()

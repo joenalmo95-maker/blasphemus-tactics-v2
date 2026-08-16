@@ -29,7 +29,7 @@ public class InputController : MonoBehaviour
     void Update()
     {
         if (isMoving) return;
-        if (InventoryUI.IsOpen) return;
+        if (InventoryUI.IsOpen || ShopUI.IsOpen) return;
         if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn()) return;
 
         if (playerUnit == null) playerUnit = GetPlayer();

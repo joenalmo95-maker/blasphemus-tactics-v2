@@ -36,6 +36,9 @@ public class Bootstrap : MonoBehaviour
         GameObject hudObj = new GameObject("HUDUI");
         hudObj.AddComponent<HUDUI>();
 
+        GameObject shopObj = new GameObject("ShopUI");
+        shopObj.AddComponent<ShopUI>();
+
         if (availableClasses.Count > 0)
         {
             GameObject creationObj = new GameObject("CharacterCreation");

@@ -11,6 +11,7 @@ public class SaveData
     public int gold;
     public List<ItemData> items = new List<ItemData>();
     public List<ItemData> equipped = new List<ItemData>();
+    public List<ConsumableData> consumables = new List<ConsumableData>();
 }
 
 public static class SaveSystem
@@ -33,6 +34,7 @@ public static class SaveSystem
         data.gold = CharacterData.Instance.gold;
         data.items = InventorySystem.Instance.items;
         data.equipped = InventorySystem.Instance.GetAllEquipped();
+        data.consumables = InventorySystem.Instance.consumables;
 
         File.WriteAllText(Path, JsonUtility.ToJson(data, true));
         Debug.Log("Partida guardada.");

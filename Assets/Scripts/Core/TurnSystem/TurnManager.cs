@@ -51,6 +51,7 @@ public class TurnManager : MonoBehaviour
         {
             playerUnit.ResetAP();
             Debug.Log("AP restaurados: " + playerUnit.currentAP);
+            playerUnit.TickBuffs();
         }
     }
 

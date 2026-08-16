@@ -6,6 +6,7 @@ public class InventorySystem : MonoBehaviour
     public static InventorySystem Instance { get; private set; }
 
     public List<ItemData> items = new List<ItemData>();
+    public List<ConsumableData> consumables = new List<ConsumableData>();
     private Dictionary<ItemSlot, ItemData> equipped = new Dictionary<ItemSlot, ItemData>();
 
     void Awake()
@@ -27,6 +28,7 @@ public class InventorySystem : MonoBehaviour
     public void LoadFrom(SaveData data)
     {
         items = data.items != null ? data.items : new List<ItemData>();
+        consumables = data.consumables != null ? data.consumables : new List<ConsumableData>();
         equipped.Clear();
         if (data.equipped != null)
         {
@@ -42,6 +44,79 @@ public class InventorySystem : MonoBehaviour
     {
         items.Add(item);
         Debug.Log("Objeto obtenido: " + item.itemName + " [" + item.rarity + "]");
+    }
+
+    public int GetConsumableCount(ConsumableType t)
+    {
+        foreach (ConsumableData c in consumables)
+        {
+            if (c.type == t) return c.count;
+        }
+        return 0;
+    }
+
+    public void AddConsumable(ConsumableType t, int count = 1)
+    {
+        foreach (ConsumableData c in consumables)
+        {
+            if (c.type == t)
+            {
+                c.count += count;
+                return;
+            }
+        }
+        consumables.Add(new ConsumableData { type = t, count = count });
+    }
+
+    public bool UseConsumable(ConsumableType t)
+    {
+        if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn())
+        {
+            Debug.Log("Solo puedes usar consumibles en tu turno.");
+            return false;
+        }
+
+        ConsumableData entry = null;
+        foreach (ConsumableData c in consumables)
+        {
+            if (c.type == t && c.count > 0) { entry = c; break; }
+        }
+
+        if (entry == null)
+        {
+            Debug.Log("No tienes " + ConsumableCatalog.Name(t) + ".");
+            return false;
+        }
+
+        Unit player = null;
+        Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        foreach (Unit u in units)
+        {
+            if (!u.isEnemy) { player = u; break; }
+        }
+        if (player == null) return false;
+
+        switch (t)
+        {
+            case ConsumableType.PocionHP:
+                player.Heal(8);
+                break;
+            case ConsumableType.PocionAP:
+                player.currentAP = Mathf.Min(player.maxAP, player.currentAP + 2);
+                Debug.Log("AP restaurados: " + player.currentAP);
+                break;
+            case ConsumableType.ComidaDano:
+                player.AddBuff(2, 0, 3);
+                break;
+            default:
+                player.AddBuff(0, 2, 3);
+                break;
+        }
+
+        entry.count--;
+        if (entry.count <= 0) consumables.Remove(entry);
+        Debug.Log("Usado: " + ConsumableCatalog.Name(t) + ". Restantes: " + GetConsumableCount(t));
+        return true;
     }
 
     public void Equip(int index)

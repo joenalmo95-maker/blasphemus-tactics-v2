@@ -14,6 +14,10 @@ public class Unit : MonoBehaviour
     public StatBlock stats = new StatBlock();
     public float threat = 0f;
 
+    public int buffDamage = 0;
+    public int buffDefense = 0;
+    public int buffTurns = 0;
+
     private Color originalColor;
     private bool colorCached = false;
 
@@ -62,6 +66,29 @@ public class Unit : MonoBehaviour
         currentAP = maxAP;
     }
 
+    public void AddBuff(int dmg, int def, int turns)
+    {
+        buffDamage += dmg;
+        buffDefense += def;
+        buffTurns = Mathf.Max(buffTurns, turns);
+        Debug.Log(gameObject.name + " recibe buff: +" + dmg + " daño, +" + def + " defensa por " + turns + " turnos.");
+        CombatFeedback.SpawnText(transform.position, "BUFF", Color.blue);
+    }
+
+    public void TickBuffs()
+    {
+        if (buffTurns > 0)
+        {
+            buffTurns--;
+            if (buffTurns == 0)
+            {
+                buffDamage = 0;
+                buffDefense = 0;
+                Debug.Log("Los buffs han expirado.");
+            }
+        }
+    }
+
     public void ReceiveAttack(Unit attacker, int rawDamage)
     {
         int atk = attacker != null ? attacker.stats.attack : 70;
@@ -78,7 +105,7 @@ public class Unit : MonoBehaviour
         }
 
         bool isCrit = Random.Range(0, 100) < crit;
-        int mitigated = Mathf.Max(1, rawDamage - stats.defense);
+        int mitigated = Mathf.Max(1, rawDamage - (stats.defense + buffDefense));
         int final = isCrit ? mitigated * 2 : mitigated;
 
         currentHealth -= final;
