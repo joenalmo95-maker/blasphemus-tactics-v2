@@ -17,6 +17,7 @@ public class WorldSpawnManager : MonoBehaviour
     class ActiveEnemy
     {
         public SpawnDefW def;
+        public Vector2Int cell;
         public GameObject go;
     }
 
@@ -65,26 +66,58 @@ public class WorldSpawnManager : MonoBehaviour
             // Respawn por tiempo: si cayó hace menos de RespawnSeconds, permanece ausente
             if (DefeatedAt.TryGetValue(d.id, out float t) && (now - t) < RespawnSeconds) continue;
 
-            ClearAround(d.cell);
+            // NUNCA sobre el terreno: busca la celda caminable más cercana sin modificar el mapa
+            Vector2Int cell = FindFreeCellNear(d.cell, 4);
+            if (cell.x < 0) continue; // sin hueco seguro: se omite este spawn
 
             GameObject go = new GameObject("WorldEnemy_" + d.archetype + "_" + d.id);
-            go.transform.position = new Vector3(d.cell.x, d.cell.y, 0);
+            go.transform.position = new Vector3(cell.x, cell.y, 0);
             SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = ArtProvider.Get(d.archetype);
             sr.sortingOrder = 2;
             go.transform.localScale = Vector3.one * 0.8f;
 
-            active.Add(new ActiveEnemy { def = d, go = go });
+            active.Add(new ActiveEnemy { def = d, cell = cell, go = go });
         }
     }
 
-    static void ClearAround(Vector2Int c)
+    // Búsqueda en anillos concéntricos alrededor de la celda deseada
+    Vector2Int FindFreeCellNear(Vector2Int desired, int maxRadius)
     {
-        TerrainMap.Set(c, TerrainType.Caminable);
-        TerrainMap.Set(c + new Vector2Int(1, 0), TerrainType.Caminable);
-        TerrainMap.Set(c + new Vector2Int(-1, 0), TerrainType.Caminable);
-        TerrainMap.Set(c + new Vector2Int(0, 1), TerrainType.Caminable);
-        TerrainMap.Set(c + new Vector2Int(0, -1), TerrainType.Caminable);
+        for (int r = 0; r <= maxRadius; r++)
+        {
+            for (int dy = -r; dy <= r; dy++)
+            {
+                for (int dx = -r; dx <= r; dx++)
+                {
+                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
+                    Vector2Int c = desired + new Vector2Int(dx, dy);
+                    if (IsFreeForSpawn(c)) return c;
+                }
+            }
+        }
+        return new Vector2Int(-1, -1);
+    }
+
+    bool IsFreeForSpawn(Vector2Int c)
+    {
+        if (c.x < 0 || c.y < 0 || c.x >= WorldBootstrap.WorldWidth || c.y >= WorldBootstrap.WorldHeight) return false;
+        if (!TerrainMap.IsWalkable(c)) return false;               // respeta rocas/agua/ruinas
+        if (c == WorldBootstrap.PlayerSpawn) return false;         // no sobre el jugador
+
+        // No sobre zonas ni su radio de prompt (evita doble prompt con E)
+        foreach (WorldBootstrap.ZoneDef z in WorldBootstrap.Zones)
+        {
+            if (Mathf.Abs(z.center.x - c.x) <= 2 && Mathf.Abs(z.center.y - c.y) <= 2) return false;
+        }
+
+        // No sobre otro monstruo
+        foreach (ActiveEnemy e in active)
+        {
+            if (e.cell == c) return false;
+        }
+
+        return true;
     }
 
     void Update()
@@ -97,7 +130,7 @@ public class WorldSpawnManager : MonoBehaviour
         nearEnemy = null;
         foreach (ActiveEnemy e in active)
         {
-            if (Mathf.Abs(e.def.cell.x - myCell.x) <= 1 && Mathf.Abs(e.def.cell.y - myCell.y) <= 1)
+            if (Mathf.Abs(e.cell.x - myCell.x) <= 1 && Mathf.Abs(e.cell.y - myCell.y) <= 1)
             {
                 nearEnemy = e;
                 break;
@@ -107,10 +140,7 @@ public class WorldSpawnManager : MonoBehaviour
         if (nearEnemy != null)
         {
             promptText.text = "Pulsa E para combatir: " + nearEnemy.def.archetype + " (" + nearEnemy.def.tier + ")";
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                EnterCombat(nearEnemy);
-            }
+            if (Input.GetKeyDown(KeyCode.E)) EnterCombat(nearEnemy);
         }
         else
         {
@@ -120,13 +150,9 @@ public class WorldSpawnManager : MonoBehaviour
 
     void EnterCombat(ActiveEnemy e)
     {
-        // Marca el inicio del combate para el respawn por tiempo
         DefeatedAt[e.def.id] = Time.realtimeSinceStartup;
-
-        // Hook reservado para materiales de mejora (6.2)
         if (OnWorldEnemyDefeated != null) OnWorldEnemyDefeated(e.def);
 
-        // Reutiliza el flujo existente: 1 oleada con el arquetipo del mundo
         List<WaveDef> dungeon = new List<WaveDef>
         {
             new WaveDef { spawns = new List<SpawnDef>
