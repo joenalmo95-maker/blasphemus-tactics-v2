@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Text;
 
 public class TooltipUI : MonoBehaviour
 {
@@ -64,8 +65,6 @@ public class TooltipUI : MonoBehaviour
         if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRt, Input.mousePosition, null, out localPoint))
             return;
 
-        // FIX: localPoint tiene origen en el CENTRO del canvas (pivote 0.5).
-        // El panel está anclado abajo-izquierda: convertimos sumando medio rect.
         Vector2 half = canvasRt.rect.size * 0.5f;
         Vector2 pos = localPoint + half;
 
@@ -77,7 +76,6 @@ public class TooltipUI : MonoBehaviour
         float cw = canvasRt.rect.width;
         float ch = canvasRt.rect.height;
 
-        // Volteo automático en bordes.
         if (x + w > cw - 5f) x = pos.x - w - OFFSET;
         if (y + h > ch - 5f) y = pos.y - h - OFFSET;
 
@@ -87,7 +85,7 @@ public class TooltipUI : MonoBehaviour
     public void ShowSkillTooltip(SkillData skill, bool isUnlocked, int playerLevel)
     {
         if (skill == null) return;
-
+        titleText.color = Color.yellow;
         titleText.text = skill.skillName;
 
         string desc = skill.description;
@@ -97,50 +95,122 @@ public class TooltipUI : MonoBehaviour
         }
         descriptionText.text = desc;
 
-        string stats = "Costo: " + skill.actionPointCost + " AP\n";
-        stats += "Rango: " + skill.range + " casillas\n";
-        stats += "Daño: " + skill.damage;
-        if (skill.bonusCrit > 0) stats += " (+" + skill.bonusCrit + "% crítico)";
-        stats += "\nAmenaza: x" + skill.threatMult.ToString("F1");
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("Costo: " + skill.actionPointCost + " AP");
+        sb.AppendLine("Rango: " + skill.range + " casillas");
+        sb.Append("Daño: " + skill.damage);
+        if (skill.bonusCrit > 0) sb.Append(" (+" + skill.bonusCrit + "% crítico)");
+        sb.Append("\nAmenaza: x" + skill.threatMult.ToString("F1"));
 
-        statsText.text = stats;
+        statsText.text = sb.ToString();
         panelRt.gameObject.SetActive(true);
     }
 
     public void ShowUnitTooltip(Unit unit)
     {
         if (unit == null) return;
-
+        titleText.color = Color.yellow;
         titleText.text = unit.gameObject.name;
         descriptionText.text = unit.isEnemy ? "Enemigo" : "Jugador";
 
-        string stats = "HP: " + unit.currentHealth + " / " + unit.maxHealth + "\n";
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("HP: " + unit.currentHealth + " / " + unit.maxHealth);
         if (!unit.isEnemy)
         {
-            stats += "AP: " + unit.currentAP + " / " + unit.maxAP + "\n";
-            stats += "Daño: " + (unit.stats.damage + unit.buffDamage) + "\n";
-            stats += "Defensa: " + (unit.stats.defense + unit.buffDefense) + "\n";
-            stats += "Crítico: " + (unit.stats.critChance + unit.buffCrit) + "%\n";
-            stats += "Precisión: " + (unit.stats.attack - unit.debuffAttack) + "%";
+            sb.AppendLine("AP: " + unit.currentAP + " / " + unit.maxAP);
+            sb.AppendLine("Daño: " + (unit.stats.damage + unit.buffDamage));
+            sb.AppendLine("Defensa: " + (unit.stats.defense + unit.buffDefense));
+            sb.AppendLine("Crítico: " + (unit.stats.critChance + unit.buffCrit) + "%");
+            sb.Append("Precisión: " + (unit.stats.attack - unit.debuffAttack) + "%");
         }
 
         if (unit.buffTurns > 0 || unit.debuffTurns > 0)
         {
-            stats += "\n<color=#66ccff>Estados activos:</color>";
-            if (unit.buffTurns > 0) stats += "\n  BUFF (" + unit.buffTurns + " turnos)";
-            if (unit.debuffTurns > 0) stats += "\n  MALDICIÓN (" + unit.debuffTurns + " turnos)";
+            sb.AppendLine("\n<color=#66ccff>Estados activos:</color>");
+            if (unit.buffTurns > 0) sb.AppendLine("  BUFF (" + unit.buffTurns + " turnos)");
+            if (unit.debuffTurns > 0) sb.AppendLine("  MALDICIÓN (" + unit.debuffTurns + " turnos)");
         }
 
-        statsText.text = stats;
+        statsText.text = sb.ToString();
         panelRt.gameObject.SetActive(true);
     }
 
     public void ShowConsumableTooltip(ConsumableType type, int count)
     {
+        titleText.color = Color.yellow;
         titleText.text = ConsumableCatalog.Name(type);
         descriptionText.text = ConsumableCatalog.Description(type);
         statsText.text = "Cantidad: " + count;
         panelRt.gameObject.SetActive(true);
+    }
+
+    // BLOQUE 1.5: Tarjeta de item con comparativa contra el slot equipado.
+    public void ShowItemTooltip(ItemData item, ItemData equipped)
+    {
+        if (item == null) return;
+
+        titleText.color = ItemGenerator.RarityColor(item.rarity);
+        titleText.text = item.itemName;
+
+        string desc = RarityLabel(item.rarity) + " · " + SlotLabel(item.slot);
+        if (!string.IsNullOrEmpty(item.requiredClass)) desc += "\nClase: " + item.requiredClass;
+        if (equipped != null) desc += "\n<color=#aaaaaa>Reemplaza: " + equipped.itemName + "</color>";
+        descriptionText.text = desc;
+
+        bool cmp = equipped != null;
+        StringBuilder sb = new StringBuilder();
+        AppendStat(sb, "HP máx", item.stats.maxHP, cmp ? equipped.stats.maxHP : 0, "", cmp);
+        AppendStat(sb, "Defensa", item.stats.defense, cmp ? equipped.stats.defense : 0, "", cmp);
+        AppendStat(sb, "Daño", item.stats.damage, cmp ? equipped.stats.damage : 0, "", cmp);
+        AppendStat(sb, "Precisión", item.stats.attack, cmp ? equipped.stats.attack : 0, "", cmp);
+        AppendStat(sb, "Crítico", item.stats.critChance, cmp ? equipped.stats.critChance : 0, "%", cmp);
+        AppendStat(sb, "Evasión", item.stats.evasion, cmp ? equipped.stats.evasion : 0, "%", cmp);
+        AppendStat(sb, "AP", item.stats.apMove, cmp ? equipped.stats.apMove : 0, "", cmp);
+        AppendStat(sb, "Curación", item.stats.healingPower, cmp ? equipped.stats.healingPower : 0, "%", cmp);
+        AppendStat(sb, "Robo de vida", item.stats.lifesteal, cmp ? equipped.stats.lifesteal : 0, "%", cmp);
+        sb.AppendLine("Venta: " + ItemGenerator.SellPrice(item) + " oro");
+
+        statsText.text = sb.ToString();
+        panelRt.gameObject.SetActive(true);
+    }
+
+    void AppendStat(StringBuilder sb, string label, int val, int eqVal, string suffix, bool compare)
+    {
+        if (val == 0) return;
+        string line = "+" + val + suffix + " " + label;
+        if (compare)
+        {
+            int delta = val - eqVal;
+            if (delta != 0)
+            {
+                string col = delta > 0 ? "#00ff00" : "#ff5555";
+                line += " <color=" + col + ">(" + (delta > 0 ? "+" + delta : delta.ToString()) + ")</color>";
+            }
+        }
+        sb.AppendLine(line);
+    }
+
+    string RarityLabel(Rarity r)
+    {
+        switch (r)
+        {
+            case Rarity.Rare: return "Rara";
+            case Rarity.Epic: return "Épica";
+            case Rarity.Legendary: return "Legendaria";
+            default: return "Común";
+        }
+    }
+
+    string SlotLabel(ItemSlot s)
+    {
+        switch (s)
+        {
+            case ItemSlot.Weapon: return "Arma";
+            case ItemSlot.Chest: return "Peto";
+            case ItemSlot.Legs: return "Pantalón";
+            case ItemSlot.Helm: return "Casco";
+            default: return "Guantes";
+        }
     }
 
     public void Hide()

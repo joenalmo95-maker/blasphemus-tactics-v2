@@ -6,13 +6,11 @@ using System.Collections.Generic;
 public class InventoryUI : MonoBehaviour
 {
     public static bool IsOpen { get; private set; }
-
     private GameObject root;
 
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.I) || Input.GetKeyDown(KeyCode.C)) Toggle();
-
         if (Input.GetKeyDown(KeyCode.L))
         {
             if (InventorySystem.Instance != null)
@@ -22,7 +20,6 @@ public class InventoryUI : MonoBehaviour
                 if (IsOpen) Rebuild();
             }
         }
-
         if (Input.GetKeyDown(KeyCode.F5))
         {
             SaveSystem.Save();
@@ -52,6 +49,10 @@ public class InventoryUI : MonoBehaviour
             es.AddComponent<StandaloneInputModule>();
         }
 
+        // Garantiza tooltips también en WorldMap
+        if (TooltipUI.Instance == null)
+            new GameObject("TooltipUI").AddComponent<TooltipUI>();
+
         root = new GameObject("InventoryCanvas");
         Canvas canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -70,16 +71,15 @@ public class InventoryUI : MonoBehaviour
         bimg.color = new Color(0.02f, 0.02f, 0.03f, 0.95f);
 
         MakeText(root.transform, "INVENTARIO Y EQUIPO  (I/C cerrar, L simular drop)", 0, 260, 20);
-
         MakeText(root.transform, "EQUIPADO (clic para desequipar)", -260, 190, 16);
+
         float ey = 150;
         foreach (ItemSlot slot in System.Enum.GetValues(typeof(ItemSlot)))
         {
             ItemData eq = InventorySystem.Instance != null ? InventorySystem.Instance.GetEquipped(slot) : null;
             string label = SlotLabel(slot) + ": " + (eq != null ? eq.itemName : "---");
             ItemData captured = eq;
-
-            MakeButton(root.transform, label, -260, ey, 320, 34, Color.white, () =>
+            GameObject eqBtn = MakeButton(root.transform, label, -260, ey, 320, 34, Color.white, () =>
             {
                 if (captured != null && InventorySystem.Instance != null)
                 {
@@ -87,10 +87,18 @@ public class InventoryUI : MonoBehaviour
                     Rebuild();
                 }
             });
+
+            if (captured != null)
+            {
+                ItemTooltipTrigger trig = eqBtn.AddComponent<ItemTooltipTrigger>();
+                trig.item = captured;
+                trig.compareWithEquipped = false;
+            }
             ey -= 40;
         }
 
         MakeText(root.transform, "MOCHILA (clic: equipar / vender)", 80, 190, 16);
+
         float iy = 150;
         int count = 0;
         if (InventorySystem.Instance != null)
@@ -101,7 +109,7 @@ public class InventoryUI : MonoBehaviour
                 int idx = i;
                 int price = ItemGenerator.SellPrice(item);
 
-                MakeButton(root.transform, item.itemName + " [" + item.rarity + "]", 40, iy, 320, 34,
+                GameObject itemBtn = MakeButton(root.transform, item.itemName + " [" + item.rarity + "]", 40, iy, 320, 34,
                     ItemGenerator.RarityColor(item.rarity), () =>
                 {
                     if (InventorySystem.Instance != null)
@@ -111,6 +119,10 @@ public class InventoryUI : MonoBehaviour
                     }
                 });
 
+                ItemTooltipTrigger trig = itemBtn.AddComponent<ItemTooltipTrigger>();
+                trig.item = item;
+                trig.compareWithEquipped = true;
+
                 MakeButton(root.transform, "Vender " + price, 265, iy, 130, 34, Color.yellow, () =>
                 {
                     if (InventorySystem.Instance != null)
@@ -119,24 +131,20 @@ public class InventoryUI : MonoBehaviour
                         Rebuild();
                     }
                 });
-
                 iy -= 40;
                 count++;
             }
         }
 
         StatBlock stats = CharacterData.Instance != null ? CharacterData.Instance.GetTotalStats() : new StatBlock();
-
         Unit player = null;
         Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
         foreach (Unit u in units)
         {
             if (!u.isEnemy) { player = u; break; }
         }
-
         string hpText = player != null ? player.currentHealth + "/" + player.maxHealth : stats.maxHP + "/" + stats.maxHP;
         string apText = player != null ? player.currentAP + "/" + player.maxAP : stats.apMove + "/" + stats.apMove;
-
         string statsText = "HP: " + hpText + "  DEF: " + stats.defense + "  DAÑO: " + stats.damage +
                            "  ATQ: " + stats.attack + "  CRIT: " + stats.critChance + "%  EVA: " + stats.evasion +
                            "%  AP: " + apText + "  CUR: " + stats.healingPower + "%  ROBO: " + stats.lifesteal + "%";
@@ -155,7 +163,7 @@ public class InventoryUI : MonoBehaviour
         }
     }
 
-    void MakeButton(Transform parent, string label, float x, float y, float w, float h, Color textColor,
+    GameObject MakeButton(Transform parent, string label, float x, float y, float w, float h, Color textColor,
         UnityEngine.Events.UnityAction onClick)
     {
         GameObject go = new GameObject("Btn");
@@ -165,11 +173,9 @@ public class InventoryUI : MonoBehaviour
         rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = new Vector2(x, y);
         rt.sizeDelta = new Vector2(w, h);
-
         Image img = go.AddComponent<Image>();
         img.sprite = SpriteFactory.Square();
         img.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
-
         Button btn = go.AddComponent<Button>();
 
         GameObject txtObj = new GameObject("Label");
@@ -179,15 +185,14 @@ public class InventoryUI : MonoBehaviour
         trt.anchorMax = Vector2.one;
         trt.offsetMin = Vector2.zero;
         trt.offsetMax = Vector2.zero;
-
         Text t = txtObj.AddComponent<Text>();
         t.text = label;
         t.font = GetFont();
         t.fontSize = 14;
         t.alignment = TextAnchor.MiddleCenter;
         t.color = textColor;
-
         btn.onClick.AddListener(onClick);
+        return go;
     }
 
     void MakeText(Transform parent, string content, float x, float y, int size)
@@ -199,7 +204,6 @@ public class InventoryUI : MonoBehaviour
         rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = new Vector2(x, y);
         rt.sizeDelta = new Vector2(900, 40);
-
         Text t = go.AddComponent<Text>();
         t.text = content;
         t.font = GetFont();
