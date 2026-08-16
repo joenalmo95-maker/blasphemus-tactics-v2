@@ -63,28 +63,33 @@ public class HUDUI : MonoBehaviour
         bossBarRoot.SetActive(false);
 
         // --- HUD DEL JUGADOR (inferior izquierda) ---
+        // Cuadrícula: retrato+nivel a la izquierda; HP/AP y estados a la derecha.
         RectTransform playerHud = UIFactory.CreatePanel(root.transform, "PlayerHUD",
             new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0),
-            new Vector2(20, 40), new Vector2(300, 150));
+            new Vector2(20, 40), new Vector2(320, 105));
 
+        // Retrato alineado al tope con las barras
         RectTransform portrait = UIFactory.CreatePanel(playerHud, "Portrait",
-            new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0, 0.5f),
-            new Vector2(0, 20), new Vector2(80, 80), Color.gray);
+            new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
+            new Vector2(0, 0), new Vector2(70, 70), Color.gray);
         portraitImage = portrait.GetComponent<Image>();
         if (portraitImage != null) portraitImage.sprite = SpriteFactory.Square();
 
-        levelText = UIFactory.CreateText(playerHud, "Level", "Nv 1", 18, TextAnchor.UpperCenter, Color.white,
-            new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(0.5f, 1),
-            new Vector2(40, -25), new Vector2(80, 30));
+        // Nivel debajo del retrato
+        levelText = UIFactory.CreateText(playerHud, "Level", "Nv 1", 16, TextAnchor.UpperCenter, Color.white,
+            new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
+            new Vector2(0, -75), new Vector2(70, 25));
 
-        hpBar = UIFactory.CreateBar(playerHud, "HP", new Vector2(90, 60), new Vector2(200, 25),
+        // Barras HP/AP a la derecha del retrato, alineadas al tope
+        hpBar = UIFactory.CreateBar(playerHud, "HP", new Vector2(80, 0), new Vector2(220, 28),
             new Color(0.4f, 0f, 0f), new Color(0.9f, 0.1f, 0.1f));
-        apBar = UIFactory.CreateBar(playerHud, "AP", new Vector2(90, 30), new Vector2(200, 25),
+        apBar = UIFactory.CreateBar(playerHud, "AP", new Vector2(80, -33), new Vector2(220, 28),
             new Color(0f, 0.2f, 0.4f), new Color(0.1f, 0.5f, 0.9f));
 
+        // Buffs/Debuffs en fila propia DEBAJO de la barra de AP
         RectTransform statusContainer = UIFactory.CreatePanel(playerHud, "StatusIcons",
-            new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, 1),
-            new Vector2(0, 30), new Vector2(300, 30));
+            new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
+            new Vector2(80, -66), new Vector2(240, 30));
         HorizontalLayoutGroup hlg = statusContainer.gameObject.AddComponent<HorizontalLayoutGroup>();
         hlg.spacing = 5;
         hlg.childAlignment = TextAnchor.MiddleLeft;
@@ -121,7 +126,7 @@ public class HUDUI : MonoBehaviour
         g.spacing = 2;
         g.childForceExpandWidth = false;
         g.childForceExpandHeight = true;
-        rt.gameObject.AddComponent<LayoutElement>().preferredWidth = 140;
+        rt.gameObject.AddComponent<LayoutElement>().preferredWidth = 115;
         return rt;
     }
 
@@ -154,11 +159,11 @@ public class HUDUI : MonoBehaviour
         if (playerUnit != null)
         {
             float hpRatio = Mathf.Clamp01((float)playerUnit.currentHealth / playerUnit.maxHealth);
-            if (hpBar.fill != null) hpBar.fill.sizeDelta = new Vector2(200 * hpRatio, 25);
+            if (hpBar.fill != null) hpBar.fill.sizeDelta = new Vector2(220 * hpRatio, 28);
             if (hpBar.text != null) hpBar.text.text = playerUnit.currentHealth + " / " + playerUnit.maxHealth;
 
             float apRatio = Mathf.Clamp01((float)playerUnit.currentAP / playerUnit.maxAP);
-            if (apBar.fill != null) apBar.fill.sizeDelta = new Vector2(200 * apRatio, 25);
+            if (apBar.fill != null) apBar.fill.sizeDelta = new Vector2(220 * apRatio, 28);
             if (apBar.text != null) apBar.text.text = playerUnit.currentAP + " / " + playerUnit.maxAP;
 
             UpdateStatusIcons();
@@ -195,7 +200,7 @@ public class HUDUI : MonoBehaviour
         }
     }
 
-    // FIX: Un GameObject UI solo admite UNA Graphic. Image en el padre, Text como hijo estirado.
+    // Un GameObject UI solo admite UNA Graphic: Image en el padre, Text como hijo estirado.
     GameObject CreateStatusIcon(Transform parent, string label, Color color, int turns)
     {
         RectTransform rt = UIFactory.CreatePanel(parent, "StatusIcon",
