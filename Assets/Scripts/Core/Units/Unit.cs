@@ -16,7 +16,9 @@ public class Unit : MonoBehaviour
 
     public int buffDamage = 0;
     public int buffDefense = 0;
+    public int buffCrit = 0;
     public int buffTurns = 0;
+
     public int pendingApPenalty = 0;
 
     public static Unit Create(string name, Vector2Int cell, bool isEnemy, Color color,
@@ -57,10 +59,16 @@ public class Unit : MonoBehaviour
 
     public void AddBuff(int dmg, int def, int turns)
     {
+        AddBuff(dmg, def, 0, turns);
+    }
+
+    public void AddBuff(int dmg, int def, int crit, int turns)
+    {
         buffDamage += dmg;
         buffDefense += def;
+        buffCrit += crit;
         buffTurns = Mathf.Max(buffTurns, turns);
-        Debug.Log(gameObject.name + " recibe buff: +" + dmg + " daño, +" + def + " defensa por " + turns + " turnos.");
+        Debug.Log(gameObject.name + " recibe buff: +" + dmg + " daño, +" + def + " defensa, +" + crit + " crítico por " + turns + " turnos.");
         CombatFeedback.SpawnText(transform.position, "BUFF", Color.blue);
     }
 
@@ -73,15 +81,16 @@ public class Unit : MonoBehaviour
             {
                 buffDamage = 0;
                 buffDefense = 0;
+                buffCrit = 0;
                 Debug.Log("Los buffs han expirado.");
             }
         }
     }
 
-    public void ReceiveAttack(Unit attacker, int rawDamage)
+    public void ReceiveAttack(Unit attacker, int rawDamage, int bonusCrit = 0, float skillThreat = 1f)
     {
         int atk = attacker != null ? attacker.stats.attack : 70;
-        int crit = attacker != null ? attacker.stats.critChance : 5;
+        int crit = (attacker != null ? attacker.stats.critChance + attacker.buffCrit : 5) + bonusCrit;
         int lifesteal = attacker != null ? attacker.stats.lifesteal : 0;
         float threatMult = attacker != null ? attacker.stats.threatMult : 1f;
 
@@ -105,7 +114,7 @@ public class Unit : MonoBehaviour
 
         if (attacker != null)
         {
-            attacker.threat += final * threatMult;
+            attacker.threat += final * threatMult * skillThreat;
 
             if (lifesteal > 0)
             {

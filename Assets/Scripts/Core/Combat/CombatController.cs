@@ -2,8 +2,6 @@ using UnityEngine;
 
 public class CombatController : MonoBehaviour
 {
-    public SkillData basicAttack;
-    public SkillData rangedAttack;
     private SkillData armedSkill = null;
     private Unit playerUnit;
 
@@ -26,6 +24,13 @@ public class CombatController : MonoBehaviour
         return null;
     }
 
+    ClassRole Role()
+    {
+        if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
+            return CharacterData.Instance.classData.role;
+        return ClassRole.DPS;
+    }
+
     void Update()
     {
         if (playerUnit == null)
@@ -36,9 +41,9 @@ public class CombatController : MonoBehaviour
 
         if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn()) return;
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) ToggleSkill(basicAttack);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) ToggleSkill(rangedAttack);
-        if (Input.GetKeyDown(KeyCode.Alpha3)) TryHeal();
+        if (Input.GetKeyDown(KeyCode.Alpha1)) ToggleSkill(SkillCatalog.Get(Role(), 1));
+        if (Input.GetKeyDown(KeyCode.Alpha2)) ToggleSkill(SkillCatalog.Get(Role(), 2));
+        if (Input.GetKeyDown(KeyCode.Alpha3)) TryUtility();
 
         if (Input.GetKeyDown(KeyCode.Alpha4)) TryUse(ConsumableType.PocionHP);
         if (Input.GetKeyDown(KeyCode.Alpha5)) TryUse(ConsumableType.PocionAP);
@@ -60,7 +65,7 @@ public class CombatController : MonoBehaviour
                 {
                     playerUnit.currentAP -= armedSkill.actionPointCost;
                     int raw = armedSkill.damage + playerUnit.stats.damage + playerUnit.buffDamage;
-                    target.ReceiveAttack(playerUnit, raw);
+                    target.ReceiveAttack(playerUnit, raw, armedSkill.bonusCrit, armedSkill.threatMult);
                     Debug.Log(armedSkill.skillName + " ejecutado. AP restantes: " + playerUnit.currentAP);
                     armedSkill = null;
                 }
@@ -72,33 +77,45 @@ public class CombatController : MonoBehaviour
         }
     }
 
+    void TryUtility()
+    {
+        if (playerUnit.currentAP < 1)
+        {
+            Debug.Log("AP insuficientes para la utilidad.");
+            return;
+        }
+
+        switch (Role())
+        {
+            case ClassRole.Tank:
+                playerUnit.currentAP -= 1;
+                playerUnit.AddBuff(2, 0, 3);
+                playerUnit.threat += 5f * playerUnit.stats.threatMult;
+                Debug.Log("Grito de Guerra: +2 daño por 3 turnos y amenaza alta. AP restantes: " + playerUnit.currentAP);
+                break;
+
+            case ClassRole.Healer:
+            {
+                int baseHeal = 4;
+                int amount = Mathf.RoundToInt(baseHeal * (1 + playerUnit.stats.healingPower / 100f));
+                playerUnit.currentAP -= 1;
+                playerUnit.Heal(amount);
+                playerUnit.threat += amount * 2f * playerUnit.stats.threatMult;
+                Debug.Log("Curación ejecutada. AP restantes: " + playerUnit.currentAP);
+                break;
+            }
+
+            default:
+                playerUnit.currentAP -= 1;
+                playerUnit.AddBuff(0, 0, 15, 3);
+                Debug.Log("Ojos del Halo: +15% crítico por 3 turnos. AP restantes: " + playerUnit.currentAP);
+                break;
+        }
+    }
+
     void TryUse(ConsumableType t)
     {
         if (InventorySystem.Instance != null) InventorySystem.Instance.UseConsumable(t);
-    }
-
-    void TryHeal()
-    {
-        if (CharacterData.Instance == null || CharacterData.Instance.classData == null) return;
-
-        if (CharacterData.Instance.classData.role != ClassRole.Healer)
-        {
-            Debug.Log("Tu clase no puede curar.");
-            return;
-        }
-
-        if (playerUnit.currentAP < 1)
-        {
-            Debug.Log("AP insuficientes para curar.");
-            return;
-        }
-
-        int baseHeal = 4;
-        int amount = Mathf.RoundToInt(baseHeal * (1 + playerUnit.stats.healingPower / 100f));
-        playerUnit.currentAP -= 1;
-        playerUnit.Heal(amount);
-        playerUnit.threat += amount * 2f * playerUnit.stats.threatMult;
-        Debug.Log("Curación ejecutada. AP restantes: " + playerUnit.currentAP);
     }
 
     void ToggleSkill(SkillData skill)

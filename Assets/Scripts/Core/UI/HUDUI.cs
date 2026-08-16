@@ -46,6 +46,9 @@ public class HUDUI : MonoBehaviour
         Image fimg = fillObj.AddComponent<Image>();
         fimg.sprite = SpriteFactory.Square();
         fimg.color = Color.cyan;
+
+        // NUEVO: ayuda de teclas en el borde inferior
+        MakeHint(root.transform, "1/2: habilidades   3: utilidad   4-7: consumibles   I: inventario   B: tienda   E: fin de turno");
     }
 
     void Update()
@@ -60,6 +63,27 @@ public class HUDUI : MonoBehaviour
             float t = Mathf.Clamp01((float)cd.xp / cd.XpToNextLevel());
             xpFill.sizeDelta = new Vector2(xpBarWidth * t, 12);
         }
+    }
+
+    void MakeHint(Transform parent, string content)
+    {
+        GameObject go = new GameObject("Hint");
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0);
+        rt.anchorMax = new Vector2(0.5f, 0);
+        rt.pivot = new Vector2(0.5f, 0);
+        rt.anchoredPosition = new Vector2(0, 8);
+        rt.sizeDelta = new Vector2(900, 24);
+
+        Text t = go.AddComponent<Text>();
+        t.text = content;
+        Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        t.font = f;
+        t.fontSize = 14;
+        t.alignment = TextAnchor.MiddleCenter;
+        t.color = new Color(0.75f, 0.75f, 0.75f, 0.8f);
     }
 
     Text MakeText(Transform parent, string content, Vector2 pos, Vector2 size)

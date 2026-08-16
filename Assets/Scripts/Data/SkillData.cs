@@ -7,4 +7,6 @@ public class SkillData : ScriptableObject
     public int actionPointCost = 1;
     public int range = 1;
     public int damage = 1;
+    public int bonusCrit = 0;
+    public float threatMult = 1f;
 }
