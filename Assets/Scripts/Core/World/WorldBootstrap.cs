@@ -60,6 +60,7 @@ public class WorldBootstrap : MonoBehaviour
 
         BuildGround();
         BuildZoneMarkers();
+        new GameObject("WorldSpawnManager").AddComponent<WorldSpawnManager>();
 
         // UI global disponible en mundo
         new GameObject("HUDUI").AddComponent<HUDUI>();
