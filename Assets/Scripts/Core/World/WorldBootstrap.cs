@@ -96,6 +96,7 @@ public class WorldBootstrap : MonoBehaviour
         new GameObject("HUDUI").AddComponent<HUDUI>();
         new GameObject("InventoryUI").AddComponent<InventoryUI>();
         new GameObject("ShopUI").AddComponent<ShopUI>();
+        new GameObject("WorldMapUI").AddComponent<WorldMapUI>();
 
         // La creación/continuación de personaje vive en MUNDO, no en mazmorra
         if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
