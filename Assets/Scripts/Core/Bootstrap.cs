@@ -29,6 +29,9 @@ public class Bootstrap : MonoBehaviour
         GameObject uiObj = new GameObject("InventoryUI");
         uiObj.AddComponent<InventoryUI>();
 
+        GameObject goObj = new GameObject("GameOverUI");
+        goObj.AddComponent<GameOverUI>();
+
         if (availableClasses.Count > 0)
         {
             GameObject creationObj = new GameObject("CharacterCreation");

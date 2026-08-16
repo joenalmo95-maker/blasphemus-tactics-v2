@@ -47,6 +47,8 @@ public class Unit : MonoBehaviour
         unit.maxAP = maxAP;
         unit.currentAP = maxAP;
 
+        go.AddComponent<HealthBar2D>();
+
         if (!isEnemy)
         {
             go.AddComponent<SelectionIndicator>();

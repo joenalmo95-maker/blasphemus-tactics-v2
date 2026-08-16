@@ -88,10 +88,13 @@ public class TurnManager : MonoBehaviour
 
     public void NotifyUnitDeath(bool wasEnemy)
     {
+        if (currentState == TurnState.GameOver) return;
+
         if (!wasEnemy)
         {
             ForceGameOver();
             Debug.Log("=== DERROTA ===");
+            ShowGameOver(false);
             return;
         }
 
@@ -110,7 +113,14 @@ public class TurnManager : MonoBehaviour
         {
             ForceGameOver();
             Debug.Log("=== VICTORIA ===");
+            ShowGameOver(true);
         }
+    }
+
+    void ShowGameOver(bool victory)
+    {
+        GameOverUI ui = GameOverUI.Instance != null ? GameOverUI.Instance : new GameObject("GameOverUI").AddComponent<GameOverUI>();
+        ui.Show(victory);
     }
 
     public void ForceGameOver()
