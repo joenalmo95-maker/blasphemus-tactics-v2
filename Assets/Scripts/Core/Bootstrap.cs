@@ -33,11 +33,15 @@ public class Bootstrap : MonoBehaviour
         GameObject goObj = new GameObject("GameOverUI");
         goObj.AddComponent<GameOverUI>();
 
+        GameObject hudObj = new GameObject("HUDUI");
+        hudObj.AddComponent<HUDUI>();
+
         if (availableClasses.Count > 0)
         {
             GameObject creationObj = new GameObject("CharacterCreation");
             CharacterCreationUI ui = creationObj.AddComponent<CharacterCreationUI>();
             ui.availableClasses = availableClasses;
+            ui.showContinue = SaveSystem.HasSave();
             ui.Build();
         }
         else

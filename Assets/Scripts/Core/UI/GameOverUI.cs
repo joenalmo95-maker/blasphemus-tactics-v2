@@ -17,6 +17,7 @@ public class GameOverUI : MonoBehaviour
     public void Show(bool victory)
     {
         if (root != null) Destroy(root);
+        if (victory) SaveSystem.Save();
 
         if (FindAnyObjectByType<EventSystem>() == null)
         {

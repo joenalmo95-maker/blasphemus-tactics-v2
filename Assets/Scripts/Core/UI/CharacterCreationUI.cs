@@ -6,6 +6,7 @@ using System.Collections.Generic;
 public class CharacterCreationUI : MonoBehaviour
 {
     public List<ClassData> availableClasses = new List<ClassData>();
+    public bool showContinue = false;
 
     private GameObject canvasObj;
 
@@ -35,16 +36,31 @@ public class CharacterCreationUI : MonoBehaviour
         pimg.sprite = SpriteFactory.Square();
         pimg.color = new Color(0.02f, 0.02f, 0.03f, 0.92f);
 
-        CreateText(canvasObj.transform, "ELIGE TU CLASE", 160, 32);
+        CreateText(canvasObj.transform, "ELIGE TU CLASE", 200, 32);
 
-        float y = 60;
+        float y = 120;
+
+        if (showContinue)
+        {
+            CreateButton(canvasObj.transform, "CONTINUAR PARTIDA", y, Color.green, () => OnContinue());
+            y -= 50;
+            CreateText(canvasObj.transform, "— o nueva partida —", y, 14);
+            y -= 40;
+        }
+        else
+        {
+            y = 60;
+        }
+
         foreach (ClassData cd in availableClasses)
         {
-            CreateButton(canvasObj.transform, cd.className + " (" + RoleLabel(cd.role) + ")", y, cd);
+            ClassData captured = cd;
+            CreateButton(canvasObj.transform, cd.className + " (" + RoleLabel(cd.role) + ")", y, Color.white,
+                () => OnClassSelected(captured));
             y -= 60;
         }
 
-        CreateText(canvasObj.transform, "El destino del Renacido depende de tu elección.", -160, 16);
+        CreateText(canvasObj.transform, "El destino del Renacido depende de tu elección.", -200, 16);
     }
 
     string RoleLabel(ClassRole role)
@@ -57,45 +73,44 @@ public class CharacterCreationUI : MonoBehaviour
         }
     }
 
+    void OnContinue()
+    {
+        SaveData data = SaveSystem.Load();
+        if (data == null) return;
+
+        Debug.Log("[Creation] Continuando partida guardada: " + data.className + " Nv " + data.level);
+
+        if (CharacterData.Instance != null)
+        {
+            CharacterData.Instance.LoadFrom(data, availableClasses);
+        }
+
+        if (InventorySystem.Instance != null)
+        {
+            InventorySystem.Instance.LoadFrom(data);
+        }
+
+        FinishCreation();
+    }
+
     void OnClassSelected(ClassData cd)
     {
         Debug.Log("[Creation] Clase elegida: " + cd.className);
+        if (CharacterData.Instance != null) CharacterData.Instance.SetClass(cd);
+        FinishCreation();
+    }
 
-        CharacterData data = CharacterData.Instance != null ? CharacterData.Instance : FindAnyObjectByType<CharacterData>();
-        Debug.Log("[Creation] CharacterData encontrado: " + (data != null));
-        if (data != null) data.SetClass(cd);
-
-        Bootstrap boot = Bootstrap.Instance != null ? Bootstrap.Instance : FindAnyObjectByType<Bootstrap>();
-        Debug.Log("[Creation] Bootstrap encontrado: " + (boot != null));
-        if (boot != null) boot.SpawnPlayer();
-
-        TurnManager tm = TurnManager.Instance != null ? TurnManager.Instance : FindAnyObjectByType<TurnManager>();
-        Debug.Log("[Creation] TurnManager encontrado: " + (tm != null));
-        if (tm != null) tm.BeginGame();
+    void FinishCreation()
+    {
+        if (Bootstrap.Instance != null) Bootstrap.Instance.SpawnPlayer();
+        if (TurnManager.Instance != null) TurnManager.Instance.BeginGame();
 
         Destroy(canvasObj);
         Destroy(this);
     }
 
-    void CreateText(Transform parent, string content, float yOffset, int size)
-    {
-        GameObject go = new GameObject("Text");
-        go.transform.SetParent(parent, false);
-        RectTransform rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.5f, 0.5f);
-        rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(0, yOffset);
-        rt.sizeDelta = new Vector2(700, 50);
-
-        Text t = go.AddComponent<Text>();
-        t.text = content;
-        t.font = GetFont();
-        t.fontSize = size;
-        t.alignment = TextAnchor.MiddleCenter;
-        t.color = Color.white;
-    }
-
-    void CreateButton(Transform parent, string label, float yOffset, ClassData cd)
+    void CreateButton(Transform parent, string label, float yOffset, Color textColor,
+        UnityEngine.Events.UnityAction onClick)
     {
         GameObject go = new GameObject("Btn");
         go.transform.SetParent(parent, false);
@@ -103,7 +118,7 @@ public class CharacterCreationUI : MonoBehaviour
         rt.anchorMin = new Vector2(0.5f, 0.5f);
         rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = new Vector2(0, yOffset);
-        rt.sizeDelta = new Vector2(380, 50);
+        rt.sizeDelta = new Vector2(380, 44);
 
         Image img = go.AddComponent<Image>();
         img.sprite = SpriteFactory.Square();
@@ -124,9 +139,27 @@ public class CharacterCreationUI : MonoBehaviour
         t.font = GetFont();
         t.fontSize = 18;
         t.alignment = TextAnchor.MiddleCenter;
-        t.color = Color.white;
+        t.color = textColor;
 
-        btn.onClick.AddListener(() => OnClassSelected(cd));
+        btn.onClick.AddListener(onClick);
+    }
+
+    void CreateText(Transform parent, string content, float yOffset, int size)
+    {
+        GameObject go = new GameObject("Text");
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(0, yOffset);
+        rt.sizeDelta = new Vector2(700, 40);
+
+        Text t = go.AddComponent<Text>();
+        t.text = content;
+        t.font = GetFont();
+        t.fontSize = size;
+        t.alignment = TextAnchor.MiddleCenter;
+        t.color = Color.white;
     }
 
     Font GetFont()

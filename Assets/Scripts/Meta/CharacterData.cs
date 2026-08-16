@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class CharacterData : MonoBehaviour
 {
@@ -20,6 +21,24 @@ public class CharacterData : MonoBehaviour
         classData = data;
         level = 0;
         xp = 0;
+    }
+
+    public void LoadFrom(SaveData data, List<ClassData> classes)
+    {
+        if (classes != null)
+        {
+            foreach (ClassData cd in classes)
+            {
+                if (cd.className == data.className)
+                {
+                    classData = cd;
+                    break;
+                }
+            }
+        }
+        level = data.level;
+        xp = data.xp;
+        gold = data.gold;
     }
 
     public StatBlock GetDerivedStats()
@@ -52,11 +71,30 @@ public class CharacterData : MonoBehaviour
     public void GainXP(int amount)
     {
         xp += amount;
+        bool leveled = false;
+
         while (level < 20 && xp >= XpToNextLevel())
         {
             xp -= XpToNextLevel();
             level++;
+            leveled = true;
             Debug.Log("¡Nivel " + level + " alcanzado!");
+        }
+
+        if (leveled)
+        {
+            if (InventorySystem.Instance != null) InventorySystem.Instance.ApplyToUnit();
+
+            Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+            foreach (Unit u in units)
+            {
+                if (!u.isEnemy)
+                {
+                    u.currentHealth = u.maxHealth;
+                    Debug.Log("Curación completa por subida de nivel.");
+                    break;
+                }
+            }
         }
     }
 }

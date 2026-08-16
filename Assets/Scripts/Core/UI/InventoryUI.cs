@@ -11,6 +11,11 @@ public class InventoryUI : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.F5))
+        {
+            SaveSystem.Save();
+        }
+                
         if (Input.GetKeyDown(KeyCode.I) || Input.GetKeyDown(KeyCode.C)) Toggle();
 
         if (Input.GetKeyDown(KeyCode.L))

@@ -19,6 +19,25 @@ public class InventorySystem : MonoBehaviour
         return equipped.TryGetValue(slot, out ItemData item) ? item : null;
     }
 
+    public List<ItemData> GetAllEquipped()
+    {
+        return new List<ItemData>(equipped.Values);
+    }
+
+    public void LoadFrom(SaveData data)
+    {
+        items = data.items != null ? data.items : new List<ItemData>();
+        equipped.Clear();
+        if (data.equipped != null)
+        {
+            foreach (ItemData it in data.equipped)
+            {
+                equipped[it.slot] = it;
+            }
+        }
+        ApplyToUnit();
+    }
+
     public void AddItem(ItemData item)
     {
         items.Add(item);

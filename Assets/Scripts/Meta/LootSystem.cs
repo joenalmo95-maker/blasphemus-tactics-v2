@@ -29,6 +29,14 @@ public static class LootSystem
         combatLog.Add("+" + gold + " de oro");
         if (enemy != null) CombatFeedback.SpawnText(enemy.transform.position, "+" + gold + " oro", Color.yellow);
 
+        int xp = XpForTier(tier);
+        if (CharacterData.Instance != null)
+        {
+            CharacterData.Instance.GainXP(xp);
+        }
+        combatLog.Add("+" + xp + " EXP");
+        if (enemy != null) CombatFeedback.SpawnText(enemy.transform.position, "+" + xp + " EXP", Color.cyan);
+
         int drops = tier == EnemyTier.Jefe ? 2 : (Random.Range(0f, 1f) < ItemChance(tier) ? 1 : 0);
         for (int i = 0; i < drops; i++)
         {
@@ -93,6 +101,17 @@ public static class LootSystem
                 if (roll < 10) return Rarity.Rare;
                 if (roll < 50) return Rarity.Epic;
                 return Rarity.Legendary;
+        }
+    }
+        static int XpForTier(EnemyTier tier)
+    {
+        switch (tier)
+        {
+            case EnemyTier.Basico: return 10;
+            case EnemyTier.Medio: return 20;
+            case EnemyTier.Elite: return 35;
+            case EnemyTier.EliteFuerte: return 50;
+            default: return 100;
         }
     }
 }
