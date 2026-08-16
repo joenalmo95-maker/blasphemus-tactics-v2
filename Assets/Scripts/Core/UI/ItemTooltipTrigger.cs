@@ -21,4 +21,11 @@ public class ItemTooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPointerE
     {
         if (TooltipUI.Instance != null) TooltipUI.Instance.Hide();
     }
+
+    // FIX: si el contenedor se destruye con el cursor encima (cierre de inventario),
+    // OnPointerExit nunca se dispara; el tooltip se limpia al destruir el trigger.
+    void OnDestroy()
+    {
+        if (TooltipUI.Instance != null) TooltipUI.Instance.Hide();
+    }
 }

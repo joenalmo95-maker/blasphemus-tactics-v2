@@ -20,4 +20,10 @@ public class UnitTooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPointerE
             TooltipUI.Instance.Hide();
         }
     }
+
+    // FIX: misma protección si la unidad muere con el cursor sobre su barra de vida.
+    void OnDestroy()
+    {
+        if (TooltipUI.Instance != null) TooltipUI.Instance.Hide();
+    }
 }
