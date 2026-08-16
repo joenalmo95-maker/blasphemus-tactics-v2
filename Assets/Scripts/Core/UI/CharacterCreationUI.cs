@@ -7,6 +7,7 @@ public class CharacterCreationUI : MonoBehaviour
 {
     public List<ClassData> availableClasses = new List<ClassData>();
     public bool showContinue = false;
+    public System.Action onFinished;
 
     private GameObject canvasObj;
 
@@ -102,8 +103,15 @@ public class CharacterCreationUI : MonoBehaviour
 
     void FinishCreation()
     {
-        if (Bootstrap.Instance != null) Bootstrap.Instance.SpawnPlayer();
-        if (TurnManager.Instance != null) TurnManager.Instance.BeginGame();
+        if (onFinished != null)
+        {
+            onFinished();
+        }
+        else
+        {
+            if (Bootstrap.Instance != null) Bootstrap.Instance.SpawnPlayer();
+            if (TurnManager.Instance != null) TurnManager.Instance.BeginGame();
+        }
 
         Destroy(canvasObj);
         Destroy(this);

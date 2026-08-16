@@ -8,72 +8,70 @@ public class Bootstrap : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Debug.LogError("[Bootstrap] Duplicado detectado. Se destruye este objeto.");
-            Destroy(gameObject);
-            return;
-        }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        Debug.Log("[Bootstrap] Awake correcto.");
         LootSystem.ClearCombatLog();
 
-        // Enemigo con arte de caballero penitente
-        Unit enemy = Unit.Create("Cruzado", new Vector2Int(7, 4), true, Color.white, 0.8f, 10, 3, "penitent");
-        enemy.gameObject.AddComponent<EnemyAI>();
+        if (FindAnyObjectByType<CharacterData>() == null)
+            new GameObject("CharacterData").AddComponent<CharacterData>();
+        if (FindAnyObjectByType<InventorySystem>() == null)
+            new GameObject("InventorySystem").AddComponent<InventorySystem>();
 
-        GameObject cdObj = new GameObject("CharacterData");
-        cdObj.AddComponent<CharacterData>();
+        SpawnEnemyByTier(GameFlow.pendingTier);
 
-        GameObject invObj = new GameObject("InventorySystem");
-        invObj.AddComponent<InventorySystem>();
+        new GameObject("InventoryUI").AddComponent<InventoryUI>();
+        new GameObject("ShopUI").AddComponent<ShopUI>();
+        new GameObject("GameOverUI").AddComponent<GameOverUI>();
+        new GameObject("HUDUI").AddComponent<HUDUI>();
 
-        GameObject uiObj = new GameObject("InventoryUI");
-        uiObj.AddComponent<InventoryUI>();
-
-        GameObject goObj = new GameObject("GameOverUI");
-        goObj.AddComponent<GameOverUI>();
-
-        GameObject hudObj = new GameObject("HUDUI");
-        hudObj.AddComponent<HUDUI>();
-
-        GameObject shopObj = new GameObject("ShopUI");
-        shopObj.AddComponent<ShopUI>();
-
-        if (availableClasses.Count > 0)
-        {
-            GameObject creationObj = new GameObject("CharacterCreation");
-            CharacterCreationUI ui = creationObj.AddComponent<CharacterCreationUI>();
-            ui.availableClasses = availableClasses;
-            ui.showContinue = SaveSystem.HasSave();
-            ui.Build();
-        }
-        else
+        if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
         {
             SpawnPlayer();
             if (TurnManager.Instance != null) TurnManager.Instance.BeginGame();
         }
+        else
+        {
+            GameObject c = new GameObject("CharacterCreation");
+            CharacterCreationUI ui = c.AddComponent<CharacterCreationUI>();
+            ui.availableClasses = availableClasses;
+            ui.showContinue = SaveSystem.HasSave();
+            ui.onFinished = () => { SpawnPlayer(); if (TurnManager.Instance != null) TurnManager.Instance.BeginGame(); };
+            ui.Build();
+        }
+    }
+
+    Unit SpawnEnemyByTier(EnemyTier tier)
+    {
+        float hpMult = 1f;
+        int dmgBonus = 0;
+        switch (tier)
+        {
+            case EnemyTier.Medio: hpMult = 1.4f; dmgBonus = 1; break;
+            case EnemyTier.Elite: hpMult = 1.8f; dmgBonus = 2; break;
+            case EnemyTier.EliteFuerte: hpMult = 2.2f; dmgBonus = 3; break;
+            case EnemyTier.Jefe: hpMult = 3f; dmgBonus = 4; break;
+        }
+
+        int hp = Mathf.RoundToInt(10 * hpMult);
+        Unit enemy = Unit.Create("Cruzado", new Vector2Int(7, 4), true, Color.white, 0.8f, hp, 3, "penitent");
+        EnemyAI ai = enemy.gameObject.AddComponent<EnemyAI>();
+        ai.tier = tier;
+        ai.attackDamage = 2 + dmgBonus;
+        return enemy;
     }
 
     public void SpawnPlayer()
     {
-        Debug.Log("[Bootstrap] SpawnPlayer invocado.");
-
         Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
         foreach (Unit u in units)
         {
-            if (!u.isEnemy)
-            {
-                Debug.Log("[Bootstrap] Ya existe un jugador (" + u.name + "). No se spawnea.");
-                return;
-            }
+            if (!u.isEnemy) return;
         }
 
         StatBlock stats = CharacterData.Instance != null
             ? CharacterData.Instance.GetTotalStats()
             : new StatBlock();
 
-        
         string art = "circle";
         if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
         {
@@ -88,11 +86,5 @@ public class Bootstrap : MonoBehaviour
         Unit player = Unit.Create("Renacido", new Vector2Int(1, 1), false,
             Color.white, 0.8f, stats.maxHP, stats.apMove, art);
         player.stats = stats.Clone();
-
-        string className = (CharacterData.Instance != null && CharacterData.Instance.classData != null)
-            ? CharacterData.Instance.classData.className
-            : "Sin clase";
-
-        Debug.Log("Renacido creado como " + className + " | HP: " + stats.maxHP + " | AP: " + stats.apMove);
     }
 }

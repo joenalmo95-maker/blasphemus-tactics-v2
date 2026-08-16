@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 
 public class GameOverUI : MonoBehaviour
 {
@@ -17,6 +16,7 @@ public class GameOverUI : MonoBehaviour
     public void Show(bool victory)
     {
         if (root != null) Destroy(root);
+
         if (victory) SaveSystem.Save();
 
         if (FindAnyObjectByType<EventSystem>() == null)
@@ -97,13 +97,13 @@ public class GameOverUI : MonoBehaviour
         lrt.offsetMin = Vector2.zero;
         lrt.offsetMax = Vector2.zero;
         Text lt = lblObj.AddComponent<Text>();
-        lt.text = "Reiniciar";
+        lt.text = "Volver al Mundo";
         lt.font = GetFont();
         lt.fontSize = 20;
         lt.alignment = TextAnchor.MiddleCenter;
         lt.color = Color.white;
 
-        btn.onClick.AddListener(() => SceneManager.LoadScene(SceneManager.GetActiveScene().name));
+        btn.onClick.AddListener(() => GameFlow.ReturnToWorld());
     }
 
     Font GetFont()
