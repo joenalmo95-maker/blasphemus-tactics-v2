@@ -20,42 +20,8 @@ public class WorldBootstrap : MonoBehaviour
         public List<WaveDef> dungeon;
     }
 
-    public static List<ZoneDef> Zones = new List<ZoneDef>
-    {
-        new ZoneDef
-        {
-            name = "Cripta de los Penitentes",
-            center = new Vector2Int(10, 8),
-            tier = EnemyTier.Basico,
-            dungeon = new List<WaveDef>
-            {
-                new WaveDef { spawns = new List<SpawnDef> { S("penitent", EnemyTier.Basico, 7, 4), S("penitent", EnemyTier.Basico, 8, 5) } },
-                new WaveDef { spawns = new List<SpawnDef> { S("cherub", EnemyTier.Basico, 7, 4) } }
-            }
-        },
-        new ZoneDef
-        {
-            name = "Coro de Querubines",
-            center = new Vector2Int(30, 20),
-            tier = EnemyTier.Medio,
-            dungeon = new List<WaveDef>
-            {
-                new WaveDef { spawns = new List<SpawnDef> { S("cherub", EnemyTier.Medio, 7, 4), S("inquisitor", EnemyTier.Medio, 8, 5) } },
-                new WaveDef { spawns = new List<SpawnDef> { S("inquisitor", EnemyTier.Medio, 7, 4) } }
-            }
-        },
-        new ZoneDef
-        {
-            name = "Trono del Capitán",
-            center = new Vector2Int(50, 32),
-            tier = EnemyTier.EliteFuerte,
-            dungeon = new List<WaveDef>
-            {
-                new WaveDef { spawns = new List<SpawnDef> { S("capitan", EnemyTier.Elite, 7, 4), S("cherub", EnemyTier.Elite, 8, 5) } },
-                new WaveDef { spawns = new List<SpawnDef> { S("angel", EnemyTier.Jefe, 7, 4) } }
-            }
-        }
-    };
+    // Data-driven: se pobla desde Assets/Resources/ZonesConfig.json (Bloque 2.4)
+    public static List<ZoneDef> Zones = new List<ZoneDef>();
 
     void Awake()
     {
@@ -81,6 +47,9 @@ public class WorldBootstrap : MonoBehaviour
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = Color.black;
         }
+
+        // Zonas data-driven con fallback seguro
+        Zones = ZoneConfigLoader.Load();
 
         // Mapa dibujado por el usuario; si no existe, respaldo procedural
         if (!TerrainMap.TryLoadWorldMap(WorldWidth, WorldHeight))
@@ -188,10 +157,5 @@ public class WorldBootstrap : MonoBehaviour
             }
         }
         return "dps";
-    }
-
-    static SpawnDef S(string archetype, EnemyTier tier, int x, int y)
-    {
-        return new SpawnDef { archetype = archetype, tier = tier, cell = new Vector2Int(x, y) };
     }
 }
