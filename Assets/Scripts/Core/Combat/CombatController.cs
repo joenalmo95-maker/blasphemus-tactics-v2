@@ -15,7 +15,6 @@ public class CombatController : MonoBehaviour
     Unit GetPlayer()
     {
         if (playerUnit != null) return playerUnit;
-
         Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
         foreach (Unit u in units)
         {
@@ -41,14 +40,18 @@ public class CombatController : MonoBehaviour
 
         if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn()) return;
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)) ToggleSkill(SkillCatalog.Get(Role(), 1));
-        if (Input.GetKeyDown(KeyCode.Alpha2)) ToggleSkill(SkillCatalog.Get(Role(), 2));
-        if (Input.GetKeyDown(KeyCode.Alpha3)) TryUtility();
+        // Skills 1-4
+        if (Input.GetKeyDown(KeyCode.Alpha1)) TryToggleSkill(1);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) TryToggleSkill(2);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) TryToggleSkill(3);
+        if (Input.GetKeyDown(KeyCode.Alpha4)) TryToggleSkill(4);
 
-        if (Input.GetKeyDown(KeyCode.Alpha4)) TryUse(ConsumableType.PocionHP);
-        if (Input.GetKeyDown(KeyCode.Alpha5)) TryUse(ConsumableType.PocionAP);
-        if (Input.GetKeyDown(KeyCode.Alpha6)) TryUse(ConsumableType.ComidaDano);
-        if (Input.GetKeyDown(KeyCode.Alpha7)) TryUse(ConsumableType.ComidaDefensa);
+        // Utilidad
+        if (Input.GetKeyDown(KeyCode.Alpha5)) TryUtilityPublic();
+
+        // Consumibles
+        if (Input.GetKeyDown(KeyCode.Alpha6)) TryUse(ConsumableType.PocionHP);
+        if (Input.GetKeyDown(KeyCode.Alpha7)) TryUse(ConsumableType.PocionAP);
 
         if (armedSkill != null && Input.GetMouseButtonDown(1))
         {
@@ -77,7 +80,19 @@ public class CombatController : MonoBehaviour
         }
     }
 
-    void TryUtility()
+    void TryToggleSkill(int slot)
+    {
+        int playerLevel = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
+        if (!SkillCatalog.IsSkillUnlocked(Role(), slot, playerLevel))
+        {
+            SkillData skill = SkillCatalog.Get(Role(), slot);
+            Debug.Log("Habilidad bloqueada. Requiere nivel " + skill.unlockLevel);
+            return;
+        }
+        ToggleSkill(SkillCatalog.Get(Role(), slot));
+    }
+
+    void TryUtilityInternal()
     {
         if (playerUnit.currentAP < 1)
         {
@@ -95,15 +110,15 @@ public class CombatController : MonoBehaviour
                 break;
 
             case ClassRole.Healer:
-            {
-                int baseHeal = 4;
-                int amount = Mathf.RoundToInt(baseHeal * (1 + playerUnit.stats.healingPower / 100f));
-                playerUnit.currentAP -= 1;
-                playerUnit.Heal(amount);
-                playerUnit.threat += amount * 2f * playerUnit.stats.threatMult;
-                Debug.Log("Curación ejecutada. AP restantes: " + playerUnit.currentAP);
-                break;
-            }
+                {
+                    int baseHeal = 4;
+                    int amount = Mathf.RoundToInt(baseHeal * (1 + playerUnit.stats.healingPower / 100f));
+                    playerUnit.currentAP -= 1;
+                    playerUnit.Heal(amount);
+                    playerUnit.threat += amount * 2f * playerUnit.stats.threatMult;
+                    Debug.Log("Curación ejecutada. AP restantes: " + playerUnit.currentAP);
+                    break;
+                }
 
             default:
                 playerUnit.currentAP -= 1;
@@ -113,12 +128,17 @@ public class CombatController : MonoBehaviour
         }
     }
 
+    public void TryUtilityPublic()
+    {
+        TryUtilityInternal();
+    }
+
     void TryUse(ConsumableType t)
     {
         if (InventorySystem.Instance != null) InventorySystem.Instance.UseConsumable(t);
     }
 
-    void ToggleSkill(SkillData skill)
+    public void ToggleSkill(SkillData skill)
     {
         if (skill == null) return;
 
@@ -132,5 +152,10 @@ public class CombatController : MonoBehaviour
             armedSkill = skill;
             Debug.Log("Habilidad armada: " + skill.skillName);
         }
+    }
+
+    public SkillData GetArmedSkill()
+    {
+        return armedSkill;
     }
 }

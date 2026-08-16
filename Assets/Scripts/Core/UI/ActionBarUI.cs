@@ -26,12 +26,12 @@ public class ActionBarUI : MonoBehaviour
 
     void Build()
     {
-        // FIX: La UI solo se renderiza bajo un Canvas. La barra crea su propio canvas.
         GameObject canvas = UIFactory.CreateCanvas("ActionBarCanvas", 60);
 
         RectTransform barRt = UIFactory.CreatePanel(canvas.transform, "ActionBar",
             new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0),
-            new Vector2(0, 36), new Vector2(560, 84), new Color(0.08f, 0.08f, 0.1f, 0.9f));
+            new Vector2(0, 36), new Vector2(720, 84), new Color(0.08f, 0.08f, 0.1f, 0.9f));
+
         actionBarRoot = barRt.gameObject;
 
         HorizontalLayoutGroup hlg = actionBarRoot.AddComponent<HorizontalLayoutGroup>();
@@ -41,12 +41,14 @@ public class ActionBarUI : MonoBehaviour
         hlg.childForceExpandHeight = true;
         hlg.padding = new RectOffset(10, 10, 5, 5);
 
+        // 4 skills + utilidad + 3 consumibles prioritarios
         CreateActionButton("Skill 1", "1", "skill", 1);
         CreateActionButton("Skill 2", "2", "skill", 2);
-        CreateActionButton("Utilidad", "3", "utility", 0);
-        CreateActionButton("Poc HP", "4", "consumable", (int)ConsumableType.PocionHP);
-        CreateActionButton("Poc AP", "5", "consumable", (int)ConsumableType.PocionAP);
-        CreateActionButton("Comida", "6", "consumable", (int)ConsumableType.ComidaDano);
+        CreateActionButton("Skill 3", "3", "skill", 3);
+        CreateActionButton("Skill 4", "4", "skill", 4);
+        CreateActionButton("Utilidad", "5", "utility", 0);
+        CreateActionButton("Poc HP", "6", "consumable", (int)ConsumableType.PocionHP);
+        CreateActionButton("Poc AP", "7", "consumable", (int)ConsumableType.PocionAP);
     }
 
     void CreateActionButton(string label, string key, string type, int index)
@@ -94,16 +96,23 @@ public class ActionBarUI : MonoBehaviour
         switch (btn.actionType)
         {
             case "skill":
-                SkillData skill = SkillCatalog.Get(GetRole(), btn.actionIndex);
-                if (skill != null && playerUnit.currentAP >= skill.actionPointCost) cc.ToggleSkill(skill);
+                int playerLevel = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
+                if (SkillCatalog.IsSkillUnlocked(GetRole(), btn.actionIndex, playerLevel))
+                {
+                    SkillData skill = SkillCatalog.Get(GetRole(), btn.actionIndex);
+                    if (skill != null && playerUnit.currentAP >= skill.actionPointCost)
+                        cc.ToggleSkill(skill);
+                }
                 break;
 
             case "utility":
-                if (playerUnit.currentAP >= 1) cc.TryUtility();
+                if (playerUnit.currentAP >= 1)
+                    cc.TryUtilityPublic();
                 break;
 
             case "consumable":
-                if (InventorySystem.Instance != null) InventorySystem.Instance.UseConsumable((ConsumableType)btn.actionIndex);
+                if (InventorySystem.Instance != null)
+                    InventorySystem.Instance.UseConsumable((ConsumableType)btn.actionIndex);
                 break;
         }
     }
@@ -134,6 +143,7 @@ public class ActionBarUI : MonoBehaviour
         if (playerUnit == null || CharacterData.Instance == null) return;
 
         bool isPlayerTurn = TurnManager.Instance != null && TurnManager.Instance.IsPlayerTurn();
+        int playerLevel = CharacterData.Instance.level;
 
         for (int i = 0; i < actionButtons.Count; i++)
         {
@@ -147,14 +157,27 @@ public class ActionBarUI : MonoBehaviour
             {
                 case "skill":
                     SkillData skill = SkillCatalog.Get(GetRole(), btn.actionIndex);
+                    bool isUnlocked = SkillCatalog.IsSkillUnlocked(GetRole(), btn.actionIndex, playerLevel);
+                    
                     if (skill != null)
                     {
                         labelText = skill.skillName;
                         costText = skill.actionPointCost + " AP";
-                        canUse = canUse && playerUnit.currentAP >= skill.actionPointCost;
-                        btn.background.color = (armedSkill == skill)
-                            ? new Color(0.3f, 0.55f, 0.3f)
-                            : (canUse ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.15f, 0.15f, 0.15f, 0.5f));
+                        
+                        if (!isUnlocked)
+                        {
+                            labelText = "Nv " + skill.unlockLevel;
+                            costText = "BLOQUEADA";
+                            canUse = false;
+                            btn.background.color = new Color(0.3f, 0.1f, 0.1f, 0.7f);
+                        }
+                        else
+                        {
+                            canUse = canUse && playerUnit.currentAP >= skill.actionPointCost;
+                            btn.background.color = (armedSkill == skill)
+                                ? new Color(0.3f, 0.55f, 0.3f)
+                                : (canUse ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.15f, 0.15f, 0.15f, 0.5f));
+                        }
                     }
                     break;
 
