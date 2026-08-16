@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections.Generic;
 
 public class CityBootstrap : MonoBehaviour
@@ -6,10 +7,23 @@ public class CityBootstrap : MonoBehaviour
     public const int CityWidth = 30;
     public const int CityHeight = 30;
 
-    // Spawn dentro de la ciudad (puerta de entrada desde el mundo)
-    public static Vector2Int CitySpawn = new Vector2Int(15, 1);
-    // Portal de salida hacia el mundo
+    // Spawn separado del portal para evitar prompts instantáneos
+    public static Vector2Int CitySpawn = new Vector2Int(15, 3);
     public static Vector2Int ExitPortal = new Vector2Int(15, 1);
+
+    // FIX 3.1: auto-arranque. La ciudad se construye aunque la escena no tenga el componente.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void AutoStart()
+    {
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != GameFlow.CityScene) return;
+
+        // Elimina un WorldBootstrap residual heredado de una escena duplicada
+        WorldBootstrap wb = Object.FindAnyObjectByType<WorldBootstrap>();
+        if (wb != null) Object.Destroy(wb.gameObject);
+
+        if (Object.FindAnyObjectByType<CityBootstrap>() != null) return;
+        new GameObject("CityBootstrap").AddComponent<CityBootstrap>();
+    }
 
     void Awake()
     {
@@ -38,8 +52,10 @@ public class CityBootstrap : MonoBehaviour
 
         BuildGround();
         BuildExitPortal();
+        BuildMerchant();
+        MerchantUI.RefreshStock();
 
-        // UIs globales (reaparecen en ciudad)
+        // UIs globales
         new GameObject("HUDUI").AddComponent<HUDUI>();
         new GameObject("InventoryUI").AddComponent<InventoryUI>();
         new GameObject("ShopUI").AddComponent<ShopUI>();
@@ -63,15 +79,11 @@ public class CityBootstrap : MonoBehaviour
             TerrainMap.Set(new Vector2Int(CityWidth - 1, y), TerrainType.Roca);
         }
 
-        // Edificios / obstáculos interiores (rocas = muros de piedra, ruinas = estructuras)
-        // Mercado
-        for (int x = 5; x <= 8; x++) for (int y = 10; y <= 13; y++) TerrainMap.Set(new Vector2Int(x, y), TerrainType.Ruinas);
-        // Templo
-        for (int x = 20; x <= 24; x++) for (int y = 18; y <= 22; y++) TerrainMap.Set(new Vector2Int(x, y), TerrainType.Roca);
-        // Herrería
-        for (int x = 3; x <= 5; x++) for (int y = 20; y <= 22; y++) TerrainMap.Set(new Vector2Int(x, y), TerrainType.Ruinas);
-        // Barracones
-        for (int x = 22; x <= 25; x++) for (int y = 6; y <= 9; y++) TerrainMap.Set(new Vector2Int(x, y), TerrainType.Roca);
+        // Edificios
+        for (int x = 5; x <= 8; x++) for (int y = 10; y <= 13; y++) TerrainMap.Set(new Vector2Int(x, y), TerrainType.Ruinas);   // Mercado
+        for (int x = 20; x <= 24; x++) for (int y = 18; y <= 22; y++) TerrainMap.Set(new Vector2Int(x, y), TerrainType.Roca);   // Templo
+        for (int x = 3; x <= 5; x++) for (int y = 20; y <= 22; y++) TerrainMap.Set(new Vector2Int(x, y), TerrainType.Ruinas);   // Herrería
+        for (int x = 22; x <= 25; x++) for (int y = 6; y <= 9; y++) TerrainMap.Set(new Vector2Int(x, y), TerrainType.Roca);      // Barracones
     }
 
     static void ClearAround(Vector2Int c)
@@ -121,6 +133,17 @@ public class CityBootstrap : MonoBehaviour
         p.AddComponent<CityPortalTrigger>();
     }
 
+    void BuildMerchant()
+    {
+        GameObject m = new GameObject("MerchantNPC");
+        m.transform.position = new Vector3(12, 8, 0);
+        SpriteRenderer sr = m.AddComponent<SpriteRenderer>();
+        sr.sprite = ArtProvider.Get("healer");
+        sr.color = new Color(1f, 0.9f, 0.4f);
+        sr.sortingOrder = 2;
+        m.transform.localScale = Vector3.one * 0.8f;
+        m.AddComponent<MerchantNPC>();
+    }
     void SpawnPlayer()
     {
         GameObject p = new GameObject("CityPlayer");
@@ -148,22 +171,20 @@ public class CityBootstrap : MonoBehaviour
     }
 }
 
-// Trigger del portal de salida
+// FIX 3.1: el portal de la ciudad regresa al MUNDO (antes recargaba la ciudad)
 public class CityPortalTrigger : MonoBehaviour
 {
     void Update()
     {
         CityPlayerController pc = Object.FindAnyObjectByType<CityPlayerController>();
         if (pc == null) return;
+
         Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(pc.transform.position.x), Mathf.RoundToInt(pc.transform.position.y));
         if (Mathf.Abs(myCell.x - CityBootstrap.ExitPortal.x) <= 1 && Mathf.Abs(myCell.y - CityBootstrap.ExitPortal.y) <= 1)
         {
             if (Input.GetKeyDown(KeyCode.E))
             {
-                // Guarda última posición para restaurarla al volver desde el mundo
-                PlayerPrefs.SetInt("LastWorldX", WorldBootstrap.PlayerSpawn.x);
-                PlayerPrefs.SetInt("LastWorldY", WorldBootstrap.PlayerSpawn.y);
-                GameFlow.EnterCity();
+                GameFlow.ReturnToWorld();
             }
         }
     }
