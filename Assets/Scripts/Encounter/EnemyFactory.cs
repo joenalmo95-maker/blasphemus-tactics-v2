@@ -18,12 +18,14 @@ public static class EnemyFactory
 
         bool boss = archetype == "boss";
         bool cherub = archetype == "cherub";
+        bool inquisitor = archetype == "inquisitor";
+        bool capitan = archetype == "capitan";
 
-        int baseHp = boss ? 40 : (cherub ? 6 : 10);
+        int baseHp = boss ? 40 : cherub ? 6 : inquisitor ? 8 : capitan ? 14 : 10;
         int hp = boss ? baseHp : Mathf.RoundToInt(baseHp * hpMult);
-        string art = boss ? "angel" : (cherub ? "cherub" : "penitent");
-        float scale = boss ? 1.6f : (cherub ? 0.7f : 0.8f);
-        string name = boss ? "Ángel de la Vigilia" : (cherub ? "Querubín" : "Cruzado");
+        string art = boss ? "angel" : cherub ? "cherub" : inquisitor ? "inquisitor" : capitan ? "capitan" : "penitent";
+        float scale = boss ? 1.6f : cherub ? 0.7f : capitan ? 1.0f : 0.8f;
+        string name = boss ? "Ángel de la Vigilia" : cherub ? "Querubín" : inquisitor ? "Inquisidor" : capitan ? "Capitán Templario" : "Cruzado";
 
         Unit unit = Unit.Create(name, cell, true, Color.white, scale, hp, 3, art);
 
@@ -37,9 +39,11 @@ public static class EnemyFactory
         {
             EnemyAI ai = unit.gameObject.AddComponent<EnemyAI>();
             ai.tier = tier;
-            ai.attackDamage = 2 + dmgBonus;
-            ai.attackRange = cherub ? 3 : 1;
+            ai.attackDamage = (capitan ? 3 : 2) + dmgBonus;
+            ai.attackRange = (cherub || inquisitor) ? 3 : 1;
             ai.moveRange = 2;
+            ai.applyCurse = inquisitor;
+            ai.canCharge = capitan;
         }
 
         return unit;

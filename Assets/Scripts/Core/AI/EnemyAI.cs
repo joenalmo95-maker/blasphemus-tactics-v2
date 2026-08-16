@@ -8,10 +8,12 @@ public class EnemyAI : MonoBehaviour
     public int attackDamage = 2;
     public int moveRange = 2;
     public EnemyTier tier = EnemyTier.Basico;
+    public bool applyCurse = false;
+    public bool canCharge = false;
 
     private Unit selfUnit;
     private Unit targetUnit;
-    
+    private int chargeCooldown = 0;
 
     void Awake()
     {
@@ -61,41 +63,72 @@ public class EnemyAI : MonoBehaviour
 
     public IEnumerator ExecuteTurn()
     {
+        if (chargeCooldown > 0) chargeCooldown--;
+
         if (targetUnit == null)
         {
             targetUnit = FindTarget();
             if (targetUnit == null) yield break;
         }
 
-        int distance = CalculateDistance(selfUnit.currentGridPos, targetUnit.currentGridPos);
+        int distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
 
         if (distance <= attackRange)
         {
             yield return new WaitForSeconds(0.25f);
-            Debug.Log(gameObject.name + " ataca al jugador. Daño base: " + attackDamage);
-            targetUnit.ReceiveAttack(selfUnit, attackDamage);
+            Attack(0);
             yield return new WaitForSeconds(0.5f);
             yield break;
         }
 
-        List<Vector2Int> path = Pathfinding.FindPath(
-            selfUnit.currentGridPos,
-            targetUnit.currentGridPos,
-            99);
-
-        if (path != null && path.Count > 0)
+        if (canCharge && chargeCooldown == 0 && distance >= 2 && distance <= 4)
         {
-            int stepsToTake = Mathf.Min(path.Count, moveRange);
+            List<Vector2Int> path = Pathfinding.FindPath(
+                selfUnit.currentGridPos, targetUnit.currentGridPos, 99);
 
-            if (path[path.Count - 1] == targetUnit.currentGridPos)
+            if (path != null && path.Count > 0)
             {
-                stepsToTake = Mathf.Min(stepsToTake, path.Count - 1);
+                int steps = Mathf.Min(path.Count - 1, 4);
+                while (steps > 0 && Pathfinding.UnitAt(path[steps - 1]) != null) steps--;
+
+                if (steps > 0)
+                {
+                    Vector2Int dest = path[steps - 1];
+                    Vector3 wp = GridManager.Instance.GetWorldPosition(dest);
+                    while (Vector3.Distance(transform.position, wp) > 0.05f)
+                    {
+                        transform.position = Vector3.MoveTowards(transform.position, wp, 8f * Time.deltaTime);
+                        yield return null;
+                    }
+                    transform.position = wp;
+                    selfUnit.currentGridPos = dest;
+
+                    Debug.Log(gameObject.name + " ¡CARGA contra el Renacido!");
+                    chargeCooldown = 3;
+                    yield return new WaitForSeconds(0.2f);
+                    Attack(1);
+                    yield return new WaitForSeconds(0.5f);
+                    yield break;
+                }
+            }
+        }
+
+        List<Vector2Int> walkPath = Pathfinding.FindPath(
+            selfUnit.currentGridPos, targetUnit.currentGridPos, 99);
+
+        if (walkPath != null && walkPath.Count > 0)
+        {
+            int stepsToTake = Mathf.Min(walkPath.Count, moveRange);
+
+            if (walkPath[walkPath.Count - 1] == targetUnit.currentGridPos)
+            {
+                stepsToTake = Mathf.Min(stepsToTake, walkPath.Count - 1);
             }
 
             Vector2Int destination = selfUnit.currentGridPos;
             while (stepsToTake > 0)
             {
-                Vector2Int candidate = path[stepsToTake - 1];
+                Vector2Int candidate = walkPath[stepsToTake - 1];
                 if (!IsOccupiedByOther(candidate))
                 {
                     destination = candidate;
@@ -111,13 +144,22 @@ public class EnemyAI : MonoBehaviour
             }
         }
 
-        distance = CalculateDistance(selfUnit.currentGridPos, targetUnit.currentGridPos);
+        distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
         if (distance <= attackRange)
         {
             yield return new WaitForSeconds(0.25f);
-            Debug.Log(gameObject.name + " ataca al jugador. Daño base: " + attackDamage);
-            targetUnit.ReceiveAttack(selfUnit, attackDamage);
+            Attack(0);
             yield return new WaitForSeconds(0.5f);
+        }
+    }
+
+    void Attack(int bonus)
+    {
+        Debug.Log(gameObject.name + " ataca al jugador. Daño base: " + (attackDamage + bonus));
+        bool hit = targetUnit.ReceiveAttack(selfUnit, attackDamage + bonus);
+        if (hit && applyCurse)
+        {
+            targetUnit.ApplyDebuff(10, 2);
         }
     }
 
@@ -138,7 +180,7 @@ public class EnemyAI : MonoBehaviour
         selfUnit.currentGridPos = gridPos;
     }
 
-    int CalculateDistance(Vector2Int a, Vector2Int b)
+    int Dist(Vector2Int a, Vector2Int b)
     {
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }

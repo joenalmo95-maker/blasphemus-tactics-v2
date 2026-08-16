@@ -63,6 +63,7 @@ public class TurnManager : MonoBehaviour
             }
 
             playerUnit.TickBuffs();
+            playerUnit.TickDebuffs();
         }
     }
 

@@ -25,6 +25,8 @@ public static class ArtProvider
             case "penitent": return PixelSpriteFactory.FromMap(PenitentMap, Common(), 12);
             case "cherub": return PixelSpriteFactory.FromMap(CherubMap, Common(), 12);
             case "angel": return PixelSpriteFactory.FromMap(AngelMap, Common(), 12);            
+            case "inquisitor": return PixelSpriteFactory.FromMap(InquisitorMap, Common(), 12);
+            case "capitan": return PixelSpriteFactory.FromMap(CapitanMap, Common(), 12);            
             default: return SpriteFactory.Circle();
         }
     }
@@ -162,6 +164,38 @@ public static class ArtProvider
         "..ww.ww.ww..",
         "...wwwwww...",
         "....w..w...."
+    };
+
+        static readonly string[] InquisitorMap =
+    {
+        "....kkkk....",
+        "...kkkkkk...",
+        "...kssssk...",
+        "...ksrrsk...",
+        "...kkkkkk...",
+        "..kkkkkkkk..",
+        ".kkkkkkkkkk.",
+        ".kkk.kk.kkk.",
+        ".kk..kk..kk.",
+        "......G.....",
+        "......G.....",
+        "............"
+    };
+
+    static readonly string[] CapitanMap =
+    {
+        ".....rr.....",
+        "....gggg....",
+        "...gggggg...",
+        "...gkggkg...",
+        "...gggggg...",
+        "....GGGG....",
+        "...GGGGGG...",
+        "..GG.GG.GG..",
+        "..GG.GG.GG..",
+        ".....GG.....",
+        "....GGGG....",
+        "....G..G...."
     };
 }
 

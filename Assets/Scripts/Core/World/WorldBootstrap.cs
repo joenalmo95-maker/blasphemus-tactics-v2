@@ -82,14 +82,15 @@ public class WorldBootstrap : MonoBehaviour
         List<WaveDef> d2 = new List<WaveDef>
         {
             Wave(S("penitent", EnemyTier.Medio, 7, 4), S("cherub", EnemyTier.Medio, 5, 6)),
-            Wave(S("penitent", EnemyTier.Elite, 7, 5), S("penitent", EnemyTier.Medio, 5, 3))
+            Wave(S("inquisitor", EnemyTier.Medio, 7, 5), S("penitent", EnemyTier.Medio, 5, 3)),
+            Wave(S("capitan", EnemyTier.Elite, 7, 5))
         };
 
         List<WaveDef> d3 = new List<WaveDef>
         {
-            Wave(S("penitent", EnemyTier.Medio, 7, 4), S("cherub", EnemyTier.Medio, 5, 6)),
-            Wave(S("penitent", EnemyTier.Elite, 7, 5), S("cherub", EnemyTier.Medio, 4, 3)),
-            Wave(S("penitent", EnemyTier.EliteFuerte, 6, 4), S("penitent", EnemyTier.Elite, 8, 6)),
+            Wave(S("penitent", EnemyTier.Medio, 7, 4), S("inquisitor", EnemyTier.Medio, 5, 6)),
+            Wave(S("capitan", EnemyTier.Elite, 7, 5), S("cherub", EnemyTier.Medio, 4, 3)),
+            Wave(S("capitan", EnemyTier.EliteFuerte, 6, 4), S("inquisitor", EnemyTier.Elite, 8, 6)),
             Wave(S("boss", EnemyTier.Jefe, 7, 5))
         };
 

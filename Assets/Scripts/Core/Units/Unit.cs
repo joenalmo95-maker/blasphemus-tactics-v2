@@ -19,6 +19,9 @@ public class Unit : MonoBehaviour
     public int buffCrit = 0;
     public int buffTurns = 0;
 
+    public int debuffAttack = 0;
+    public int debuffTurns = 0;
+
     public int pendingApPenalty = 0;
 
     public static Unit Create(string name, Vector2Int cell, bool isEnemy, Color color,
@@ -87,9 +90,30 @@ public class Unit : MonoBehaviour
         }
     }
 
-    public void ReceiveAttack(Unit attacker, int rawDamage, int bonusCrit = 0, float skillThreat = 1f)
+    public void ApplyDebuff(int attackReduction, int turns)
     {
-        int atk = attacker != null ? attacker.stats.attack : 70;
+        debuffAttack += attackReduction;
+        debuffTurns = Mathf.Max(debuffTurns, turns);
+        Debug.Log(gameObject.name + " sufre MALDICIÓN: -" + attackReduction + " precisión por " + turns + " turnos.");
+        CombatFeedback.SpawnText(transform.position, "MALDICIÓN", Color.magenta);
+    }
+
+    public void TickDebuffs()
+    {
+        if (debuffTurns > 0)
+        {
+            debuffTurns--;
+            if (debuffTurns == 0)
+            {
+                debuffAttack = 0;
+                Debug.Log("La maldición se disipa.");
+            }
+        }
+    }
+
+    public bool ReceiveAttack(Unit attacker, int rawDamage, int bonusCrit = 0, float skillThreat = 1f)
+    {
+        int atk = attacker != null ? attacker.stats.attack - attacker.debuffAttack : 70;
         int crit = (attacker != null ? attacker.stats.critChance + attacker.buffCrit : 5) + bonusCrit;
         int lifesteal = attacker != null ? attacker.stats.lifesteal : 0;
         float threatMult = attacker != null ? attacker.stats.threatMult : 1f;
@@ -99,7 +123,7 @@ public class Unit : MonoBehaviour
         {
             Debug.Log(gameObject.name + " esquivó el ataque de " + (attacker != null ? attacker.name : "???"));
             CombatFeedback.SpawnText(transform.position, "FALLÓ", Color.gray);
-            return;
+            return false;
         }
 
         bool isCrit = Random.Range(0, 100) < crit;
@@ -135,6 +159,8 @@ public class Unit : MonoBehaviour
             Destroy(gameObject);
             if (TurnManager.Instance != null) TurnManager.Instance.NotifyUnitDeath(wasEnemy);
         }
+
+        return true;
     }
 
     public void Heal(int amount)
