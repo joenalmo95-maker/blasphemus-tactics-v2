@@ -30,6 +30,15 @@ public class HealthBar2D : MonoBehaviour
         fill.sprite = SpriteFactory.Square();
         fill.color = Color.green;
         fill.sortingOrder = 4;
+
+        // Añadir collider para detección de hover del mouse
+        BoxCollider2D collider = gameObject.AddComponent<BoxCollider2D>();
+        collider.size = new Vector2(barWidth, 0.15f);
+        collider.offset = new Vector2(0, 0.6f);
+
+        // Añadir trigger de tooltip
+        UnitTooltipTrigger trigger = gameObject.AddComponent<UnitTooltipTrigger>();
+        trigger.targetUnit = unit;
     }
 
     void LateUpdate()

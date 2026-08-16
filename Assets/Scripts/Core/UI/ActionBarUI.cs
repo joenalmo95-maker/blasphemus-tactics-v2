@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using System.Collections.Generic;
 
 public class ActionBarUI : MonoBehaviour
@@ -21,6 +22,10 @@ public class ActionBarUI : MonoBehaviour
 
     void Awake()
     {
+        if (TooltipUI.Instance == null)
+        {
+            new GameObject("TooltipUI").AddComponent<TooltipUI>();
+        }
         Build();
     }
 
@@ -41,7 +46,6 @@ public class ActionBarUI : MonoBehaviour
         hlg.childForceExpandHeight = true;
         hlg.padding = new RectOffset(10, 10, 5, 5);
 
-        // 4 skills + utilidad + 3 consumibles prioritarios
         CreateActionButton("Skill 1", "1", "skill", 1);
         CreateActionButton("Skill 2", "2", "skill", 2);
         CreateActionButton("Skill 3", "3", "skill", 3);
@@ -70,6 +74,11 @@ public class ActionBarUI : MonoBehaviour
         colors.disabledColor = new Color(0.15f, 0.15f, 0.15f, 0.5f);
         button.colors = colors;
 
+        // Añadir trigger de eventos para tooltips
+        ActionButtonTrigger trigger = btn.button.AddComponent<ActionButtonTrigger>();
+        trigger.buttonIndex = actionButtons.Count;
+        trigger.actionBar = this;
+
         UIFactory.CreateText(btn.button.transform, "Key", key, 18, TextAnchor.UpperLeft, Color.yellow,
             new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(5, -5), new Vector2(30, 25));
 
@@ -83,6 +92,67 @@ public class ActionBarUI : MonoBehaviour
         button.onClick.AddListener(() => OnActionButtonClicked(buttonIndex));
 
         actionButtons.Add(btn);
+    }
+
+    public void OnPointerEnterButton(int index)
+    {
+        ActionButton btn = actionButtons[index];
+        
+        switch (btn.actionType)
+        {
+            case "skill":
+                int playerLevel = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
+                SkillData skill = SkillCatalog.Get(GetRole(), btn.actionIndex);
+                bool isUnlocked = SkillCatalog.IsSkillUnlocked(GetRole(), btn.actionIndex, playerLevel);
+                TooltipUI.Instance.ShowSkillTooltip(skill, isUnlocked, playerLevel);
+                break;
+
+            case "utility":
+                ShowUtilityTooltip();
+                break;
+
+            case "consumable":
+                ConsumableType ctype = (ConsumableType)btn.actionIndex;
+                int count = GetConsumableCount(ctype);
+                TooltipUI.Instance.ShowConsumableTooltip(ctype, count);
+                break;
+        }
+    }
+
+    public void OnPointerExitButton(int index)
+    {
+        TooltipUI.Instance.Hide();
+    }
+
+    void ShowUtilityTooltip()
+    {
+        ClassRole role = GetRole();
+        string name = "";
+        string desc = "";
+        
+        switch (role)
+        {
+            case ClassRole.Tank:
+                name = "Grito de Guerra";
+                desc = "Buff de +2 daño por 3 turnos y genera amenaza alta";
+                break;
+            case ClassRole.Healer:
+                name = "Curación";
+                desc = "Cura 4 HP (escalado con poder de curación)";
+                break;
+            default:
+                name = "Ojos del Halo";
+                desc = "+15% crítico por 3 turnos";
+                break;
+        }
+
+        SkillData fakeSkill = ScriptableObject.CreateInstance<SkillData>();
+        fakeSkill.skillName = name;
+        fakeSkill.description = desc;
+        fakeSkill.actionPointCost = 1;
+        fakeSkill.unlockLevel = 0;
+        
+        TooltipUI.Instance.ShowSkillTooltip(fakeSkill, true, 0);
     }
 
     void OnActionButtonClicked(int index)
@@ -217,5 +287,22 @@ public class ActionBarUI : MonoBehaviour
             if (c.type == type) return c.count;
         }
         return 0;
+    }
+}
+
+// Componente auxiliar para detectar hover en botones
+public class ActionButtonTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+{
+    public int buttonIndex;
+    public ActionBarUI actionBar;
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        actionBar.OnPointerEnterButton(buttonIndex);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        actionBar.OnPointerExitButton(buttonIndex);
     }
 }

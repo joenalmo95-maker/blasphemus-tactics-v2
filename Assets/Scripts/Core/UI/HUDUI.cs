@@ -28,6 +28,10 @@ public class HUDUI : MonoBehaviour
     {
         Build();
         gameObject.AddComponent<ActionBarUI>();
+        if (TooltipUI.Instance == null)
+        {
+            new GameObject("TooltipUI").AddComponent<TooltipUI>();
+        }
     }
 
     void Build()
