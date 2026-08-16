@@ -102,6 +102,11 @@ public class Unit : MonoBehaviour
         {
             Debug.Log(gameObject.name + " ha sido derrotado.");
             bool wasEnemy = isEnemy;
+            if (wasEnemy)
+            {
+                EnemyAI ai = GetComponent<EnemyAI>();
+                LootSystem.DropFrom(this, ai != null ? ai.tier : EnemyTier.Basico);
+            }
             Destroy(gameObject);
             if (TurnManager.Instance != null) TurnManager.Instance.NotifyUnitDeath(wasEnemy);
         }

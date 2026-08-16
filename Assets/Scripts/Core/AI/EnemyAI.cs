@@ -7,9 +7,11 @@ public class EnemyAI : MonoBehaviour
     public int attackRange = 1;
     public int attackDamage = 2;
     public int moveRange = 2;
+    public EnemyTier tier = EnemyTier.Basico;
 
     private Unit selfUnit;
     private Unit targetUnit;
+    
 
     void Awake()
     {

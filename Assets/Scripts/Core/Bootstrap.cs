@@ -16,6 +16,7 @@ public class Bootstrap : MonoBehaviour
         }
         Instance = this;
         Debug.Log("[Bootstrap] Awake correcto.");
+        LootSystem.ClearCombatLog();
 
         Unit enemy = Unit.Create("Cruzado", new Vector2Int(7, 4), true, new Color(0.35f, 0.36f, 0.40f));
         enemy.gameObject.AddComponent<EnemyAI>();

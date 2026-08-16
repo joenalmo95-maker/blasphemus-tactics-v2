@@ -7,8 +7,12 @@ public static class ItemGenerator
 
     public static ItemData Generate(ClassData classData)
     {
+        return GenerateWithRarity(classData, RollRarityBasic());
+    }
+
+    public static ItemData GenerateWithRarity(ClassData classData, Rarity rarity)
+    {
         ItemSlot slot = (ItemSlot)Random.Range(0, 5);
-        Rarity rarity = RollRarity();
 
         ItemData item = new ItemData();
         item.slot = slot;
@@ -16,7 +20,6 @@ public static class ItemGenerator
         item.requiredClass = classData != null ? classData.className : "";
         item.stats = StatBlock.Zero();
 
-        // Nombre coherente con el slot
         string baseName = SlotName(slot, classData);
         item.itemName = baseName + " " + quality[Random.Range(0, quality.Length)];
 
@@ -57,7 +60,7 @@ public static class ItemGenerator
         }
     }
 
-    static Rarity RollRarity()
+    static Rarity RollRarityBasic()
     {
         int roll = Random.Range(0, 100);
         if (roll < 55) return Rarity.Common;

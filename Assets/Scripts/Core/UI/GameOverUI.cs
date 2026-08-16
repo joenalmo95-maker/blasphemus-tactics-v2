@@ -47,7 +47,7 @@ public class GameOverUI : MonoBehaviour
         RectTransform trt = titleObj.AddComponent<RectTransform>();
         trt.anchorMin = new Vector2(0.5f, 0.5f);
         trt.anchorMax = new Vector2(0.5f, 0.5f);
-        trt.anchoredPosition = new Vector2(0, 60);
+        trt.anchoredPosition = new Vector2(0, 140);
         trt.sizeDelta = new Vector2(700, 80);
         Text t = titleObj.AddComponent<Text>();
         t.text = victory ? "VICTORIA" : "DERROTA";
@@ -56,12 +56,32 @@ public class GameOverUI : MonoBehaviour
         t.alignment = TextAnchor.MiddleCenter;
         t.color = victory ? Color.yellow : Color.red;
 
+        float buttonY = -40;
+
+        if (victory)
+        {
+            GameObject sumObj = new GameObject("Summary");
+            sumObj.transform.SetParent(root.transform, false);
+            RectTransform srt = sumObj.AddComponent<RectTransform>();
+            srt.anchorMin = new Vector2(0.5f, 0.5f);
+            srt.anchorMax = new Vector2(0.5f, 0.5f);
+            srt.anchoredPosition = new Vector2(0, 10);
+            srt.sizeDelta = new Vector2(800, 180);
+            Text st = sumObj.AddComponent<Text>();
+            st.text = "BOTÍN DE LA MISIÓN\n" + LootSystem.GetCombatSummary();
+            st.font = GetFont();
+            st.fontSize = 16;
+            st.alignment = TextAnchor.UpperCenter;
+            st.color = Color.white;
+            buttonY = -160;
+        }
+
         GameObject btnObj = new GameObject("Btn");
         btnObj.transform.SetParent(root.transform, false);
         RectTransform rt = btnObj.AddComponent<RectTransform>();
         rt.anchorMin = new Vector2(0.5f, 0.5f);
         rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(0, -40);
+        rt.anchoredPosition = new Vector2(0, buttonY);
         rt.sizeDelta = new Vector2(280, 50);
         Image img = btnObj.AddComponent<Image>();
         img.sprite = SpriteFactory.Square();
