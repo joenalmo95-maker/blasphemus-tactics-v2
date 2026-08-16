@@ -34,6 +34,16 @@ public class CharacterData : MonoBehaviour
         return s;
     }
 
+    public StatBlock GetTotalStats()
+    {
+        StatBlock s = GetDerivedStats();
+        if (InventorySystem.Instance != null)
+        {
+            s.Add(InventorySystem.Instance.GetEquippedStats());
+        }
+        return s;
+    }
+
     public int XpToNextLevel()
     {
         return 10 + level * 5;

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using System.Collections.Generic;
 
 public class InputController : MonoBehaviour
@@ -28,6 +29,7 @@ public class InputController : MonoBehaviour
     void Update()
     {
         if (isMoving) return;
+        if (InventoryUI.IsOpen) return;
         if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn()) return;
 
         if (playerUnit == null) playerUnit = GetPlayer();
@@ -43,7 +45,9 @@ public class InputController : MonoBehaviour
             if (currentHovered != null && currentHovered != selected) currentHovered.Highlight(true);
         }
 
-        if (hit != null && Input.GetMouseButtonDown(0))
+        bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+
+        if (hit != null && Input.GetMouseButtonDown(0) && !overUI)
         {
             if (selected != null && selected != hit) selected.Highlight(false);
             selected = hit;

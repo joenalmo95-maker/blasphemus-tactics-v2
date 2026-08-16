@@ -23,10 +23,16 @@ public class Bootstrap : MonoBehaviour
         GameObject cdObj = new GameObject("CharacterData");
         cdObj.AddComponent<CharacterData>();
 
+        GameObject invObj = new GameObject("InventorySystem");
+        invObj.AddComponent<InventorySystem>();
+
+        GameObject uiObj = new GameObject("InventoryUI");
+        uiObj.AddComponent<InventoryUI>();
+
         if (availableClasses.Count > 0)
         {
-            GameObject uiObj = new GameObject("CharacterCreation");
-            CharacterCreationUI ui = uiObj.AddComponent<CharacterCreationUI>();
+            GameObject creationObj = new GameObject("CharacterCreation");
+            CharacterCreationUI ui = creationObj.AddComponent<CharacterCreationUI>();
             ui.availableClasses = availableClasses;
             ui.Build();
         }
@@ -52,7 +58,7 @@ public class Bootstrap : MonoBehaviour
         }
 
         StatBlock stats = CharacterData.Instance != null
-            ? CharacterData.Instance.GetDerivedStats()
+            ? CharacterData.Instance.GetTotalStats()
             : new StatBlock();
 
         Unit.Create("Renacido", new Vector2Int(1, 1), false,

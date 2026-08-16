@@ -12,6 +12,22 @@ public class StatBlock
     public int lifesteal = 0;
     public float threatMult = 1f;
 
+    public static StatBlock Zero()
+    {
+        StatBlock s = new StatBlock();
+        s.maxHP = 0;
+        s.defense = 0;
+        s.damage = 0;
+        s.attack = 0;
+        s.critChance = 0;
+        s.evasion = 0;
+        s.apMove = 0;
+        s.healingPower = 0;
+        s.lifesteal = 0;
+        s.threatMult = 0f;
+        return s;
+    }
+
     public StatBlock Clone()
     {
         return (StatBlock)MemberwiseClone();

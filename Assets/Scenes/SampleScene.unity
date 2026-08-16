@@ -222,7 +222,6 @@ GameObject:
   - component: {fileID: 669588801}
   - component: {fileID: 669588800}
   - component: {fileID: 669588799}
-  - component: {fileID: 669588798}
   - component: {fileID: 669588802}
   - component: {fileID: 669588803}
   - component: {fileID: 669588804}
@@ -233,19 +232,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &669588798
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 669588797}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 246ab4fb7f918294f972a59876dbf509, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Bootstrap
-  availableClasses: []
 --- !u!114 &669588799
 MonoBehaviour:
   m_ObjectHideFlags: 0
