@@ -1,26 +1,24 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class WorldPlayerController : MonoBehaviour
 {
-    public float speed = 6f;
-    private TextMesh prompt;
-    private WorldBootstrap.Zone currentZone;
-    private bool inZone = false;
+    public float speed = 5f;
+
+    private Text promptText;
+    private WorldBootstrap.ZoneDef nearZone;
 
     void Awake()
     {
-        GameObject p = new GameObject("Prompt");
-        p.transform.SetParent(transform);
-        p.transform.localPosition = new Vector3(0, 1, 0);
-        prompt = p.AddComponent<TextMesh>();
-        prompt.fontSize = 48;
-        prompt.characterSize = 0.05f;
-        prompt.alignment = TextAlignment.Center;
-        prompt.anchor = TextAnchor.MiddleCenter;
-        prompt.color = Color.yellow;
-        prompt.text = "";
-        MeshRenderer mr = p.GetComponent<MeshRenderer>();
-        mr.sortingOrder = 10;
+        BuildPrompt();
+    }
+
+    void BuildPrompt()
+    {
+        GameObject canvas = UIFactory.CreateCanvas("WorldPromptCanvas", 40);
+        promptText = UIFactory.CreateText(canvas.transform, "Prompt", "", 18, TextAnchor.MiddleCenter, Color.yellow,
+            new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0),
+            new Vector2(0, 120), new Vector2(700, 40));
     }
 
     void Update()
@@ -28,7 +26,15 @@ public class WorldPlayerController : MonoBehaviour
         float x = Input.GetAxisRaw("Horizontal");
         float y = Input.GetAxisRaw("Vertical");
         Vector3 dir = new Vector3(x, y, 0).normalized;
-        transform.position += dir * speed * Time.deltaTime;
+
+        // Movimiento WASD con colisión de terreno (Bloque 2.1)
+        if (dir != Vector3.zero)
+        {
+            Vector3 newPos = transform.position + dir * speed * Time.deltaTime;
+            Vector2Int targetCell = new Vector2Int(Mathf.RoundToInt(newPos.x), Mathf.RoundToInt(newPos.y));
+            if (TerrainMap.IsWalkable(targetCell))
+                transform.position = newPos;
+        }
 
         transform.position = new Vector3(
             Mathf.Clamp(transform.position.x, 0, WorldBootstrap.WorldWidth - 1),
@@ -43,29 +49,29 @@ public class WorldPlayerController : MonoBehaviour
 
     void CheckZones()
     {
-        inZone = false;
-        foreach (var z in WorldBootstrap.zones)
+        Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y));
+
+        nearZone = null;
+        foreach (WorldBootstrap.ZoneDef z in WorldBootstrap.Zones)
         {
-            if (Mathf.Abs(transform.position.x - z.center.x) <= z.size.x / 2 &&
-                Mathf.Abs(transform.position.y - z.center.y) <= z.size.y / 2)
+            if (Mathf.Abs(z.center.x - myCell.x) <= 1 && Mathf.Abs(z.center.y - myCell.y) <= 1)
             {
-                currentZone = z;
-                inZone = true;
+                nearZone = z;
                 break;
             }
         }
 
-        if (inZone)
+        if (nearZone != null)
         {
-            prompt.text = currentZone.label + "\nPulsa E para combatir";
+            promptText.text = "Pulsa E para entrar: " + nearZone.name;
             if (Input.GetKeyDown(KeyCode.E))
             {
-                GameFlow.EnterCombat(currentZone.tier, currentZone.waves);
+                GameFlow.EnterCombat(nearZone.tier, nearZone.dungeon);
             }
         }
         else
         {
-            prompt.text = "";
+            promptText.text = "";
         }
     }
 }

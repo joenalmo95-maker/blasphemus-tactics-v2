@@ -16,6 +16,12 @@ public class GridManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        
+        // Generar obstáculos de terreno antes de crear el grid
+        Vector2Int playerCell = new Vector2Int(1, 1);
+        Vector2Int enemyCell = new Vector2Int(7, 4);
+        TerrainMap.GenerateCombatObstacles(gridWidth, gridHeight, playerCell, enemyCell);
+        
         GenerateGrid();
     }
 
@@ -31,8 +37,19 @@ public class GridManager : MonoBehaviour
                 tileObj.transform.position = new Vector3(x, y, 0);
 
                 SpriteRenderer sr = tileObj.AddComponent<SpriteRenderer>();
-                sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
                 sr.sortingOrder = 0;
+
+                // Verificar si hay obstáculo de terreno
+                TerrainType terrain = TerrainMap.Get(pos);
+                if (terrain != TerrainType.Caminable)
+                {
+                    sr.sprite = ArtProvider.Get(terrain == TerrainType.Roca ? "rock" : (terrain == TerrainType.Agua ? "water" : "ruins"));
+                    sr.sortingOrder = 1;
+                }
+                else
+                {
+                    sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
+                }
 
                 Tile tile = tileObj.AddComponent<Tile>();
                 tile.Init(pos, (x + y) % 2 == 0 ? TileDark : TileLight);

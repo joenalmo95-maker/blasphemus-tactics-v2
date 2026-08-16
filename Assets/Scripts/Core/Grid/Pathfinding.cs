@@ -26,6 +26,7 @@ public static class Pathfinding
             {
                 Vector2Int next = current + d;
                 if (!GridManager.Instance.InBounds(next)) continue;
+                if (!TerrainMap.IsWalkable(next)) continue; // NUEVO: respetar terreno
                 if (IsOccupied(next) && next != target) continue;
                 if (!cameFrom.ContainsKey(next))
                 {
