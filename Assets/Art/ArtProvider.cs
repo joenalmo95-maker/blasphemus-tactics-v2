@@ -24,6 +24,7 @@ public static class ArtProvider
             case "dps": return PixelSpriteFactory.FromMap(DpsMap, Common(), 12);
             case "penitent": return PixelSpriteFactory.FromMap(PenitentMap, Common(), 12);
             case "cherub": return PixelSpriteFactory.FromMap(CherubMap, Common(), 12);
+            case "angel": return PixelSpriteFactory.FromMap(AngelMap, Common(), 12);            
             default: return SpriteFactory.Circle();
         }
     }
@@ -146,4 +147,22 @@ public static class ArtProvider
         "............",
         "............"
     };
+
+        static readonly string[] AngelMap =
+    {
+        ".....hh.....",
+        ".....hh.....",
+        "....wwww....",
+        "ww..wwww..ww",
+        "www.wwww.www",
+        "wwwwwwwwwwww",
+        "wwwwwwwwwwww",
+        ".www.ww.www.",
+        "..ww.ww.ww..",
+        "..ww.ww.ww..",
+        "...wwwwww...",
+        "....w..w...."
+    };
 }
+
+

@@ -18,8 +18,11 @@ public class TurnManager : MonoBehaviour
 
     void Start()
     {
-        playerUnit = GetPlayer();
-        if (playerUnit != null) StartPlayerTurn();
+        if (currentState == TurnState.WaitingForPlayer)
+        {
+            playerUnit = GetPlayer();
+            if (playerUnit != null) StartPlayerTurn();
+        }
     }
 
     public void BeginGame()
@@ -51,6 +54,14 @@ public class TurnManager : MonoBehaviour
         {
             playerUnit.ResetAP();
             Debug.Log("AP restaurados: " + playerUnit.currentAP);
+
+            if (playerUnit.pendingApPenalty > 0)
+            {
+                playerUnit.currentAP = Mathf.Max(0, playerUnit.currentAP - playerUnit.pendingApPenalty);
+                Debug.Log("AP drenados: " + playerUnit.pendingApPenalty + ". AP este turno: " + playerUnit.currentAP);
+                playerUnit.pendingApPenalty = 0;
+            }
+
             playerUnit.TickBuffs();
         }
     }
@@ -74,8 +85,15 @@ public class TurnManager : MonoBehaviour
             if (currentState == TurnState.GameOver) yield break;
 
             Debug.Log("Turno de: " + enemy.gameObject.name);
+            
+            BossAI boss = enemy.GetComponent<BossAI>();
             EnemyAI ai = enemy.GetComponent<EnemyAI>();
-            if (ai != null)
+            
+            if (boss != null)
+            {
+                yield return boss.ExecuteTurn();
+            }
+            else if (ai != null)
             {
                 yield return ai.ExecuteTurn();
             }
@@ -112,9 +130,16 @@ public class TurnManager : MonoBehaviour
 
         if (!anyEnemyVivo)
         {
-            ForceGameOver();
-            Debug.Log("=== VICTORIA ===");
-            ShowGameOver(true);
+            if (DungeonManager.Instance != null && DungeonManager.Instance.HasNextWave())
+            {
+                DungeonManager.Instance.NextWave();
+            }
+            else
+            {
+                ForceGameOver();
+                Debug.Log("=== VICTORIA ===");
+                ShowGameOver(true);
+            }
         }
     }
 

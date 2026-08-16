@@ -15,6 +15,7 @@ public class WorldBootstrap : MonoBehaviour
         public Vector2 size;
         public EnemyTier tier;
         public string label;
+        public List<WaveDef> waves;
     }
 
     public static List<Zone> zones = new List<Zone>();
@@ -71,9 +72,30 @@ public class WorldBootstrap : MonoBehaviour
     void BuildZones()
     {
         zones.Clear();
-        zones.Add(new Zone { center = new Vector2(8, 10), size = new Vector2(5, 5), tier = EnemyTier.Basico, label = "Campos Penitentes" });
-        zones.Add(new Zone { center = new Vector2(18, 6), size = new Vector2(5, 5), tier = EnemyTier.Medio, label = "Vigilia del Inquisidor" });
-        zones.Add(new Zone { center = new Vector2(24, 14), size = new Vector2(5, 5), tier = EnemyTier.Elite, label = "Bastión Templario" });
+
+        List<WaveDef> d1 = new List<WaveDef>
+        {
+            Wave(S("penitent", EnemyTier.Basico, 7, 4)),
+            Wave(S("penitent", EnemyTier.Basico, 6, 2), S("cherub", EnemyTier.Basico, 8, 6))
+        };
+
+        List<WaveDef> d2 = new List<WaveDef>
+        {
+            Wave(S("penitent", EnemyTier.Medio, 7, 4), S("cherub", EnemyTier.Medio, 5, 6)),
+            Wave(S("penitent", EnemyTier.Elite, 7, 5), S("penitent", EnemyTier.Medio, 5, 3))
+        };
+
+        List<WaveDef> d3 = new List<WaveDef>
+        {
+            Wave(S("penitent", EnemyTier.Medio, 7, 4), S("cherub", EnemyTier.Medio, 5, 6)),
+            Wave(S("penitent", EnemyTier.Elite, 7, 5), S("cherub", EnemyTier.Medio, 4, 3)),
+            Wave(S("penitent", EnemyTier.EliteFuerte, 6, 4), S("penitent", EnemyTier.Elite, 8, 6)),
+            Wave(S("boss", EnemyTier.Jefe, 7, 5))
+        };
+
+        zones.Add(new Zone { center = new Vector2(8, 10), size = new Vector2(5, 5), tier = EnemyTier.Basico, label = "Campos Penitentes", waves = d1 });
+        zones.Add(new Zone { center = new Vector2(18, 6), size = new Vector2(5, 5), tier = EnemyTier.Medio, label = "Vigilia del Inquisidor", waves = d2 });
+        zones.Add(new Zone { center = new Vector2(24, 14), size = new Vector2(5, 5), tier = EnemyTier.Elite, label = "Bastión Templario", waves = d3 });
 
         foreach (Zone z in zones)
         {
@@ -85,6 +107,18 @@ public class WorldBootstrap : MonoBehaviour
             zObj.transform.localScale = new Vector3(z.size.x, z.size.y, 1);
             sr.sortingOrder = 1;
         }
+    }
+
+    static WaveDef Wave(params SpawnDef[] s)
+    {
+        WaveDef w = new WaveDef();
+        w.spawns.AddRange(s);
+        return w;
+    }
+
+    static SpawnDef S(string archetype, EnemyTier tier, int x, int y)
+    {
+        return new SpawnDef { archetype = archetype, tier = tier, cell = new Vector2Int(x, y) };
     }
 
     public void SpawnWorldPlayer()

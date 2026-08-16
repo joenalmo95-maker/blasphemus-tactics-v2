@@ -17,6 +17,7 @@ public class Unit : MonoBehaviour
     public int buffDamage = 0;
     public int buffDefense = 0;
     public int buffTurns = 0;
+    public int pendingApPenalty = 0;
 
     public static Unit Create(string name, Vector2Int cell, bool isEnemy, Color color,
         float scale = 0.8f, int maxHealth = 10, int maxAP = 3, string artKey = "circle")

@@ -17,7 +17,16 @@ public class Bootstrap : MonoBehaviour
         if (FindAnyObjectByType<InventorySystem>() == null)
             new GameObject("InventorySystem").AddComponent<InventorySystem>();
 
-        SpawnEnemyByTier(GameFlow.pendingTier);
+        if (GameFlow.pendingDungeon != null && GameFlow.pendingDungeon.Count > 0)
+        {
+            DungeonManager dm = new GameObject("DungeonManager").AddComponent<DungeonManager>();
+            dm.waves = GameFlow.pendingDungeon;
+            dm.StartDungeon();
+        }
+        else
+        {
+            EnemyFactory.Spawn("penitent", GameFlow.pendingTier, new Vector2Int(7, 4));
+        }
 
         new GameObject("InventoryUI").AddComponent<InventoryUI>();
         new GameObject("ShopUI").AddComponent<ShopUI>();
@@ -27,7 +36,7 @@ public class Bootstrap : MonoBehaviour
         if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
         {
             SpawnPlayer();
-            if (TurnManager.Instance != null) TurnManager.Instance.BeginGame();
+            // TurnManager.Start() iniciará el turno automáticamente tras todos los Awake.
         }
         else
         {
@@ -38,26 +47,6 @@ public class Bootstrap : MonoBehaviour
             ui.onFinished = () => { SpawnPlayer(); if (TurnManager.Instance != null) TurnManager.Instance.BeginGame(); };
             ui.Build();
         }
-    }
-
-    Unit SpawnEnemyByTier(EnemyTier tier)
-    {
-        float hpMult = 1f;
-        int dmgBonus = 0;
-        switch (tier)
-        {
-            case EnemyTier.Medio: hpMult = 1.4f; dmgBonus = 1; break;
-            case EnemyTier.Elite: hpMult = 1.8f; dmgBonus = 2; break;
-            case EnemyTier.EliteFuerte: hpMult = 2.2f; dmgBonus = 3; break;
-            case EnemyTier.Jefe: hpMult = 3f; dmgBonus = 4; break;
-        }
-
-        int hp = Mathf.RoundToInt(10 * hpMult);
-        Unit enemy = Unit.Create("Cruzado", new Vector2Int(7, 4), true, Color.white, 0.8f, hp, 3, "penitent");
-        EnemyAI ai = enemy.gameObject.AddComponent<EnemyAI>();
-        ai.tier = tier;
-        ai.attackDamage = 2 + dmgBonus;
-        return enemy;
     }
 
     public void SpawnPlayer()

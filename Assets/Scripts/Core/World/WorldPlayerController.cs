@@ -60,7 +60,7 @@ public class WorldPlayerController : MonoBehaviour
             prompt.text = currentZone.label + "\nPulsa E para combatir";
             if (Input.GetKeyDown(KeyCode.E))
             {
-                GameFlow.EnterCombat(currentZone.tier);
+                GameFlow.EnterCombat(currentZone.tier, currentZone.waves);
             }
         }
         else
