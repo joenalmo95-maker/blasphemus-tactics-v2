@@ -80,6 +80,7 @@ public class InventorySystem : MonoBehaviour
                 if (u.currentHealth > u.maxHealth) u.currentHealth = u.maxHealth;
                 u.maxAP = total.apMove;
                 if (u.currentAP > u.maxAP) u.currentAP = u.maxAP;
+                u.stats = total.Clone();
                 Debug.Log("Stats aplicados al Renacido. HP max: " + u.maxHealth + " | AP: " + u.maxAP);
                 break;
             }

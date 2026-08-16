@@ -11,6 +11,9 @@ public class Unit : MonoBehaviour
     public bool isEnemy = false;
     public SpriteRenderer spriteRenderer;
 
+    public StatBlock stats = new StatBlock();
+    public float threat = 0f;
+
     private Color originalColor;
     private bool colorCached = false;
 
@@ -57,15 +60,41 @@ public class Unit : MonoBehaviour
         currentAP = maxAP;
     }
 
-    public void TakeDamage(int amount)
+    public void ReceiveAttack(Unit attacker, int rawDamage)
     {
-        CacheColor();
-        currentHealth -= amount;
-        Debug.Log(gameObject.name + " recibió " + amount + " de daño. HP: " + currentHealth);
+        int atk = attacker != null ? attacker.stats.attack : 70;
+        int crit = attacker != null ? attacker.stats.critChance : 5;
+        int lifesteal = attacker != null ? attacker.stats.lifesteal : 0;
+        float threatMult = attacker != null ? attacker.stats.threatMult : 1f;
 
-        CombatFeedback.SpawnDamage(transform.position, amount);
+        int hitChance = Mathf.Clamp(atk - stats.evasion, 5, 95);
+        if (Random.Range(0, 100) >= hitChance)
+        {
+            Debug.Log(gameObject.name + " esquivó el ataque de " + (attacker != null ? attacker.name : "???"));
+            CombatFeedback.SpawnText(transform.position, "FALLÓ", Color.gray);
+            return;
+        }
+
+        bool isCrit = Random.Range(0, 100) < crit;
+        int mitigated = Mathf.Max(1, rawDamage - stats.defense);
+        int final = isCrit ? mitigated * 2 : mitigated;
+
+        currentHealth -= final;
+        Debug.Log(gameObject.name + " recibió " + final + (isCrit ? " (CRÍTICO)" : "") + " de daño. HP: " + currentHealth);
+        CombatFeedback.SpawnText(transform.position, (isCrit ? "CRIT -" : "-") + final, isCrit ? Color.yellow : Color.red);
         CombatFeedback.SpawnImpact(transform.position, isEnemy ? Color.yellow : Color.red);
         StartCoroutine(Flash());
+
+        if (attacker != null)
+        {
+            attacker.threat += final * threatMult;
+
+            if (lifesteal > 0)
+            {
+                int heal = Mathf.Max(1, Mathf.RoundToInt(final * lifesteal / 100f));
+                attacker.Heal(heal);
+            }
+        }
 
         if (currentHealth <= 0)
         {
@@ -73,6 +102,19 @@ public class Unit : MonoBehaviour
             bool wasEnemy = isEnemy;
             Destroy(gameObject);
             if (TurnManager.Instance != null) TurnManager.Instance.NotifyUnitDeath(wasEnemy);
+        }
+    }
+
+    public void Heal(int amount)
+    {
+        if (currentHealth <= 0) return;
+        int before = currentHealth;
+        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+        int real = currentHealth - before;
+        if (real > 0)
+        {
+            Debug.Log(gameObject.name + " se cura " + real + ". HP: " + currentHealth);
+            CombatFeedback.SpawnText(transform.position, "+" + real, Color.green);
         }
     }
 

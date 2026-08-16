@@ -38,6 +38,7 @@ public class CombatController : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Alpha1)) ToggleSkill(basicAttack);
         if (Input.GetKeyDown(KeyCode.Alpha2)) ToggleSkill(rangedAttack);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) TryHeal();
 
         if (armedSkill != null && Input.GetMouseButtonDown(1))
         {
@@ -53,7 +54,7 @@ public class CombatController : MonoBehaviour
                 if (distance <= armedSkill.range && playerUnit.currentAP >= armedSkill.actionPointCost)
                 {
                     playerUnit.currentAP -= armedSkill.actionPointCost;
-                    target.TakeDamage(armedSkill.damage);
+                    target.ReceiveAttack(playerUnit, armedSkill.damage + playerUnit.stats.damage);
                     Debug.Log(armedSkill.skillName + " ejecutado. AP restantes: " + playerUnit.currentAP);
                     armedSkill = null;
                 }
@@ -63,6 +64,30 @@ public class CombatController : MonoBehaviour
                 }
             }
         }
+    }
+
+    void TryHeal()
+    {
+        if (CharacterData.Instance == null || CharacterData.Instance.classData == null) return;
+
+        if (CharacterData.Instance.classData.role != ClassRole.Healer)
+        {
+            Debug.Log("Tu clase no puede curar.");
+            return;
+        }
+
+        if (playerUnit.currentAP < 1)
+        {
+            Debug.Log("AP insuficientes para curar.");
+            return;
+        }
+
+        int baseHeal = 4;
+        int amount = Mathf.RoundToInt(baseHeal * (1 + playerUnit.stats.healingPower / 100f));
+        playerUnit.currentAP -= 1;
+        playerUnit.Heal(amount);
+        playerUnit.threat += amount * 2f * playerUnit.stats.threatMult;
+        Debug.Log("Curación ejecutada. AP restantes: " + playerUnit.currentAP);
     }
 
     void ToggleSkill(SkillData skill)

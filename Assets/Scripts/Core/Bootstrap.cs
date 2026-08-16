@@ -61,8 +61,9 @@ public class Bootstrap : MonoBehaviour
             ? CharacterData.Instance.GetTotalStats()
             : new StatBlock();
 
-        Unit.Create("Renacido", new Vector2Int(1, 1), false,
+        Unit player = Unit.Create("Renacido", new Vector2Int(1, 1), false,
             new Color(0.45f, 0.08f, 0.08f), 0.8f, stats.maxHP, stats.apMove);
+        player.stats = stats.Clone();
 
         string className = (CharacterData.Instance != null && CharacterData.Instance.classData != null)
             ? CharacterData.Instance.classData.className

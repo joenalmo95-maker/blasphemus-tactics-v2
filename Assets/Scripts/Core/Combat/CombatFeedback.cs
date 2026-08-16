@@ -2,18 +2,18 @@ using UnityEngine;
 
 public static class CombatFeedback
 {
-    public static void SpawnDamage(Vector3 position, int amount)
+    public static void SpawnText(Vector3 position, string text, Color color)
     {
         GameObject go = new GameObject("DamagePopup");
         go.transform.position = position + new Vector3(0, 0.6f, -0.5f);
 
         TextMesh tm = go.AddComponent<TextMesh>();
-        tm.text = "-" + amount;
+        tm.text = text;
         tm.characterSize = 0.12f;
         tm.fontSize = 64;
         tm.alignment = TextAlignment.Center;
         tm.anchor = TextAnchor.MiddleCenter;
-        tm.color = Color.red;
+        tm.color = color;
 
         Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
@@ -29,6 +29,11 @@ public static class CombatFeedback
         }
 
         go.AddComponent<PopupBehaviour>().Init(tm);
+    }
+
+    public static void SpawnDamage(Vector3 position, int amount)
+    {
+        SpawnText(position, "-" + amount, Color.red);
     }
 
     public static void SpawnImpact(Vector3 position, Color color)
