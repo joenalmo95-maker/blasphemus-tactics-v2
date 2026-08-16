@@ -28,6 +28,7 @@ public class HUDUI : MonoBehaviour
     {
         Build();
         gameObject.AddComponent<ActionBarUI>();
+        gameObject.AddComponent<FleeUI>();
         if (TooltipUI.Instance == null)
         {
             new GameObject("TooltipUI").AddComponent<TooltipUI>();
@@ -117,7 +118,7 @@ public class HUDUI : MonoBehaviour
             Vector2.zero, new Vector2(0, 16), Color.cyan);
 
         UIFactory.CreateText(root.transform, "Hint",
-            "1/2: habilidades 3: utilidad 4-7: consumibles I: inventario B: tienda E: fin de turno",
+            "1-4: habilidades 5: utilidad 6-7: consumibles I: inventario B: tienda E: fin de turno ESC: huir",
             14, TextAnchor.MiddleCenter, new Color(0.75f, 0.75f, 0.75f, 0.8f),
             new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0),
             new Vector2(0, 8), new Vector2(900, 24));
