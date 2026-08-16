@@ -111,9 +111,20 @@ public class InventoryUI : MonoBehaviour
         }
 
         StatBlock stats = CharacterData.Instance != null ? CharacterData.Instance.GetTotalStats() : new StatBlock();
-        string statsText = "HP: " + stats.maxHP + "  DEF: " + stats.defense + "  DAÑO: " + stats.damage +
+
+        Unit player = null;
+        Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        foreach (Unit u in units)
+        {
+            if (!u.isEnemy) { player = u; break; }
+        }
+
+        string hpText = player != null ? player.currentHealth + "/" + player.maxHealth : stats.maxHP + "/" + stats.maxHP;
+        string apText = player != null ? player.currentAP + "/" + player.maxAP : stats.apMove + "/" + stats.apMove;
+
+        string statsText = "HP: " + hpText + "  DEF: " + stats.defense + "  DAÑO: " + stats.damage +
                            "  ATQ: " + stats.attack + "  CRIT: " + stats.critChance + "%  EVA: " + stats.evasion +
-                           "%  AP: " + stats.apMove + "  CUR: " + stats.healingPower + "%  ROBO: " + stats.lifesteal + "%";
+                           "%  AP: " + apText + "  CUR: " + stats.healingPower + "%  ROBO: " + stats.lifesteal + "%";
         MakeText(root.transform, statsText, 0, -220, 18);
     }
 
