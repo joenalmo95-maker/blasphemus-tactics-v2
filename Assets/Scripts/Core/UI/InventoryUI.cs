@@ -11,11 +11,6 @@ public class InventoryUI : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F5))
-        {
-            SaveSystem.Save();
-        }
-                
         if (Input.GetKeyDown(KeyCode.I) || Input.GetKeyDown(KeyCode.C)) Toggle();
 
         if (Input.GetKeyDown(KeyCode.L))
@@ -26,6 +21,11 @@ public class InventoryUI : MonoBehaviour
                 InventorySystem.Instance.AddItem(ItemGenerator.Generate(cd));
                 if (IsOpen) Rebuild();
             }
+        }
+
+        if (Input.GetKeyDown(KeyCode.F5))
+        {
+            SaveSystem.Save();
         }
     }
 
@@ -75,8 +75,7 @@ public class InventoryUI : MonoBehaviour
         float ey = 150;
         foreach (ItemSlot slot in System.Enum.GetValues(typeof(ItemSlot)))
         {
-                        ItemData eq = InventorySystem.Instance != null ? InventorySystem.Instance.GetEquipped(slot) : null;
-
+            ItemData eq = InventorySystem.Instance != null ? InventorySystem.Instance.GetEquipped(slot) : null;
             string label = SlotLabel(slot) + ": " + (eq != null ? eq.itemName : "---");
             ItemData captured = eq;
 
@@ -91,7 +90,7 @@ public class InventoryUI : MonoBehaviour
             ey -= 40;
         }
 
-        MakeText(root.transform, "MOCHILA (clic para equipar)", 80, 190, 16);
+        MakeText(root.transform, "MOCHILA (clic: equipar / vender)", 80, 190, 16);
         float iy = 150;
         int count = 0;
         if (InventorySystem.Instance != null)
@@ -100,8 +99,9 @@ public class InventoryUI : MonoBehaviour
             {
                 ItemData item = InventorySystem.Instance.items[i];
                 int idx = i;
+                int price = ItemGenerator.SellPrice(item);
 
-                MakeButton(root.transform, item.itemName + " [" + item.rarity + "]", 80, iy, 360, 34,
+                MakeButton(root.transform, item.itemName + " [" + item.rarity + "]", 40, iy, 320, 34,
                     ItemGenerator.RarityColor(item.rarity), () =>
                 {
                     if (InventorySystem.Instance != null)
@@ -110,6 +110,16 @@ public class InventoryUI : MonoBehaviour
                         Rebuild();
                     }
                 });
+
+                MakeButton(root.transform, "Vender " + price, 265, iy, 130, 34, Color.yellow, () =>
+                {
+                    if (InventorySystem.Instance != null)
+                    {
+                        InventorySystem.Instance.SellItem(idx);
+                        Rebuild();
+                    }
+                });
+
                 iy -= 40;
                 count++;
             }

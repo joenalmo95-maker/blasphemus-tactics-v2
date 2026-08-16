@@ -46,6 +46,20 @@ public class InventorySystem : MonoBehaviour
         Debug.Log("Objeto obtenido: " + item.itemName + " [" + item.rarity + "]");
     }
 
+    public void SellItem(int index)
+    {
+        if (index < 0 || index >= items.Count) return;
+        ItemData item = items[index];
+        int price = ItemGenerator.SellPrice(item);
+        items.RemoveAt(index);
+
+        if (CharacterData.Instance != null)
+        {
+            CharacterData.Instance.gold += price;
+            Debug.Log("Vendido: " + item.itemName + " (+" + price + " oro)");
+        }
+    }    
+
     public int GetConsumableCount(ConsumableType t)
     {
         foreach (ConsumableData c in consumables)

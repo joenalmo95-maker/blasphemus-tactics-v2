@@ -107,4 +107,25 @@ public static class ItemGenerator
             default: return Color.white;
         }
     }
+    public static int SellPrice(ItemData item)
+    {
+        switch (item.rarity)
+        {
+            case Rarity.Rare: return 10;
+            case Rarity.Epic: return 20;
+            case Rarity.Legendary: return 40;
+            default: return 5;
+        }
+    }
+
+    public static int BuyPrice(Rarity r)
+    {
+        switch (r)
+        {
+            case Rarity.Common: return 15;
+            case Rarity.Rare: return 30;
+            case Rarity.Epic: return 60;
+            default: return 120;
+        }
+    }
 }

@@ -1,12 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 public class ShopUI : MonoBehaviour
 {
     public static bool IsOpen { get; private set; }
 
     private GameObject root;
+    private List<ItemData> stock = new List<ItemData>();
 
     void Update()
     {
@@ -16,7 +18,12 @@ public class ShopUI : MonoBehaviour
     public void Toggle()
     {
         IsOpen = !IsOpen;
-        if (IsOpen) Rebuild(); else Close();
+        if (IsOpen)
+        {
+            stock.Clear();
+            Rebuild();
+        }
+        else Close();
     }
 
     void Close()
@@ -53,20 +60,45 @@ public class ShopUI : MonoBehaviour
         bimg.sprite = SpriteFactory.Square();
         bimg.color = new Color(0.02f, 0.02f, 0.03f, 0.95f);
 
-        MakeText(root.transform, "TIENDA DEL RENEGADO  (B para cerrar)", 0, 220, 22);
+        MakeText(root.transform, "TIENDA DEL RENEGADO  (B para cerrar)", 0, 250, 22);
 
         int gold = CharacterData.Instance != null ? CharacterData.Instance.gold : 0;
-        MakeText(root.transform, "Oro disponible: " + gold, 0, 180, 16);
+        MakeText(root.transform, "Oro disponible: " + gold, 0, 215, 16);
 
-        float y = 120;
+        MakeText(root.transform, "CONSUMIBLES", 0, 180, 16);
+        float y = 150;
         foreach (ConsumableType t in System.Enum.GetValues(typeof(ConsumableType)))
         {
             ConsumableType captured = t;
             int count = InventorySystem.Instance != null ? InventorySystem.Instance.GetConsumableCount(t) : 0;
             string label = ConsumableCatalog.Name(t) + " [" + count + "]  " +
                            ConsumableCatalog.Price(t) + " oro — " + ConsumableCatalog.Description(t);
-            MakeButton(root.transform, label, 0, y, 680, 40, Color.white, () => Buy(captured));
-            y -= 50;
+            MakeButton(root.transform, label, 0, y, 680, 36, Color.white, () => Buy(captured));
+            y -= 42;
+        }
+
+        if (stock.Count == 0) RollStock();
+
+        MakeText(root.transform, "EQUIPO EN VENTA", 0, -40, 16);
+        float sy = -75;
+        for (int i = 0; i < stock.Count; i++)
+        {
+            ItemData it = stock[i];
+            int idx = i;
+            int price = ItemGenerator.BuyPrice(it.rarity);
+            string label = it.itemName + " [" + it.rarity + "]  " + price + " oro";
+            MakeButton(root.transform, label, 0, sy, 680, 36, ItemGenerator.RarityColor(it.rarity), () => BuyItem(idx));
+            sy -= 42;
+        }
+    }
+
+    void RollStock()
+    {
+        stock.Clear();
+        ClassData cd = CharacterData.Instance != null ? CharacterData.Instance.classData : null;
+        for (int i = 0; i < 3; i++)
+        {
+            stock.Add(ItemGenerator.Generate(cd));
         }
     }
 
@@ -84,6 +116,25 @@ public class ShopUI : MonoBehaviour
         CharacterData.Instance.gold -= price;
         if (InventorySystem.Instance != null) InventorySystem.Instance.AddConsumable(t);
         Debug.Log("Comprado: " + ConsumableCatalog.Name(t) + " (-" + price + " oro)");
+        Rebuild();
+    }
+
+    void BuyItem(int idx)
+    {
+        if (idx < 0 || idx >= stock.Count) return;
+        ItemData it = stock[idx];
+        int price = ItemGenerator.BuyPrice(it.rarity);
+
+        if (CharacterData.Instance == null || CharacterData.Instance.gold < price)
+        {
+            Debug.Log("Oro insuficiente para " + it.itemName + ".");
+            return;
+        }
+
+        CharacterData.Instance.gold -= price;
+        if (InventorySystem.Instance != null) InventorySystem.Instance.AddItem(it);
+        stock.RemoveAt(idx);
+        Debug.Log("Comprado: " + it.itemName + " (-" + price + " oro)");
         Rebuild();
     }
 
