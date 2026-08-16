@@ -9,6 +9,8 @@ public class Unit : MonoBehaviour
     public int maxHealth = 10;
     public Vector2Int currentGridPos;
     public bool isEnemy = false;
+    [HideInInspector] public bool isElite = false;
+    [HideInInspector] public bool isBoss = false;
     public SpriteRenderer spriteRenderer;
 
     public StatBlock stats = new StatBlock();
