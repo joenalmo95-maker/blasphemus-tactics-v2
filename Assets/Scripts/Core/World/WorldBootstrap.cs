@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections.Generic;
 
 public class WorldBootstrap : MonoBehaviour
@@ -60,6 +61,7 @@ public class WorldBootstrap : MonoBehaviour
 
         BuildGround();
         BuildZoneMarkers();
+        BuildCityPortal();
         new GameObject("WorldSpawnManager").AddComponent<WorldSpawnManager>();
         new GameObject("WorldChestManager").AddComponent<WorldChestManager>();
 
@@ -134,7 +136,16 @@ public class WorldBootstrap : MonoBehaviour
             sr.sortingOrder = 1;
         }
     }
-
+    void BuildCityPortal()
+    {
+        GameObject p = new GameObject("WorldToCityPortal");
+        p.transform.position = new Vector3(2, 38, 0);
+        SpriteRenderer sr = p.AddComponent<SpriteRenderer>();
+        sr.sprite = SpriteFactory.Square();
+        sr.color = new Color(0.2f, 0.6f, 0.9f, 0.6f);
+        sr.sortingOrder = 1;
+        p.AddComponent<WorldToCityPortalTrigger>();
+    }
     void SpawnPlayer()
     {
         GameObject p = new GameObject("WorldPlayer");
@@ -159,5 +170,41 @@ public class WorldBootstrap : MonoBehaviour
             }
         }
         return "dps";
+    }
+}
+
+public class WorldToCityPortalTrigger : MonoBehaviour
+{
+    private Text promptText;
+
+    void Awake()
+    {
+        GameObject canvas = UIFactory.CreateCanvas("CityPortalPromptCanvas", 43);
+        promptText = UIFactory.CreateText(canvas.transform, "PortalPrompt", "", 16, TextAnchor.MiddleCenter,
+            new Color(0.4f, 0.8f, 1f),
+            new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0),
+            new Vector2(0, 160), new Vector2(500, 30));
+    }
+
+    void Update()
+    {
+        WorldPlayerController pc = Object.FindAnyObjectByType<WorldPlayerController>();
+        if (pc == null) { promptText.text = ""; return; }
+        Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(pc.transform.position.x), Mathf.RoundToInt(pc.transform.position.y));
+        Vector2Int portal = new Vector2Int(2, 38);
+        if (Mathf.Abs(myCell.x - portal.x) <= 1 && Mathf.Abs(myCell.y - portal.y) <= 1)
+        {
+            promptText.text = "Pulsa E para entrar a la Ciudad";
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                PlayerPrefs.SetInt("LastWorldX", myCell.x);
+                PlayerPrefs.SetInt("LastWorldY", myCell.y);
+                GameFlow.EnterCity();
+            }
+        }
+        else
+        {
+            promptText.text = "";
+        }
     }
 }

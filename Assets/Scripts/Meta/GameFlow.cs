@@ -30,6 +30,13 @@ public static class GameFlow
         SceneManager.LoadScene(CombatScene);
     }
 
+    public const string CityScene = "CityScene";
+
+    public static void EnterCity()
+    {
+        SceneManager.LoadScene(CityScene);
+    }
+
     public static void ReturnToWorld()
     {
         SceneManager.LoadScene(WorldScene);
