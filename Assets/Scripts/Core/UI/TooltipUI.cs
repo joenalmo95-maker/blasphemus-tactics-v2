@@ -5,66 +5,83 @@ public class TooltipUI : MonoBehaviour
 {
     public static TooltipUI Instance { get; private set; }
 
-    private GameObject canvas;
-    private GameObject tooltipPanel;
+    private RectTransform canvasRt;
+    private RectTransform panelRt;
     private Text titleText;
     private Text descriptionText;
     private Text statsText;
 
+    private const float PANEL_WIDTH = 300f;
+    private const float OFFSET = 12f;
+
     void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         Build();
     }
 
     void Build()
     {
-        canvas = UIFactory.CreateCanvas("TooltipCanvas", 100);
+        GameObject canvas = UIFactory.CreateCanvas("TooltipCanvas", 100);
+        canvasRt = canvas.GetComponent<RectTransform>();
 
-        RectTransform panelRt = UIFactory.CreatePanel(canvas.transform, "TooltipPanel",
-            new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
-            Vector2.zero, new Vector2(300, 150), new Color(0.05f, 0.05f, 0.08f, 0.95f));
-        tooltipPanel = panelRt.gameObject;
+        panelRt = UIFactory.CreatePanel(canvasRt, "TooltipPanel",
+            new Vector2(0, 0), new Vector2(0, 0), new Vector2(0, 0),
+            Vector2.zero, new Vector2(PANEL_WIDTH, 10), new Color(0.05f, 0.05f, 0.08f, 0.95f));
 
-        VerticalLayoutGroup vlg = tooltipPanel.AddComponent<VerticalLayoutGroup>();
+        VerticalLayoutGroup vlg = panelRt.gameObject.AddComponent<VerticalLayoutGroup>();
         vlg.spacing = 5;
         vlg.childAlignment = TextAnchor.UpperLeft;
         vlg.childForceExpandWidth = true;
         vlg.childForceExpandHeight = false;
         vlg.padding = new RectOffset(10, 10, 10, 10);
 
-        titleText = UIFactory.CreateText(tooltipPanel.transform, "Title", "", 16, TextAnchor.UpperLeft, Color.yellow,
-            null, null, null, Vector2.zero, new Vector2(280, 30));
+        ContentSizeFitter fitter = panelRt.gameObject.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        descriptionText = UIFactory.CreateText(tooltipPanel.transform, "Description", "", 12, TextAnchor.UpperLeft, Color.white,
+        titleText = UIFactory.CreateText(panelRt, "Title", "", 16, TextAnchor.UpperLeft, Color.yellow,
+            null, null, null, Vector2.zero, new Vector2(280, 25));
+        descriptionText = UIFactory.CreateText(panelRt, "Description", "", 12, TextAnchor.UpperLeft, Color.white,
             null, null, null, Vector2.zero, new Vector2(280, 40));
-
-        statsText = UIFactory.CreateText(tooltipPanel.transform, "Stats", "", 11, TextAnchor.UpperLeft, Color.cyan,
+        statsText = UIFactory.CreateText(panelRt, "Stats", "", 11, TextAnchor.UpperLeft, Color.cyan,
             null, null, null, Vector2.zero, new Vector2(280, 60));
 
-        tooltipPanel.SetActive(false);
+        descriptionText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        descriptionText.verticalOverflow = VerticalWrapMode.Overflow;
+        statsText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        statsText.verticalOverflow = VerticalWrapMode.Overflow;
+
+        panelRt.gameObject.SetActive(false);
     }
 
-    void Update()
+    void LateUpdate()
     {
-        if (tooltipPanel.activeSelf)
-        {
-            Vector3 mousePos = Input.mousePosition;
-            RectTransform panelRt = tooltipPanel.GetComponent<RectTransform>();
-            
-            float x = mousePos.x + 15;
-            float y = mousePos.y - 15;
+        if (panelRt == null || !panelRt.gameObject.activeSelf) return;
 
-            if (x + 300 > Screen.width) x = mousePos.x - 315;
-            if (y - 150 < 0) y = mousePos.y + 15;
+        Vector2 localPoint;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRt, Input.mousePosition, null, out localPoint))
+            return;
 
-            panelRt.anchoredPosition = new Vector2(x, y);
-        }
+        // FIX: localPoint tiene origen en el CENTRO del canvas (pivote 0.5).
+        // El panel está anclado abajo-izquierda: convertimos sumando medio rect.
+        Vector2 half = canvasRt.rect.size * 0.5f;
+        Vector2 pos = localPoint + half;
+
+        float x = pos.x + OFFSET;
+        float y = pos.y + OFFSET;
+
+        float w = PANEL_WIDTH;
+        float h = Mathf.Max(panelRt.rect.height, 60f);
+        float cw = canvasRt.rect.width;
+        float ch = canvasRt.rect.height;
+
+        // Volteo automático en bordes.
+        if (x + w > cw - 5f) x = pos.x - w - OFFSET;
+        if (y + h > ch - 5f) y = pos.y - h - OFFSET;
+
+        panelRt.anchoredPosition = new Vector2(x, y);
     }
 
     public void ShowSkillTooltip(SkillData skill, bool isUnlocked, int playerLevel)
@@ -72,7 +89,7 @@ public class TooltipUI : MonoBehaviour
         if (skill == null) return;
 
         titleText.text = skill.skillName;
-        
+
         string desc = skill.description;
         if (!isUnlocked)
         {
@@ -85,9 +102,9 @@ public class TooltipUI : MonoBehaviour
         stats += "Daño: " + skill.damage;
         if (skill.bonusCrit > 0) stats += " (+" + skill.bonusCrit + "% crítico)";
         stats += "\nAmenaza: x" + skill.threatMult.ToString("F1");
-        
+
         statsText.text = stats;
-        tooltipPanel.SetActive(true);
+        panelRt.gameObject.SetActive(true);
     }
 
     public void ShowUnitTooltip(Unit unit)
@@ -115,7 +132,7 @@ public class TooltipUI : MonoBehaviour
         }
 
         statsText.text = stats;
-        tooltipPanel.SetActive(true);
+        panelRt.gameObject.SetActive(true);
     }
 
     public void ShowConsumableTooltip(ConsumableType type, int count)
@@ -123,11 +140,11 @@ public class TooltipUI : MonoBehaviour
         titleText.text = ConsumableCatalog.Name(type);
         descriptionText.text = ConsumableCatalog.Description(type);
         statsText.text = "Cantidad: " + count;
-        tooltipPanel.SetActive(true);
+        panelRt.gameObject.SetActive(true);
     }
 
     public void Hide()
     {
-        tooltipPanel.SetActive(false);
+        if (panelRt != null) panelRt.gameObject.SetActive(false);
     }
 }
