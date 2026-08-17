@@ -63,6 +63,8 @@ public class CharacterData : MonoBehaviour
         {
             s.Add(InventorySystem.Instance.GetEquippedStats());
         }
+        // 4.2: escalado de daño por nivel del personaje
+        s.damage += Progression.PlayerDamageBonus(level);
         return s;
     }
 

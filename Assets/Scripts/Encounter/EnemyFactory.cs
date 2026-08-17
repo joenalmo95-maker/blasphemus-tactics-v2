@@ -23,6 +23,11 @@ public static class EnemyFactory
 
         int baseHp = boss ? 40 : cherub ? 6 : inquisitor ? 8 : capitan ? 14 : 10;
         int hp = boss ? baseHp : Mathf.RoundToInt(baseHp * hpMult);
+
+        // 4.2: escalado simétrico según el nivel del jugador
+        int playerLevel = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
+        hp = Mathf.RoundToInt(hp * Progression.EnemyHpMult(playerLevel));
+
         string art = boss ? "angel" : cherub ? "cherub" : inquisitor ? "inquisitor" : capitan ? "capitan" : "penitent";
         float scale = boss ? 1.6f : cherub ? 0.7f : capitan ? 1.0f : 0.8f;
         string name = boss ? "Ángel de la Vigilia" : cherub ? "Querubín" : inquisitor ? "Inquisidor" : capitan ? "Capitán Templario" : "Cruzado";
@@ -32,14 +37,14 @@ public static class EnemyFactory
         if (boss)
         {
             BossAI ai = unit.gameObject.AddComponent<BossAI>();
-            ai.attackDamage = 4;
+            ai.attackDamage = 4 + Progression.EnemyDamageBonus(playerLevel);
             ai.tier = tier;
         }
         else
         {
             EnemyAI ai = unit.gameObject.AddComponent<EnemyAI>();
             ai.tier = tier;
-            ai.attackDamage = (capitan ? 3 : 2) + dmgBonus;
+            ai.attackDamage = (capitan ? 3 : 2) + dmgBonus + Progression.EnemyDamageBonus(playerLevel);
             ai.attackRange = (cherub || inquisitor) ? 3 : 1;
             ai.moveRange = 2;
             ai.applyCurse = inquisitor;
