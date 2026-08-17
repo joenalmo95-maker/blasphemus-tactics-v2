@@ -54,6 +54,7 @@ public class CityBootstrap : MonoBehaviour
         BuildExitPortal();
         BuildMerchant();
         MerchantUI.RefreshStock();
+        BuildWarehouse();
 
         // UIs globales
         new GameObject("HUDUI").AddComponent<HUDUI>();
@@ -144,6 +145,21 @@ public class CityBootstrap : MonoBehaviour
         m.transform.localScale = Vector3.one * 0.8f;
         m.AddComponent<MerchantNPC>();
     }
+
+    void BuildWarehouse()
+    {
+        if (WarehouseSystem.Instance == null)
+            new GameObject("WarehouseSystem").AddComponent<WarehouseSystem>();
+
+        GameObject w = new GameObject("WarehouseNPC");
+        w.transform.position = new Vector3(7, 21, 0);
+        SpriteRenderer sr = w.AddComponent<SpriteRenderer>();
+        sr.sprite = ArtProvider.Get("tank");
+        sr.color = new Color(0.5f, 0.9f, 1f);
+        sr.sortingOrder = 2;
+        w.transform.localScale = Vector3.one * 0.8f;
+        w.AddComponent<WarehouseNPC>();
+    }    
     void SpawnPlayer()
     {
         GameObject p = new GameObject("CityPlayer");
