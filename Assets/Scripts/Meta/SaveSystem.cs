@@ -7,7 +7,7 @@ using System;
 public class SaveData
 {
     // 5.1: versionado (los saves antiguos quedan en 0 y migran al guardar)
-    public int version = 2;
+    public int version = 3;
 
     public string className;
     public int level;
@@ -26,6 +26,12 @@ public class SaveData
     public bool hasLastWorld;
     public int lastWorldX;
     public int lastWorldY;
+
+    // 1.1-B: skills aprendidas y loadout (v3)
+    public List<string> learnedSkills = new List<string>();
+    public List<string> activeSkills = new List<string>();
+    public string ultimateSkill = "";
+    public List<string> passiveSkills = new List<string>();
 }
 
 [System.Serializable]
@@ -92,6 +98,9 @@ public static class SaveSystem
             data.lastWorldY = PlayerPrefs.GetInt("LastWorldY", 2);
         }
 
+        // 1.1-B: loadout en el guardado unificado
+        LoadoutSystem.SnapshotToSave(data);
+
         File.WriteAllText(Path, JsonUtility.ToJson(data, true));
         Debug.Log("Partida guardada (v" + data.version + ").");
     }
@@ -126,6 +135,9 @@ public static class SaveSystem
 
         SaveData data = Load();
         if (data == null || data.version < 2) return;
+
+        // 1.1-B: restaura loadout (los saves v2 migran vía EnsureInitialized)
+        LoadoutSystem.ApplyFromSave(data);
 
         if (WarehouseSystem.Instance == null)
             new GameObject("WarehouseSystem").AddComponent<WarehouseSystem>();

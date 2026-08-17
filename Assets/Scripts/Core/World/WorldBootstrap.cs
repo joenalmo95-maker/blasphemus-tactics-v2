@@ -174,6 +174,8 @@ public class WorldBootstrap : MonoBehaviour
     {
         // 5.1: restaura bloques extendidos del guardado versionado
         SaveSystem.ApplyExtendedOnce();
+        // 1.1-B: garantiza loadout (migra starters si el save es anterior)
+        LoadoutSystem.EnsureInitialized();
 
         GameObject p = new GameObject("WorldPlayer");
         p.transform.position = new Vector3(PlayerSpawn.x, PlayerSpawn.y, 0);
