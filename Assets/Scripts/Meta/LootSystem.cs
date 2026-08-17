@@ -30,6 +30,8 @@ public static class LootSystem
         if (enemy != null) CombatFeedback.SpawnText(enemy.transform.position, "+" + gold + " oro", Color.yellow);
 
         int xp = XpForTier(tier);
+        // 4.1: el mundo otorga la mitad de EXP que las mazmorras
+        if (GameFlow.pendingIsWorld) xp = Mathf.Max(1, Mathf.RoundToInt(xp * 0.5f));
         if (CharacterData.Instance != null)
         {
             CharacterData.Instance.GainXP(xp);

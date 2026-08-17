@@ -66,9 +66,10 @@ public class CharacterData : MonoBehaviour
         return s;
     }
 
+    // 4.1: curva exponencial desafiante (L0≈12, L10≈87, L19≈536)
     public int XpToNextLevel()
     {
-        return 10 + level * 5;
+        return Mathf.RoundToInt(12 * Mathf.Pow(1.22f, level));
     }
 
     public void GainXP(int amount)

@@ -161,6 +161,7 @@ public class WorldSpawnManager : MonoBehaviour
             } }
         };
 
+        GameFlow.pendingIsWorld = true;
         GameFlow.EnterCombat(e.def.tier, dungeon);
     }
 }

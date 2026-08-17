@@ -163,6 +163,7 @@ public class WorldChestManager : MonoBehaviour
         // Marca el cofre como derrotado para dar loot directo al vencer
         PendingChestLoot = ch.def.tier;
 
+        GameFlow.pendingIsWorld = true;
         GameFlow.EnterCombat(ch.def.tier, dungeon);
     }
 

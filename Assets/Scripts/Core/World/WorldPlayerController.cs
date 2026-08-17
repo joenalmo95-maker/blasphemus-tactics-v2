@@ -64,8 +64,9 @@ public class WorldPlayerController : MonoBehaviour
         if (nearZone != null)
         {
             promptText.text = "Pulsa E para entrar: " + nearZone.name;
-            if (Input.GetKeyDown(KeyCode.E))
+             if (Input.GetKeyDown(KeyCode.E))
             {
+                GameFlow.pendingIsWorld = false;
                 GameFlow.EnterCombat(nearZone.tier, nearZone.dungeon);
             }
         }
