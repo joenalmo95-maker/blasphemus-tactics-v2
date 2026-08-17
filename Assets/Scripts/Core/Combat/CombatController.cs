@@ -67,7 +67,7 @@ public class CombatController : MonoBehaviour
                 if (distance <= armedSkill.range && playerUnit.currentAP >= armedSkill.actionPointCost)
                 {
                     playerUnit.currentAP -= armedSkill.actionPointCost;
-                    int raw = armedSkill.damage + playerUnit.stats.damage + playerUnit.buffDamage;
+                    int raw = armedSkill.damage + SkillTrainer.BonusDamageFor(Role(), armedSkill) + playerUnit.stats.damage + playerUnit.buffDamage;
                     target.ReceiveAttack(playerUnit, raw, armedSkill.bonusCrit, armedSkill.threatMult);
                     Debug.Log(armedSkill.skillName + " ejecutado. AP restantes: " + playerUnit.currentAP);
                     armedSkill = null;

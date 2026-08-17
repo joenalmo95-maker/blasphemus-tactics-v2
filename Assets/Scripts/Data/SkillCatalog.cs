@@ -23,7 +23,7 @@ public static class SkillCatalog
     public static bool IsSkillUnlocked(ClassRole role, int slot, int playerLevel)
     {
         SkillData skill = Get(role, slot);
-        return skill != null && playerLevel >= skill.unlockLevel;
+        return skill != null && playerLevel >= skill.unlockLevel && SkillTrainer.IsLearned(slot);
     }
 
     static SkillData Build(ClassRole role, int slot)

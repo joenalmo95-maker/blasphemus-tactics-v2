@@ -101,6 +101,10 @@ public class TooltipUI : MonoBehaviour
         sb.Append("Daño: " + skill.damage);
         if (skill.bonusCrit > 0) sb.Append(" (+" + skill.bonusCrit + "% crítico)");
         sb.Append("\nAmenaza: x" + skill.threatMult.ToString("F1"));
+        ClassRole tipRole = (CharacterData.Instance != null && CharacterData.Instance.classData != null)
+            ? CharacterData.Instance.classData.role : ClassRole.DPS;
+        int bonus = SkillTrainer.BonusDamageFor(tipRole, skill);
+        if (bonus > 0) sb.Append("\n<color=#00ff00>Entreno: +" + bonus + " daño</color>");
 
         statsText.text = sb.ToString();
         panelRt.gameObject.SetActive(true);
