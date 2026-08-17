@@ -39,6 +39,9 @@ public static class LootSystem
         combatLog.Add("+" + xp + " EXP");
         if (enemy != null) CombatFeedback.SpawnText(enemy.transform.position, "+" + xp + " EXP", Color.cyan);
 
+        // 5.3: al caer un jefe, el objetivo final queda completado
+        if (tier == EnemyTier.Jefe) ObjectiveSystem.MarkBossDefeated();
+
         int drops = tier == EnemyTier.Jefe ? 2 : (Random.Range(0f, 1f) < ItemChance(tier) ? 1 : 0);
         for (int i = 0; i < drops; i++)
         {
@@ -52,16 +55,23 @@ public static class LootSystem
         }
     }
 
-    static int RollGold(EnemyTier tier)
+    // 5.2: rangos públicos para la tarjeta de mazmorra (fuente única)
+    public static void GoldRange(EnemyTier tier, out int min, out int max)
     {
         switch (tier)
         {
-            case EnemyTier.Basico: return Random.Range(3, 9);
-            case EnemyTier.Medio: return Random.Range(8, 17);
-            case EnemyTier.Elite: return Random.Range(15, 31);
-            case EnemyTier.EliteFuerte: return Random.Range(25, 51);
-            default: return Random.Range(50, 101);
+            case EnemyTier.Basico: min = 3; max = 9; break;
+            case EnemyTier.Medio: min = 8; max = 17; break;
+            case EnemyTier.Elite: min = 15; max = 31; break;
+            case EnemyTier.EliteFuerte: min = 25; max = 51; break;
+            default: min = 50; max = 101; break;
         }
+    }
+
+    static int RollGold(EnemyTier tier)
+    {
+        GoldRange(tier, out int min, out int max);
+        return Random.Range(min, max);
     }
 
     static float ItemChance(EnemyTier tier)
@@ -105,15 +115,15 @@ public static class LootSystem
                 return Rarity.Legendary;
         }
     }
-        static int XpForTier(EnemyTier tier)
+        public static int XpForTier(EnemyTier tier)
     {
         switch (tier)
         {
-            case EnemyTier.Basico: return 10;
-            case EnemyTier.Medio: return 20;
-            case EnemyTier.Elite: return 35;
-            case EnemyTier.EliteFuerte: return 50;
-            default: return 100;
+            case EnemyTier.Basico: return 6;
+            case EnemyTier.Medio: return 12;
+            case EnemyTier.Elite: return 20;
+            case EnemyTier.EliteFuerte: return 30;
+            default: return 60;
         }
     }
 }

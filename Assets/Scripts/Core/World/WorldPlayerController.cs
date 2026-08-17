@@ -27,7 +27,6 @@ public class WorldPlayerController : MonoBehaviour
         float y = Input.GetAxisRaw("Vertical");
         Vector3 dir = new Vector3(x, y, 0).normalized;
 
-        // Movimiento WASD con colisión de terreno (Bloque 2.1)
         if (dir != Vector3.zero)
         {
             Vector3 newPos = transform.position + dir * speed * Time.deltaTime;
@@ -63,11 +62,24 @@ public class WorldPlayerController : MonoBehaviour
 
         if (nearZone != null)
         {
-            promptText.text = "Pulsa E para entrar: " + nearZone.name;
-             if (Input.GetKeyDown(KeyCode.E))
+            // 5.2: tarjeta previa + límite diario de mazmorras
+            promptText.text = "Pulsa E para ver la tarjeta: " + nearZone.name
+                              + "  (Mazmorras hoy: " + DungeonDaily.Count + "/" + DungeonDaily.MaxPerDay + ")";
+            if (Input.GetKeyDown(KeyCode.E) && !DungeonCardUI.IsOpen)
             {
-                GameFlow.pendingIsWorld = false;
-                GameFlow.EnterCombat(nearZone.tier, nearZone.dungeon);
+                if (!DungeonDaily.CanEnter())
+                {
+                    Debug.Log("Límite diario de mazmorras alcanzado (5/5). Vuelve mañana.");
+                }
+                else
+                {
+                    WorldBootstrap.ZoneDef z = nearZone;
+                    DungeonCardUI.Show(z, () =>
+                    {
+                        DungeonDaily.Consume();
+                        GameFlow.EnterCombat(z.tier, z.dungeon);
+                    });
+                }
             }
         }
         else
