@@ -172,6 +172,9 @@ public class WorldBootstrap : MonoBehaviour
 
     void SpawnPlayer()
     {
+        // 5.1: restaura bloques extendidos del guardado versionado
+        SaveSystem.ApplyExtendedOnce();
+
         GameObject p = new GameObject("WorldPlayer");
         p.transform.position = new Vector3(PlayerSpawn.x, PlayerSpawn.y, 0);
         SpriteRenderer sr = p.AddComponent<SpriteRenderer>();

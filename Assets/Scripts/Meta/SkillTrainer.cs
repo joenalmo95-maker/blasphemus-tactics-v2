@@ -143,4 +143,32 @@ public static class SkillTrainer
             return CharacterData.Instance.classData.role;
         return ClassRole.DPS;
     }
+
+    // 5.1: snapshot para el guardado unificado
+    public static TrainingSnapshot GetSnapshot()
+    {
+        return new TrainingSnapshot
+        {
+            learned2 = D.learned2,
+            learned3 = D.learned3,
+            learned4 = D.learned4,
+            train1 = D.train1,
+            train2 = D.train2,
+            train3 = D.train3,
+            train4 = D.train4
+        };
+    }
+
+    public static void ApplySnapshot(TrainingSnapshot s)
+    {
+        if (s == null) return;
+        D.learned2 = s.learned2;
+        D.learned3 = s.learned3;
+        D.learned4 = s.learned4;
+        D.train1 = s.train1;
+        D.train2 = s.train2;
+        D.train3 = s.train3;
+        D.train4 = s.train4;
+        Save();
+    }
 }
