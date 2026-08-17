@@ -87,7 +87,6 @@ public class InventoryUI : MonoBehaviour
                     Rebuild();
                 }
             });
-
             if (captured != null)
             {
                 ItemTooltipTrigger trig = eqBtn.AddComponent<ItemTooltipTrigger>();
@@ -109,16 +108,20 @@ public class InventoryUI : MonoBehaviour
                 int idx = i;
                 int price = ItemGenerator.SellPrice(item);
 
-                GameObject itemBtn = MakeButton(root.transform, item.itemName + " [" + item.rarity + "]", 40, iy, 320, 34,
-                    ItemGenerator.RarityColor(item.rarity), () =>
+                // 4.3: restricción de equipamiento por tipo de armadura
+                bool usable = ItemGenerator.CanEquipClass(item, CharacterData.Instance != null ? CharacterData.Instance.classData : null);
+                string tag = usable ? "" : " (AJENO)";
+
+                GameObject itemBtn = MakeButton(root.transform, item.itemName + " [" + item.rarity + "]" + tag, 40, iy, 320, 34,
+                    usable ? ItemGenerator.RarityColor(item.rarity) : Color.gray, () =>
                 {
+                    if (!usable) { Debug.Log("Tu clase no puede equipar ese tipo de armadura."); return; }
                     if (InventorySystem.Instance != null)
                     {
                         InventorySystem.Instance.Equip(idx);
                         Rebuild();
                     }
                 });
-
                 ItemTooltipTrigger trig = itemBtn.AddComponent<ItemTooltipTrigger>();
                 trig.item = item;
                 trig.compareWithEquipped = true;
