@@ -4,6 +4,7 @@ using UnityEngine.UI;
 public class WorldMapUI : MonoBehaviour
 {
     private Texture2D mapTex;
+    public static Texture2D WorldTexture;
     private RectTransform miniPlayerDot;
     private RectTransform fullPlayerDot;
     private GameObject fullMapRoot;
@@ -49,6 +50,9 @@ public class WorldMapUI : MonoBehaviour
 
         mapTex.SetPixels(px);
         mapTex.Apply();
+
+        // 3.4: snapshot del mapa mundial para el Gran Mapa del teletransporte
+        WorldTexture = mapTex;
     }
 
     void Build()

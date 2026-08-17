@@ -26,13 +26,18 @@ public class WorldBootstrap : MonoBehaviour
 
     void Awake()
     {
+        // GUARD: WorldBootstrap solo vive en WorldMap (protege CityScene duplicada)
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == GameFlow.CityScene)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         // Singletons persistentes (patrón del Bootstrap de combate)
         if (Object.FindAnyObjectByType<CharacterData>() == null)
             new GameObject("CharacterData").AddComponent<CharacterData>();
         if (Object.FindAnyObjectByType<InventorySystem>() == null)
             new GameObject("InventorySystem").AddComponent<InventorySystem>();
-
-        // Persistencia garantizada entre escenas
         if (Object.FindAnyObjectByType<PersistentManagers>() == null)
             new GameObject("PersistentManagers").AddComponent<PersistentManagers>();
 
@@ -56,12 +61,29 @@ public class WorldBootstrap : MonoBehaviour
         if (!TerrainMap.TryLoadWorldMap(WorldWidth, WorldHeight))
             TerrainMap.GenerateWorldObstacles(WorldWidth, WorldHeight);
 
+        // 3.4: el teletransporte desde la ciudad tiene prioridad absoluta
+        if (TeleportUI.PendingDestination.HasValue)
+        {
+            PlayerSpawn = TeleportUI.PendingDestination.Value;
+            TeleportUI.PendingDestination = null;
+            PlayerPrefs.DeleteKey("LastWorldX");
+            PlayerPrefs.DeleteKey("LastWorldY");
+        }
+        // 3.1: restaura la posición guardada al volver desde la ciudad por el portal
+        else if (PlayerPrefs.HasKey("LastWorldX"))
+        {
+            PlayerSpawn = new Vector2Int(PlayerPrefs.GetInt("LastWorldX", 2), PlayerPrefs.GetInt("LastWorldY", 2));
+            PlayerPrefs.DeleteKey("LastWorldX");
+            PlayerPrefs.DeleteKey("LastWorldY");
+        }
+
         ClearAround(PlayerSpawn);
         foreach (ZoneDef z in Zones) ClearAround(z.center);
 
         BuildGround();
         BuildZoneMarkers();
         BuildCityPortal();
+
         new GameObject("WorldSpawnManager").AddComponent<WorldSpawnManager>();
         new GameObject("WorldChestManager").AddComponent<WorldChestManager>();
 
@@ -136,6 +158,7 @@ public class WorldBootstrap : MonoBehaviour
             sr.sortingOrder = 1;
         }
     }
+
     void BuildCityPortal()
     {
         GameObject p = new GameObject("WorldToCityPortal");
@@ -146,6 +169,7 @@ public class WorldBootstrap : MonoBehaviour
         sr.sortingOrder = 1;
         p.AddComponent<WorldToCityPortalTrigger>();
     }
+
     void SpawnPlayer()
     {
         GameObject p = new GameObject("WorldPlayer");
@@ -190,8 +214,10 @@ public class WorldToCityPortalTrigger : MonoBehaviour
     {
         WorldPlayerController pc = Object.FindAnyObjectByType<WorldPlayerController>();
         if (pc == null) { promptText.text = ""; return; }
+
         Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(pc.transform.position.x), Mathf.RoundToInt(pc.transform.position.y));
         Vector2Int portal = new Vector2Int(2, 38);
+
         if (Mathf.Abs(myCell.x - portal.x) <= 1 && Mathf.Abs(myCell.y - portal.y) <= 1)
         {
             promptText.text = "Pulsa E para entrar a la Ciudad";

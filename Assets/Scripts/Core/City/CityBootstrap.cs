@@ -55,6 +55,7 @@ public class CityBootstrap : MonoBehaviour
         BuildMerchant();
         MerchantUI.RefreshStock();
         BuildWarehouse();
+        BuildTeleport();
 
         // UIs globales
         new GameObject("HUDUI").AddComponent<HUDUI>();
@@ -159,7 +160,19 @@ public class CityBootstrap : MonoBehaviour
         sr.sortingOrder = 2;
         w.transform.localScale = Vector3.one * 0.8f;
         w.AddComponent<WarehouseNPC>();
-    }    
+    } 
+
+    void BuildTeleport()
+    {
+        GameObject t = new GameObject("TeleportNPC");
+        t.transform.position = new Vector3(22, 16, 0);
+        SpriteRenderer sr = t.AddComponent<SpriteRenderer>();
+        sr.sprite = ArtProvider.Get("dps");
+        sr.color = new Color(0.8f, 0.4f, 1f);
+        sr.sortingOrder = 2;
+        t.transform.localScale = Vector3.one * 0.8f;
+        t.AddComponent<TeleportNPC>();
+    }       
     void SpawnPlayer()
     {
         GameObject p = new GameObject("CityPlayer");
