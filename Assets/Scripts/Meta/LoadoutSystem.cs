@@ -10,7 +10,6 @@ public static class LoadoutSystem
     private static readonly string[] passives = new string[3];
     private static bool initialized;
 
-    // Migración/arranque: otorga starters si el loadout está vacío
     public static void EnsureInitialized()
     {
         if (initialized) return;
@@ -69,6 +68,12 @@ public static class LoadoutSystem
     {
         EnsureInitialized();
         return (i >= 0 && i <= 3) ? active[i] : "";
+    }
+
+    public static string PassiveId(int i)
+    {
+        EnsureInitialized();
+        return (i >= 0 && i <= 2) ? passives[i] : "";
     }
 
     public static SkillData GetActive(int i)
@@ -131,7 +136,7 @@ public static class LoadoutSystem
             if (!IsLearned(id) || SkillPool.Meta(id).type != SkillType.Pasiva) return false;
             for (int i = 0; i < 3; i++)
             {
-                if (i != slot && passives[i] == id) return false; // sin pasivas duplicadas
+                if (i != slot && passives[i] == id) return false;
             }
         }
         passives[slot] = id;
@@ -151,7 +156,7 @@ public static class LoadoutSystem
     public static void ApplyFromSave(SaveData data)
     {
         if (data == null) return;
-        if (data.learnedSkills == null || data.learnedSkills.Count == 0) return; // legacy -> EnsureInitialized
+        if (data.learnedSkills == null || data.learnedSkills.Count == 0) return;
 
         learned = new List<string>(data.learnedSkills);
         for (int i = 0; i < 4; i++)

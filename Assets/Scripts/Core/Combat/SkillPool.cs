@@ -45,6 +45,7 @@ public class SkillMeta
     public string origin;
     public int heal;
     public int cooldown;
+    public int cost;
     public List<Vector2Int> pattern = new List<Vector2Int>();
 }
 
@@ -117,6 +118,7 @@ public static class SkillPool
         m.origin = c.origin;
         m.heal = c.heal;
         m.cooldown = c.cooldown;
+        m.cost = c.cost;
         m.pattern = ParsePattern(c.pattern);
 
         dataCache[c.id] = d;
