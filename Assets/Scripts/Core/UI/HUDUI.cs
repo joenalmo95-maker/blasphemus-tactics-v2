@@ -211,6 +211,13 @@ public class HUDUI : MonoBehaviour
             if (questTrackerRoot == null) OpenQuestTracker();
             else CloseQuestTracker();
         }
+     // DEBUG: F9 fuerza reset diario (misiones + mazmorras)
+        if (Input.GetKeyDown(KeyCode.F9))
+        {
+            QuestSystem.DebugForceDailyReset();
+            DungeonDaily.ResetToday();
+            Debug.Log("[HUD] DEBUG F9: reset diario forzado.");
+        }
         if (questTrackerRoot != null)
         {
             QuestSystem.Tick();
@@ -295,11 +302,11 @@ public class HUDUI : MonoBehaviour
      GameObject panel = new GameObject("Panel");
      panel.transform.SetParent(questTrackerRoot.transform, false);
      RectTransform prt = panel.AddComponent<RectTransform>();
-     prt.anchorMin = new Vector2(1, 1);
-     prt.anchorMax = new Vector2(1, 1);
-     prt.pivot = new Vector2(1, 1);
-     prt.anchoredPosition = new Vector2(-10, -60);
-     prt.sizeDelta = new Vector2(480, 320);
+     prt.anchorMin = new Vector2(0, 1);
+     prt.anchorMax = new Vector2(0, 1);
+     prt.pivot = new Vector2(0, 1);
+     prt.anchoredPosition = new Vector2(10, -80);
+     prt.sizeDelta = new Vector2(420, 320);
      Image img = panel.AddComponent<Image>();
      img.sprite = SpriteFactory.Square();
      img.color = new Color(0.03f, 0.03f, 0.05f, 0.88f);
