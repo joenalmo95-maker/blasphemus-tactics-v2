@@ -31,6 +31,7 @@ public class SaveData
     public List<string> learnedSkills = new List<string>();
     public List<string> activeSkills = new List<string>();
     public string ultimateSkill = "";
+    public List<string> passiveSkills = new List<string>();
 
     // 2.1: misiones temporizadas
     public List<QuestSaveEntry> activeQuests = new List<QuestSaveEntry>();
