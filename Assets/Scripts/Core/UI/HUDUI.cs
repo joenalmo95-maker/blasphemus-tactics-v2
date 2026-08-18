@@ -13,6 +13,7 @@ public class HUDUI : MonoBehaviour
 
     private Text goldText;
     private RectTransform xpFill;
+    private Text xpText;
     private float xpBarWidth = 200f;
 
     private GameObject bossBarRoot;
@@ -114,6 +115,15 @@ public class HUDUI : MonoBehaviour
             new Vector2(180, -25), new Vector2(xpBarWidth, 16), new Color(0.1f, 0.1f, 0.1f, 0.8f));
 
 
+        // Relleno de la barra de EXP (faltante)
+        xpFill = UIFactory.CreatePanel(xpBg, "XP_Fill",
+            new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f),
+            Vector2.zero, new Vector2(0, 16), Color.cyan);
+
+        // 1.1-D.7: progreso de EXP visible en texto
+        xpText = UIFactory.CreateText(root.transform, "XP_Text", "XP 0/0", 14, TextAnchor.MiddleLeft, Color.cyan,
+            new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
+            new Vector2(390, -25), new Vector2(160, 20));
         // 5.3: objetivo visible bajo oro/EXP
         objectiveText = UIFactory.CreateText(root.transform, "Objective", "", 14, TextAnchor.UpperLeft,
             new Color(0.9f, 0.8f, 0.4f),
@@ -180,8 +190,11 @@ public class HUDUI : MonoBehaviour
             if (xpFill != null)
             {
                 float t = Mathf.Clamp01((float)cd.xp / cd.XpToNextLevel());
-                xpFill.sizeDelta = new Vector2(xpBarWidth * t, 16);
+                float wpx = xpBarWidth * t;
+                if (cd.xp > 0 && wpx < 2) wpx = 2; // mínimo visible
+                xpFill.sizeDelta = new Vector2(wpx, 16);
             }
+            if (xpText != null) xpText.text = "XP " + cd.xp + "/" + cd.XpToNextLevel();
             if (levelText != null) levelText.text = "Nv " + cd.level;
             SetPortrait();
         }
