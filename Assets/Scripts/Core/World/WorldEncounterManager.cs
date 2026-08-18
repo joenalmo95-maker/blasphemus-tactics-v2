@@ -100,15 +100,18 @@ public class WorldEncounterManager : MonoBehaviour
                 break;
         }
         
-        // Visual
-        GameObject go = new GameObject("Encounter_" + type + "_" + e.id);
-        go.transform.position = new Vector3(cell.x, cell.y, 0);
-        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = GetSprite(type);
-        sr.color = GetColor(type);
-        sr.sortingOrder = 2;
-        go.transform.localScale = Vector3.one * 0.7f;
-        e.go = go;
+        // Visual (las emboscadas son INVISIBLES: elemento sorpresa)
+        if (type != EncounterType.Emboscada)
+        {
+            GameObject go = new GameObject("Encounter_" + type + "_" + e.id);
+            go.transform.position = new Vector3(cell.x, cell.y, 0);
+            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = GetSprite(type);
+            sr.color = GetColor(type);
+            sr.sortingOrder = 2;
+            go.transform.localScale = Vector3.one * 0.7f;
+            e.go = go;
+        }
         
         encounters.Add(e);
     }
@@ -200,12 +203,26 @@ public class WorldEncounterManager : MonoBehaviour
             }
         }
         
-        // Detectar proximidad
+        // 2.2: emboscadas invisibles → combate automático al pisar la celda (sin E)
         Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(pc.transform.position.x), Mathf.RoundToInt(pc.transform.position.y));
+        for (int i = encounters.Count - 1; i >= 0; i--)
+        {
+            Encounter amb = encounters[i];
+            if (amb.type == EncounterType.Emboscada && !amb.consumed && amb.cell == myCell)
+            {
+                amb.consumed = true;
+                encounters.RemoveAt(i);
+                Debug.Log("[Encounters] ¡EMBOSCADA! Combate sorpresa.");
+                EnterAmbush(amb);
+                return;
+            }
+        }
+
+        // Detectar proximidad (solo encuentros visibles)
         nearEncounter = null;
         foreach (Encounter e in encounters)
         {
-            if (e.consumed) continue;
+            if (e.consumed || e.type == EncounterType.Emboscada) continue;
             if (Mathf.Abs(e.cell.x - myCell.x) <= 1 && Mathf.Abs(e.cell.y - myCell.y) <= 1)
             {
                 nearEncounter = e;
@@ -263,6 +280,7 @@ public class WorldEncounterManager : MonoBehaviour
         e.consumed = true;
         if (e.go != null) Destroy(e.go);
         Cooldowns[(int)e.type + 100] = e.cooldownUntil;
+        encounters.Remove(e);
     }
     
     void EnterAmbush(Encounter e)

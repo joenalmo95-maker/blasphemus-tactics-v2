@@ -105,6 +105,10 @@ public class QuestUI : MonoBehaviour
             {
                 MakeButton(root.transform, "RECLAMADA", 330, y, 110, 28, Color.gray, () => { });
             }
+            else if (!q.accepted)
+            {
+                MakeButton(root.transform, "ACEPTAR", 330, y, 110, 28, Color.cyan, () => { QuestSystem.Accept(capturedId); Rebuild(); });
+            }
             else if (q.progress >= d.target)
             {
                 MakeButton(root.transform, "RECLAMAR", 330, y, 110, 28, Color.green, () => { QuestSystem.Claim(capturedId); Rebuild(); });
@@ -122,7 +126,7 @@ public class QuestUI : MonoBehaviour
             MakeText(root.transform, tab == 3 ? "No hay eventos activos ahora mismo." : "No hay misiones en esta categoría.", 0, 100, 14, Color.gray);
         }
 
-        MakeText(root.transform, "DEBUG: F9 fuerza reset diario", 0, -230, 11, new Color(0.5f, 0.5f, 0.5f, 0.6f));
+        MakeText(root.transform, "J: seguimiento de misiones aceptadas · DEBUG: F9 fuerza reset diario", 0, -230, 11, new Color(0.5f, 0.5f, 0.5f, 0.6f));
         MakeButton(root.transform, "CERRAR", 0, -260, 200, 40, Color.red, () => Close());
     }
 

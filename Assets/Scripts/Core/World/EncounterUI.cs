@@ -191,9 +191,7 @@ public class EncounterUI : MonoBehaviour
         MakeText(root.transform, "Recompensa: 1000 oro + 500 XP", 0, 100, 16, Color.yellow);
         
         MakeButton(root.transform, "ACEPTAR CONTRATO", 0, 0, 300, 60, Color.green, () => {
-            // Añadir quest de evento
-            QuestSystem.Notify("hunter_accepted");
-            Debug.Log("[Encounters] Contrato aceptado.");
+            QuestSystem.AcceptHunterContract();
             Close();
         });
         

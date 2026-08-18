@@ -9,6 +9,7 @@ public class QuestSaveEntry
     public string id;
     public int progress;
     public bool claimed;
+    public bool accepted;
     public long expiry;
 }
 
@@ -28,10 +29,11 @@ public class QuestState
     public string id;
     public int progress;
     public bool claimed;
+    public bool accepted;
     public long expiry;
 }
 
-// 2.1: sistema de misiones temporizadas (diarias/semanales/temporada/evento)
+// 2.1/2.2: misiones temporizadas con aceptación obligatoria y contratos con timer
 public static class QuestSystem
 {
     private static readonly List<QuestDef> catalog = new List<QuestDef>();
@@ -43,6 +45,7 @@ public static class QuestSystem
     private static bool initialized;
 
     private const long HOUR_TICKS = 3600L * 10000000L;
+    private const long MIN_TICKS = 60L * 10000000L;
 
     static QuestSystem()
     {
@@ -192,32 +195,57 @@ public static class QuestSystem
             lastWeekly = now;
             Debug.Log("[Quests] Nuevas misiones semanales generadas.");
         }
+        TickExpiry();
+    }
+
+    // 2.2: elimina contratos/eventos expirados (llamado también por el tracker J)
+    static void TickExpiry()
+    {
+        long now = System.DateTime.UtcNow.Ticks;
         for (int i = actives.Count - 1; i >= 0; i--)
         {
             if (actives[i].expiry > 0 && now > actives[i].expiry)
             {
-                Debug.Log("[Quests] Evento expirado: " + actives[i].id);
+                Debug.Log("[Quests] Expirada: " + actives[i].id);
                 actives.RemoveAt(i);
                 eventCooldownUntil = now + 24 * HOUR_TICKS;
             }
         }
     }
 
-    // --- Hooks de progreso ---
+    public static void Tick()
+    {
+        if (!initialized) return;
+        TickExpiry();
+    }
+
+    // --- Hooks de progreso (solo misiones ACEPTADAS) ---
     public static void Notify(string evt, int amount = 1)
     {
         EnsureInitialized();
+        List<QuestState> toRemove = new List<QuestState>();
         foreach (QuestState q in actives)
         {
-            if (q.claimed) continue;
+            if (q.claimed || !q.accepted) continue; // 2.2: aceptación obligatoria
             QuestDef d = GetDef(q.id);
             if (d == null || d.evt != evt) continue;
             if (q.progress < d.target)
             {
                 q.progress = Mathf.Min(d.target, q.progress + amount);
-                if (q.progress >= d.target) Debug.Log("[Quests] COMPLETADA: " + d.description);
+                if (q.progress >= d.target)
+                {
+                    Debug.Log("[Quests] COMPLETADA: " + d.description);
+                    if (q.expiry > 0)
+                    {
+                        // Contrato con timer: autorrecompensa y desaparece
+                        GrantReward(d);
+                        toRemove.Add(q);
+                        Debug.Log("[Quests] Contrato completado: desaparece del seguimiento (J).");
+                    }
+                }
             }
         }
+        foreach (QuestState q in toRemove) actives.Remove(q);
     }
 
     public static void NotifyEnemyKilled(bool boss, bool elite)
@@ -229,30 +257,70 @@ public static class QuestSystem
     public static void NotifyDungeonCompleted() { Notify("dungeon_completed"); }
     public static void NotifySkillUsed() { Notify("skill_used"); }
 
-    // --- Reclamar ---
+    // --- 2.2: aceptación ---
+    public static bool Accept(string id)
+    {
+        EnsureInitialized();
+        foreach (QuestState q in actives)
+        {
+            if (q.id == id && !q.accepted)
+            {
+                q.accepted = true;
+                QuestDef d = GetDef(id);
+                Debug.Log("[Quests] Misión aceptada: " + (d != null ? d.description : id) + " (J para seguimiento).");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 2.2: contrato de cazador (aceptado al instante, timer 30 min)
+    public static void AcceptHunterContract()
+    {
+        EnsureInitialized();
+        long now = System.DateTime.UtcNow.Ticks;
+        QuestDef def = new QuestDef
+        {
+            id = "hunter_" + now.ToString(),
+            type = QuestType.Evento,
+            description = "CONTRATO: mata 10 enemigos",
+            evt = "enemy_killed",
+            target = 10,
+            gold = 1000,
+            xp = 500
+        };
+        catalog.Add(def);
+        actives.Add(new QuestState { id = def.id, accepted = true, expiry = now + 30 * MIN_TICKS });
+        Debug.Log("[Quests] Contrato de cazador aceptado (J para seguimiento).");
+    }
+
+    static void GrantReward(QuestDef d)
+    {
+        CharacterData cd = CharacterData.Instance;
+        if (cd == null) return;
+        cd.gold += d.gold;
+        cd.xp += d.xp;
+        while (cd.xp >= cd.XpToNextLevel())
+        {
+            cd.xp -= cd.XpToNextLevel();
+            cd.level++;
+            Debug.Log("[Quests] ¡Nivel " + cd.level + " alcanzado!");
+        }
+        Debug.Log("[Quests] Recompensa: +" + d.gold + " oro, +" + d.xp + " XP");
+    }
+
+    // --- Reclamar (misiones sin timer) ---
     public static bool Claim(string id)
     {
         EnsureInitialized();
         QuestState q = null;
         foreach (QuestState s in actives) if (s.id == id) { q = s; break; }
-        if (q == null || q.claimed) return false;
+        if (q == null || q.claimed || !q.accepted) return false;
         QuestDef d = GetDef(id);
         if (d == null || q.progress < d.target) return false;
 
         q.claimed = true;
-        CharacterData cd = CharacterData.Instance;
-        if (cd != null)
-        {
-            cd.gold += d.gold;
-            cd.xp += d.xp;
-            while (cd.xp >= cd.XpToNextLevel())
-            {
-                cd.xp -= cd.XpToNextLevel();
-                cd.level++;
-                Debug.Log("[Quests] ¡Nivel " + cd.level + " alcanzado!");
-            }
-        }
-        Debug.Log("[Quests] Recompensa reclamada: +" + d.gold + " oro, +" + d.xp + " XP");
+        GrantReward(d);
 
         if (d.type == QuestType.Temporada)
         {
@@ -263,6 +331,7 @@ public static class QuestSystem
                 q.id = line[seasonPhase].id;
                 q.progress = 0;
                 q.claimed = false;
+                q.accepted = false; // la siguiente fase también debe aceptarse
             }
             else
             {
@@ -303,9 +372,19 @@ public static class QuestSystem
         return 0;
     }
 
+    public static int MinutesLeft(string id)
+    {
+        long now = System.DateTime.UtcNow.Ticks;
+        foreach (QuestState q in actives)
+        {
+            if (q.id == id && q.expiry > 0)
+                return Mathf.Max(0, Mathf.RoundToInt((q.expiry - now) / (float)MIN_TICKS));
+        }
+        return 0;
+    }
+
     public static int SeasonPhase() { return seasonPhase; }
 
-    // Debug: fuerza reset diario (F9 con tablón abierto)
     public static void DebugForceDailyReset()
     {
         lastDaily = 0;
@@ -313,14 +392,21 @@ public static class QuestSystem
         EnsureEvent();
     }
 
-    // --- Persistencia v5 ---
+    // --- Persistencia v5/v6 ---
     public static void SnapshotToSave(SaveData data)
     {
         EnsureInitialized();
         data.activeQuests = new List<QuestSaveEntry>();
         foreach (QuestState q in actives)
         {
-            data.activeQuests.Add(new QuestSaveEntry { id = q.id, progress = q.progress, claimed = q.claimed, expiry = q.expiry });
+            data.activeQuests.Add(new QuestSaveEntry
+            {
+                id = q.id,
+                progress = q.progress,
+                claimed = q.claimed,
+                accepted = q.accepted,
+                expiry = q.expiry
+            });
         }
         data.lastDailyReset = lastDaily;
         data.lastWeeklyReset = lastWeekly;
@@ -339,8 +425,25 @@ public static class QuestSystem
             actives.Clear();
             foreach (QuestSaveEntry e in data.activeQuests)
             {
-                if (GetDef(e.id) == null) continue;
-                actives.Add(new QuestState { id = e.id, progress = e.progress, claimed = e.claimed, expiry = e.expiry });
+                if (GetDef(e.id) == null)
+                {
+                    // Reconstruye contratos de cazador persistidos
+                    if (e.id.StartsWith("hunter_"))
+                    {
+                        catalog.Add(new QuestDef
+                        {
+                            id = e.id,
+                            type = QuestType.Evento,
+                            description = "CONTRATO: mata 10 enemigos",
+                            evt = "enemy_killed",
+                            target = 10,
+                            gold = 1000,
+                            xp = 500
+                        });
+                    }
+                    else continue;
+                }
+                actives.Add(new QuestState { id = e.id, progress = e.progress, claimed = e.claimed, accepted = e.accepted, expiry = e.expiry });
             }
         }
         if (actives.Count == 0) GenerateAll();
