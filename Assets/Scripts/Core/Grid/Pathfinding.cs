@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 public static class Pathfinding
 {
-    // 1.1-E.5: pathfinding 8-direccional con anti-corner-cutting
     public static List<Vector2Int> FindPath(Vector2Int start, Vector2Int target, int maxRange)
     {
         List<Vector2Int> path = new List<Vector2Int>();
@@ -13,10 +12,10 @@ public static class Pathfinding
         queue.Enqueue(start);
         cameFrom[start] = start;
 
-        // 8 direcciones: 4 ortogonales + 4 diagonales
+        // 1.1-E.5: 8 direcciones (4 ortogonales + 4 diagonales)
         Vector2Int[] dirs = {
-            new Vector2Int(1, 0), new Vector2Int(-1, 0),  // horizontal
-            new Vector2Int(0, 1), new Vector2Int(0, -1),  // vertical
+            new Vector2Int(1, 0), new Vector2Int(-1, 0),  // ortogonales
+            new Vector2Int(0, 1), new Vector2Int(0, -1),
             new Vector2Int(1, 1), new Vector2Int(1, -1),  // diagonales
             new Vector2Int(-1, 1), new Vector2Int(-1, -1)
         };
@@ -38,8 +37,7 @@ public static class Pathfinding
                 {
                     Vector2Int ortho1 = current + new Vector2Int(d.x, 0);
                     Vector2Int ortho2 = current + new Vector2Int(0, d.y);
-                    if (!TerrainMap.IsWalkable(ortho1) && !TerrainMap.IsWalkable(ortho2))
-                        continue; // ambas ortogonales bloqueadas = no cortar esquina
+                    if (!TerrainMap.IsWalkable(ortho1) || !TerrainMap.IsWalkable(ortho2)) continue;
                 }
 
                 if (!cameFrom.ContainsKey(next))
@@ -64,6 +62,57 @@ public static class Pathfinding
         return path;
     }
 
+    // 1.1-E.5: devuelve todas las celdas alcanzables desde start con hasta maxRange pasos
+    public static HashSet<Vector2Int> GetReachableCells(Vector2Int start, int maxRange)
+    {
+        HashSet<Vector2Int> reachable = new HashSet<Vector2Int>();
+        Queue<Vector2Int> queue = new Queue<Vector2Int>();
+        Dictionary<Vector2Int, int> distance = new Dictionary<Vector2Int, int>();
+
+        queue.Enqueue(start);
+        distance[start] = 0;
+
+        Vector2Int[] dirs = {
+            new Vector2Int(1, 0), new Vector2Int(-1, 0),
+            new Vector2Int(0, 1), new Vector2Int(0, -1),
+            new Vector2Int(1, 1), new Vector2Int(1, -1),
+            new Vector2Int(-1, 1), new Vector2Int(-1, -1)
+        };
+
+        while (queue.Count > 0)
+        {
+            Vector2Int current = queue.Dequeue();
+            int currentDist = distance[current];
+
+            if (currentDist > 0) reachable.Add(current);
+            if (currentDist >= maxRange) continue;
+
+            foreach (Vector2Int d in dirs)
+            {
+                Vector2Int next = current + d;
+                if (!GridManager.Instance.InBounds(next)) continue;
+                if (!TerrainMap.IsWalkable(next)) continue;
+                if (IsOccupied(next)) continue;
+
+                // Anti-corner-cutting para diagonales
+                if (d.x != 0 && d.y != 0)
+                {
+                    Vector2Int ortho1 = current + new Vector2Int(d.x, 0);
+                    Vector2Int ortho2 = current + new Vector2Int(0, d.y);
+                    if (!TerrainMap.IsWalkable(ortho1) || !TerrainMap.IsWalkable(ortho2)) continue;
+                }
+
+                if (!distance.ContainsKey(next))
+                {
+                    distance[next] = currentDist + 1;
+                    queue.Enqueue(next);
+                }
+            }
+        }
+
+        return reachable;
+    }
+
     public static bool IsOccupied(Vector2Int cell)
     {
         return UnitAt(cell) != null;
@@ -83,56 +132,5 @@ public static class Pathfinding
     public static bool IsFreeCell(Vector2Int cell)
     {
         return GridManager.Instance.InBounds(cell) && TerrainMap.IsWalkable(cell) && !IsOccupied(cell);
-    }
-
-    // 1.1-E.5: devuelve todas las celdas alcanzables desde start con maxRange pasos (para highlight)
-    public static List<Vector2Int> GetReachableCells(Vector2Int start, int maxRange)
-    {
-        List<Vector2Int> reachable = new List<Vector2Int>();
-        Queue<Vector2Int> queue = new Queue<Vector2Int>();
-        Dictionary<Vector2Int, int> dist = new Dictionary<Vector2Int, int>();
-
-        queue.Enqueue(start);
-        dist[start] = 0;
-
-        Vector2Int[] dirs = {
-            new Vector2Int(1, 0), new Vector2Int(-1, 0),
-            new Vector2Int(0, 1), new Vector2Int(0, -1),
-            new Vector2Int(1, 1), new Vector2Int(1, -1),
-            new Vector2Int(-1, 1), new Vector2Int(-1, -1)
-        };
-
-        while (queue.Count > 0)
-        {
-            Vector2Int current = queue.Dequeue();
-            int d = dist[current];
-            if (d > 0) reachable.Add(current);
-            if (d >= maxRange) continue;
-
-            foreach (Vector2Int dir in dirs)
-            {
-                Vector2Int next = current + dir;
-                if (!GridManager.Instance.InBounds(next)) continue;
-                if (!TerrainMap.IsWalkable(next)) continue;
-                if (IsOccupied(next)) continue;
-
-                // Anti-corner-cutting
-                if (dir.x != 0 && dir.y != 0)
-                {
-                    Vector2Int ortho1 = current + new Vector2Int(dir.x, 0);
-                    Vector2Int ortho2 = current + new Vector2Int(0, dir.y);
-                    if (!TerrainMap.IsWalkable(ortho1) && !TerrainMap.IsWalkable(ortho2))
-                        continue;
-                }
-
-                if (!dist.ContainsKey(next))
-                {
-                    dist[next] = d + 1;
-                    queue.Enqueue(next);
-                }
-            }
-        }
-
-        return reachable;
     }
 }

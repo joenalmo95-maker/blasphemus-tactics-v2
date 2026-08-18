@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class CombatController : MonoBehaviour
 {
@@ -7,8 +8,11 @@ public class CombatController : MonoBehaviour
     private int ultimateCooldown = 0;
     private Unit lastFlankTarget = null;
 
-    public int UltimateCooldown { get { return ultimateCooldown; } }
+    // 1.1-E.5: sistema de movimiento por click
+    private bool isMoving = false;
+    private List<GameObject> moveHighlights = new List<GameObject>();
 
+    public int UltimateCooldown { get { return ultimateCooldown; } }
     public SkillData ArmedSkill { get { return armedSkill; } }
 
     void Start()
@@ -44,7 +48,7 @@ public class CombatController : MonoBehaviour
 
         if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn()) return;
 
-        // 1.1-D: skills 1-4 desde loadout, slot 5 = ultimate
+        // Skills 1-4 desde loadout
         if (Input.GetKeyDown(KeyCode.Alpha1)) TryToggleSkill(0);
         if (Input.GetKeyDown(KeyCode.Alpha2)) TryToggleSkill(1);
         if (Input.GetKeyDown(KeyCode.Alpha3)) TryToggleSkill(2);
@@ -59,6 +63,27 @@ public class CombatController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha8)) TryUse(ConsumableType.ComidaDano);
         if (Input.GetKeyDown(KeyCode.Alpha9)) TryUse(ConsumableType.ComidaDefensa);
 
+        // 1.1-E.5: movimiento por click en celda vacía
+        if (Input.GetMouseButtonDown(0) && armedSkill == null && !isMoving)
+        {
+            Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            Vector2Int cell = new Vector2Int(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
+
+            if (cell != playerUnit.currentGridPos && playerUnit.currentAP > 0)
+            {
+                ShowMoveHighlights();
+            }
+        }
+
+        // Click para mover (con highlights visibles)
+        if (Input.GetMouseButtonDown(0) && armedSkill == null && moveHighlights.Count > 0)
+        {
+            Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            Vector2Int cell = new Vector2Int(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
+            TryMoveTo(cell);
+        }
+
+        // Ataque con skill armada (click derecho)
         if (armedSkill != null && Input.GetMouseButtonDown(1))
         {
             Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -107,6 +132,7 @@ public class CombatController : MonoBehaviour
 
                     Debug.Log(armedSkill.skillName + " ejecutado. AP restantes: " + playerUnit.currentAP);
                     armedSkill = null;
+                    ClearMoveHighlights();
                 }
                 else
                 {
@@ -139,7 +165,83 @@ public class CombatController : MonoBehaviour
         }
     }
 
-    // 1.1-D: lee del loadout persistente
+    // 1.1-E.5: muestra celdas alcanzables con overlay azul
+    void ShowMoveHighlights()
+    {
+        ClearMoveHighlights();
+        HashSet<Vector2Int> reachable = Pathfinding.GetReachableCells(playerUnit.currentGridPos, playerUnit.currentAP);
+
+        foreach (Vector2Int cell in reachable)
+        {
+            GameObject go = new GameObject("MoveHighlight");
+            go.transform.position = new Vector3(cell.x, cell.y, -0.1f);
+            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = SpriteFactory.Square();
+            sr.color = new Color(0.2f, 0.5f, 1f, 0.3f);
+            sr.sortingOrder = 1;
+            go.transform.localScale = new Vector3(0.9f, 0.9f, 1f);
+            moveHighlights.Add(go);
+        }
+    }
+
+    // 1.1-E.5: mueve al jugador por pathfinding 8-dir
+    void TryMoveTo(Vector2Int target)
+    {
+        if (isMoving) return;
+
+        List<Vector2Int> path = Pathfinding.FindPath(playerUnit.currentGridPos, target, playerUnit.currentAP);
+        if (path == null || path.Count == 0)
+        {
+            ClearMoveHighlights();
+            return;
+        }
+
+        StartCoroutine(MoveAlongPath(path));
+    }
+
+    System.Collections.IEnumerator MoveAlongPath(List<Vector2Int> path)
+    {
+        isMoving = true;
+        ClearMoveHighlights();
+
+        foreach (Vector2Int cell in path)
+        {
+            if (playerUnit.currentAP <= 0) break;
+
+            playerUnit.currentAP--;
+            playerUnit.currentGridPos = cell;
+
+            // Movimiento suave (lerp)
+            Vector3 start = playerUnit.transform.position;
+            Vector3 end = new Vector3(cell.x, cell.y, 0);
+            float duration = 0.15f;
+            float elapsed = 0;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                playerUnit.transform.position = Vector3.Lerp(start, end, t);
+                yield return null;
+            }
+
+            playerUnit.transform.position = end;
+            playerUnit.UpdateFacing(new Vector2(cell.x - start.x, cell.y - start.y).normalized);
+        }
+
+        isMoving = false;
+        Debug.Log("Movimiento completado. AP restantes: " + playerUnit.currentAP);
+    }
+
+    void ClearMoveHighlights()
+    {
+        foreach (GameObject go in moveHighlights)
+        {
+            if (go != null) Destroy(go);
+        }
+        moveHighlights.Clear();
+    }
+
     void TryToggleSkill(int slot)
     {
         SkillData skill = LoadoutSystem.GetActive(slot);
@@ -148,10 +250,10 @@ public class CombatController : MonoBehaviour
             Debug.Log("Slot " + (slot + 1) + " vacío.");
             return;
         }
+        ClearMoveHighlights();
         ToggleSkill(skill);
     }
 
-    // 1.1-D: ultimate con cooldown
     public void TryUseUltimate()
     {
         if (ultimateCooldown > 0)
@@ -166,11 +268,10 @@ public class CombatController : MonoBehaviour
             Debug.Log("Sin ultimate asignado.");
             return;
         }
-
+        ClearMoveHighlights();
         ToggleSkill(ult);
     }
 
-    // 1.1-E: id de la skill armada (para effectKey)
     string ArmedSkillId()
     {
         for (int i = 0; i < 4; i++)
@@ -181,7 +282,6 @@ public class CombatController : MonoBehaviour
         return "";
     }
 
-    // 1.1-E: knockback/pull/lunge con inmunidad de jefes a control
     void ResolveEffectKey(Unit target)
     {
         string id = ArmedSkillId();
@@ -241,8 +341,6 @@ public class CombatController : MonoBehaviour
         return new Vector2Int(v.x > 0 ? 1 : v.x < 0 ? -1 : 0, v.y > 0 ? 1 : v.y < 0 ? -1 : 0);
     }
 
-
-    // 1.1-D: calcula bonos de pasivas del loadout
     int CalculatePassiveBonus()
     {
         int bonus = 0;
@@ -287,9 +385,8 @@ public class CombatController : MonoBehaviour
         return armedSkill;
     }
 
-    // 1.1-D: decrementa cooldown de ultimate al final del turno del jugador
     public void EndPlayerTurn()
     {
         if (ultimateCooldown > 0) ultimateCooldown--;
-    }    
+    }
 }
