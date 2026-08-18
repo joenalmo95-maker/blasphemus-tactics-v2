@@ -7,7 +7,7 @@ using System;
 public class SaveData
 {
     // 5.1: versionado (los saves antiguos quedan en 0 y migran al guardar)
-    public int version = 3;
+    public int version = 5;
 
     public string className;
     public int level;
