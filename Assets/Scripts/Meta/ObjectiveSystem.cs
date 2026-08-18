@@ -37,18 +37,10 @@ public static class ObjectiveSystem
         return "zona de jefe";
     }
 
+ // 2.1: sin objetivos de campaña por ahora (se reactivarán con misiones de historia)
     public static string Current()
     {
-        int level = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
-        string daily = "Mazmorras hoy: " + DungeonDaily.Count + "/" + DungeonDaily.MaxPerDay;
-
-        string main;
-        if (BossDefeated) main = "JEFE derrotado: granjea legendarios o explora.";
-        else if (level < 5) main = "Objetivo: mazmorras Básicas hasta Nv 5.";
-        else if (level < 10) main = "Objetivo: mazmorras Medias hasta Nv 10.";
-        else if (level < 15) main = "Objetivo: mazmorras Elite hasta Nv 15.";
-        else main = "Objetivo FINAL: derrota al JEFE (" + BossZoneName() + ").";
-
-        return main + "  |  " + daily;
+     return "Mazmorras hoy: " + DungeonDaily.Count + "/" + DungeonDaily.MaxPerDay;
+ 
     }
 }
