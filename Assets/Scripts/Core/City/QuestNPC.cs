@@ -1,80 +1,38 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// 2.1: NPC "Tablón de Misiones".
-// Spawn perezoso junto al Mercader (funciona en cualquier arquitectura de escena)
-// y tecla Q como acceso directo dentro de la ciudad.
+// 2.1: NPC "Tablón de Misiones" (mismo patrón que MerchantNPC)
 public class QuestNPC : MonoBehaviour
 {
-    private GameObject promptCanvas;
-    private Transform player;
-    private bool ready;
+    private Text promptText;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    static void Boot()
+    void Awake()
     {
-        if (Object.FindAnyObjectByType<QuestNPC>() != null) return;
-        new GameObject("QuestNPC").AddComponent<QuestNPC>();
+        GameObject canvas = UIFactory.CreateCanvas("QuestPromptCanvas", 44);
+        promptText = UIFactory.CreateText(canvas.transform, "QuestPrompt", "", 16, TextAnchor.MiddleCenter,
+            new Color(1f, 0.9f, 0.4f),
+            new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0),
+            new Vector2(0, 140), new Vector2(700, 30));
+        Debug.Log("[QuestNPC] Tablón listo.");
     }
 
     void Update()
     {
-        // 1) Spawn perezoso: en cuanto exista el Mercader, estamos en ciudad
-        if (!ready)
+        CityPlayerController pc = Object.FindAnyObjectByType<CityPlayerController>();
+        if (pc == null)
         {
-            MerchantNPC merchant = Object.FindAnyObjectByType<MerchantNPC>();
-            if (merchant == null) return; // no estamos en ciudad todavía
-
-            ready = true;
-            transform.position = merchant.transform.position + new Vector3(2f, 0, 0);
-            SpriteRenderer sr = gameObject.AddComponent<SpriteRenderer>();
-            sr.sprite = ArtProvider.Get("capitan");
-            sr.color = Color.cyan;
-            sr.sortingOrder = 2;
-            BuildPrompt();
-            Debug.Log("[QuestNPC] Tablón de Misiones creado junto al mercader.");
+            if (promptText != null) promptText.text = "";
+            return;
         }
 
-        // 2) Detección del jugador con fallbacks (sin depender de un controlador concreto)
-        if (player == null)
-        {
-            GameObject p = GameObject.FindGameObjectWithTag("Player");
-            if (p == null) p = GameObject.Find("CityPlayer");
-            if (p == null) p = GameObject.Find("Player");
-            if (p != null) player = p.transform;
-        }
+        Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(pc.transform.position.x), Mathf.RoundToInt(pc.transform.position.y));
+        Vector2Int npcCell = new Vector2Int(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y));
+        bool near = Mathf.Abs(myCell.x - npcCell.x) <= 1 && Mathf.Abs(myCell.y - npcCell.y) <= 1;
 
-        bool near = player != null && Vector2.Distance(player.position, transform.position) <= 1.6f;
-        if (promptCanvas != null) promptCanvas.SetActive(near && !QuestUI.IsOpen);
+        if (promptText != null)
+            promptText.text = (near && !QuestUI.IsOpen) ? "Pulsa E (o Q): Tablón de Misiones" : "";
 
         if (near && Input.GetKeyDown(KeyCode.E)) QuestUI.Toggle();
-
-        // 3) Acceso directo en ciudad: Q abre/cierra el tablón
         if (Input.GetKeyDown(KeyCode.Q)) QuestUI.Toggle();
-    }
-
-    void BuildPrompt()
-    {
-        promptCanvas = new GameObject("QuestPromptCanvas");
-        Canvas c = promptCanvas.AddComponent<Canvas>();
-        c.renderMode = RenderMode.ScreenSpaceOverlay;
-        c.sortingOrder = 40;
-
-        GameObject txtObj = new GameObject("Prompt");
-        txtObj.transform.SetParent(promptCanvas.transform, false);
-        RectTransform rt = txtObj.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.5f, 0);
-        rt.anchorMax = new Vector2(0.5f, 0);
-        rt.anchoredPosition = new Vector2(0, 120);
-        rt.sizeDelta = new Vector2(700, 30);
-        Text t = txtObj.AddComponent<Text>();
-        t.text = "Pulsa E (o Q): Tablón de Misiones";
-        t.alignment = TextAnchor.MiddleCenter;
-        t.color = Color.yellow;
-        Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        t.font = f;
-        t.fontSize = 16;
-        promptCanvas.SetActive(false);
     }
 }

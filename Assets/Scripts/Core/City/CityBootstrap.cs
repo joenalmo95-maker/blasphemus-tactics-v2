@@ -57,6 +57,7 @@ public class CityBootstrap : MonoBehaviour
         BuildWarehouse();
         BuildTeleport();
         BuildTrainer();
+        BuildQuestBoard();
 
         // UIs globales
         new GameObject("HUDUI").AddComponent<HUDUI>();
@@ -185,7 +186,19 @@ public class CityBootstrap : MonoBehaviour
         sr.sortingOrder = 2;
         t.transform.localScale = Vector3.one * 0.8f;
         t.AddComponent<TrainerNPC>();
-    }           
+    }  
+
+    void BuildQuestBoard()
+    {
+        GameObject q = new GameObject("QuestNPC");
+        q.transform.position = new Vector3(14, 8, 0); // junto al mercader (12,8)
+        SpriteRenderer sr = q.AddComponent<SpriteRenderer>();
+        sr.sprite = ArtProvider.Get("capitan");
+        sr.color = Color.cyan;
+        sr.sortingOrder = 2;
+        q.transform.localScale = Vector3.one * 0.8f;
+        q.AddComponent<QuestNPC>();
+    }         
     void SpawnPlayer()
     {
         GameObject p = new GameObject("CityPlayer");
