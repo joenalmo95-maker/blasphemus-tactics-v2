@@ -24,7 +24,27 @@ public class TooltipUI : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        EnsureEventSystem();
         Build();
+    }
+
+    // 1.1-FINAL: garantiza EventSystem desde el arranque de cada escena
+    // (corrige tooltips que no salen en la PRIMERA UI abierta)
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void EnsureAtBoot()
+    {
+        EnsureEventSystem();
+    }
+
+    static void EnsureEventSystem()
+    {
+        if (Object.FindAnyObjectByType<EventSystem>() == null)
+        {
+            GameObject es = new GameObject("EventSystem");
+            es.AddComponent<EventSystem>();
+            es.AddComponent<StandaloneInputModule>();
+            Debug.Log("[TooltipUI] EventSystem garantizado.");
+        }
     }
 
     void Build()
@@ -191,7 +211,7 @@ public class TooltipUI : MonoBehaviour
         AppendStat(sb, "Defensa", item.stats.defense, cmp ? equipped.stats.defense : 0, "", cmp);
         AppendStat(sb, "Daño", item.stats.damage, cmp ? equipped.stats.damage : 0, "", cmp);
         AppendStat(sb, "Precisión", item.stats.attack, cmp ? equipped.stats.attack : 0, "", cmp);
-        AppendStat(sb, "Crítico", item.stats.crit_chance + 0, cmp ? equipped.stats.crit_chance : 0, "%", cmp);
+        AppendStat(sb, "Crítico", item.stats.critChance + 0, cmp ? equipped.stats.critChance : 0, "%", cmp);
         AppendStat(sb, "Evasión", item.stats.evasion, cmp ? equipped.stats.evasion : 0, "%", cmp);
         AppendStat(sb, "AP", item.stats.apMove, cmp ? equipped.stats.apMove : 0, "", cmp);
         AppendStat(sb, "Curación", item.stats.healingPower, cmp ? equipped.stats.healingPower : 0, "%", cmp);
