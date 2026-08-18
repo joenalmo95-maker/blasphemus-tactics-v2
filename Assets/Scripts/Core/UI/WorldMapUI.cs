@@ -45,7 +45,12 @@ public class WorldMapUI : MonoBehaviour
         foreach (WorldBootstrap.ZoneDef z in WorldBootstrap.Zones)
         {
             if (z.center.x >= 0 && z.center.x < W && z.center.y >= 0 && z.center.y < H)
-                px[z.center.y * W + z.center.x] = new Color(0.70f, 0.30f, 0.90f);
+            {
+                // 5.3: zonas de jefe en ROJO en minimapa y mapa completo
+                px[z.center.y * W + z.center.x] = ObjectiveSystem.HasBoss(z)
+                    ? new Color(0.95f, 0.15f, 0.15f)
+                    : new Color(0.70f, 0.30f, 0.90f);
+            }
         }
 
         mapTex.SetPixels(px);
@@ -89,7 +94,9 @@ public class WorldMapUI : MonoBehaviour
         {
             float lx = ((z.center.x + 0.5f) / W - 0.5f) * FULL_W;
             float ly = ((z.center.y + 0.5f) / H - 0.5f) * FULL_H;
-            UIFactory.CreateText(fullImgRt, "Zone_" + z.name, z.name, 12, TextAnchor.MiddleCenter, Color.white,
+            bool isBossZ = ObjectiveSystem.HasBoss(z);
+            UIFactory.CreateText(fullImgRt, "Zone_" + z.name, z.name + (isBossZ ? "  [JEFE]" : ""), 12, TextAnchor.MiddleCenter,
+                isBossZ ? new Color(1f, 0.35f, 0.35f) : Color.white,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new Vector2(lx, ly + 14), new Vector2(220, 24));
         }

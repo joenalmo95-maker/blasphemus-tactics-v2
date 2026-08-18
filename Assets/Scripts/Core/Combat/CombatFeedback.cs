@@ -36,6 +36,13 @@ public static class CombatFeedback
         SpawnText(position, "-" + amount, Color.red);
     }
 
+     // 1.1-E: texto de inmunidad de jefes a control
+    public static void ShowImmune(Vector3 position)
+    {
+        SpawnText(position, "INMUNE", Color.red);
+    }
+
+
     public static void SpawnImpact(Vector3 position, Color color)
     {
         GameObject go = new GameObject("Impact");

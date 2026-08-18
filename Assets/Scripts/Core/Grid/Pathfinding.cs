@@ -64,4 +64,10 @@ public static class Pathfinding
         }
         return null;
     }
+
+        // 1.1-E: celda libre para reposicionamiento (knockback/pull/lunge)
+        public static bool IsFreeCell(Vector2Int cell)
+        {
+            return GridManager.Instance.InBounds(cell) && TerrainMap.IsWalkable(cell) && !IsOccupied(cell);
+        }
 }

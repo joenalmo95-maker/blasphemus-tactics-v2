@@ -5,6 +5,7 @@ public class CombatController : MonoBehaviour
     private SkillData armedSkill = null;
     private Unit playerUnit;
     private int ultimateCooldown = 0;
+    private Unit lastFlankTarget = null;
 
     public int UltimateCooldown { get { return ultimateCooldown; } }
 
@@ -52,9 +53,11 @@ public class CombatController : MonoBehaviour
         // Ultimate (slot 5)
         if (Input.GetKeyDown(KeyCode.Alpha5)) TryUseUltimate();
 
-        // Consumibles
+        // Consumibles (1.1-D.1: comidas en 8-9)
         if (Input.GetKeyDown(KeyCode.Alpha6)) TryUse(ConsumableType.PocionHP);
         if (Input.GetKeyDown(KeyCode.Alpha7)) TryUse(ConsumableType.PocionAP);
+        if (Input.GetKeyDown(KeyCode.Alpha8)) TryUse(ConsumableType.ComidaDano);
+        if (Input.GetKeyDown(KeyCode.Alpha9)) TryUse(ConsumableType.ComidaDefensa);
 
         if (armedSkill != null && Input.GetMouseButtonDown(1))
         {
@@ -70,11 +73,30 @@ public class CombatController : MonoBehaviour
                 if (distance <= armedSkill.range && playerUnit.currentAP >= armedSkill.actionPointCost)
                 {
                     playerUnit.currentAP -= armedSkill.actionPointCost;
-                    // 4.4: pasiva de clase suma daño según el build
-                    // 1.1-D: daño base + bonos de pasivas del loadout
+
+                    // 1.1-E: flanking (solo melee)
+                    float flankMult = 1f;
+                    int flankCrit = 0;
+                    FlankType ft = FlankType.Frontal;
+                    if (armedSkill.range <= 1)
+                    {
+                        ft = target.GetFlankFrom(playerUnit);
+                        if (ft == FlankType.Lateral) flankMult = 1.10f;
+                        else if (ft == FlankType.Espalda) { flankMult = 1.15f; flankCrit = 10; }
+                    }
+
                     int passiveBonus = CalculatePassiveBonus();
-                    int raw = armedSkill.damage + passiveBonus + playerUnit.stats.damage + playerUnit.buffDamage;
-                    target.ReceiveAttack(playerUnit, raw, armedSkill.bonusCrit, armedSkill.threatMult);
+                    int raw = Mathf.RoundToInt((armedSkill.damage + passiveBonus + playerUnit.stats.damage + playerUnit.buffDamage) * flankMult);
+                    bool hit = target.ReceiveAttack(playerUnit, raw, armedSkill.bonusCrit + flankCrit, armedSkill.threatMult);
+
+                    if (ft == FlankType.Lateral) CombatFeedback.SpawnText(target.transform.position, "FLANK +10%", Color.yellow);
+                    if (ft == FlankType.Espalda) CombatFeedback.SpawnText(target.transform.position, "BACKSTAB +15%", Color.red);
+
+                    playerUnit.UpdateFacing(new Vector2(target.currentGridPos.x - playerUnit.currentGridPos.x,
+                                                        target.currentGridPos.y - playerUnit.currentGridPos.y).normalized);
+
+                    // 1.1-E: reposicionamiento con inmunidad de jefes
+                    if (hit) ResolveEffectKey(target);
 
                     // Si era ultimate, inicia cooldown
                     if (LoadoutSystem.UltimateId() != "" && SkillPool.Get(LoadoutSystem.UltimateId()) == armedSkill)
@@ -91,6 +113,29 @@ public class CombatController : MonoBehaviour
                     Debug.Log("Objetivo fuera de rango o AP insuficientes.");
                 }
             }
+        }
+
+        // 1.1-E: arcos de sector mientras se apunta con melee
+        if (armedSkill != null && armedSkill.range <= 1 && playerUnit != null)
+        {
+            Vector3 w = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            Vector2Int c = new Vector2Int(Mathf.RoundToInt(w.x), Mathf.RoundToInt(w.y));
+            Unit hov = Pathfinding.UnitAt(c);
+            if (hov != null && hov.isEnemy && hov != lastFlankTarget)
+            {
+                lastFlankTarget = hov;
+                FlankIndicator.Show(hov, playerUnit.currentGridPos);
+            }
+            else if ((hov == null || !hov.isEnemy) && lastFlankTarget != null)
+            {
+                lastFlankTarget = null;
+                FlankIndicator.Hide();
+            }
+        }
+        else if (lastFlankTarget != null)
+        {
+            lastFlankTarget = null;
+            FlankIndicator.Hide();
         }
     }
 
@@ -124,6 +169,78 @@ public class CombatController : MonoBehaviour
 
         ToggleSkill(ult);
     }
+
+    // 1.1-E: id de la skill armada (para effectKey)
+    string ArmedSkillId()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (LoadoutSystem.GetActive(i) == armedSkill) return LoadoutSystem.ActiveId(i);
+        }
+        if (LoadoutSystem.GetUltimate() == armedSkill) return LoadoutSystem.UltimateId();
+        return "";
+    }
+
+    // 1.1-E: knockback/pull/lunge con inmunidad de jefes a control
+    void ResolveEffectKey(Unit target)
+    {
+        string id = ArmedSkillId();
+        if (id == "") return;
+        SkillMeta meta = SkillPool.Meta(id);
+        if (meta == null || string.IsNullOrEmpty(meta.effectKey)) return;
+
+        switch (meta.effectKey)
+        {
+            case "knockback":
+                {
+                    if (target == null || target.currentHealth <= 0) break;
+                    if (target.isBoss) { CombatFeedback.ShowImmune(target.transform.position); break; }
+                    Vector2Int dir = SignVec(target.currentGridPos - playerUnit.currentGridPos);
+                    Vector2Int dest = target.currentGridPos + dir;
+                    if (Pathfinding.IsFreeCell(dest))
+                    {
+                        target.currentGridPos = dest;
+                        target.transform.position = new Vector3(dest.x, dest.y, 0);
+                        CombatFeedback.SpawnText(target.transform.position, "EMPUJE", Color.cyan);
+                    }
+                }
+                break;
+            case "pull":
+                {
+                    if (target == null || target.currentHealth <= 0) break;
+                    if (target.isBoss) { CombatFeedback.ShowImmune(target.transform.position); break; }
+                    Vector2Int dir = SignVec(playerUnit.currentGridPos - target.currentGridPos);
+                    Vector2Int dest = target.currentGridPos + dir;
+                    if (Pathfinding.IsFreeCell(dest))
+                    {
+                        target.currentGridPos = dest;
+                        target.transform.position = new Vector3(dest.x, dest.y, 0);
+                        CombatFeedback.SpawnText(target.transform.position, "TIRÓN", Color.cyan);
+                    }
+                }
+                break;
+            case "lunge":
+                {
+                    Vector2Int dir = SignVec(target.currentGridPos - playerUnit.currentGridPos);
+                    for (int step = 0; step < 2; step++)
+                    {
+                        Vector2Int dest = playerUnit.currentGridPos + dir;
+                        if (dest == target.currentGridPos) break;
+                        if (!Pathfinding.IsFreeCell(dest)) break;
+                        playerUnit.currentGridPos = dest;
+                        playerUnit.transform.position = new Vector3(dest.x, dest.y, 0);
+                    }
+                    CombatFeedback.SpawnText(playerUnit.transform.position, "EMBESTIDA", Color.cyan);
+                }
+                break;
+        }
+    }
+
+    static Vector2Int SignVec(Vector2Int v)
+    {
+        return new Vector2Int(v.x > 0 ? 1 : v.x < 0 ? -1 : 0, v.y > 0 ? 1 : v.y < 0 ? -1 : 0);
+    }
+
 
     // 1.1-D: calcula bonos de pasivas del loadout
     int CalculatePassiveBonus()

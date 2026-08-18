@@ -93,7 +93,10 @@ public class TeleportUI : MonoBehaviour
             brt.sizeDelta = new Vector2(160, 40);
             Image bimg = btnObj.AddComponent<Image>();
             bimg.sprite = SpriteFactory.Square();
-            bimg.color = new Color(0.5f, 0.1f, 0.7f, 0.55f);
+            // 5.3: zonas de jefe en rojo en el Gran Mapa
+            bimg.color = ObjectiveSystem.HasBoss(z)
+                ? new Color(0.8f, 0.1f, 0.1f, 0.65f)
+                : new Color(0.5f, 0.1f, 0.7f, 0.55f);
             Button btn = btnObj.AddComponent<Button>();
             btn.targetGraphic = bimg;
 
@@ -105,7 +108,7 @@ public class TeleportUI : MonoBehaviour
             trt.offsetMin = Vector2.zero;
             trt.offsetMax = Vector2.zero;
             Text t = txtObj.AddComponent<Text>();
-            t.text = z.name + " [" + z.tier + "]";
+            t.text = z.name + " [" + z.tier + "]" + (ObjectiveSystem.HasBoss(z) ? " [JEFE]" : "");
             t.font = GetFont();
             t.fontSize = 12;
             t.alignment = TextAnchor.MiddleCenter;

@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-// 1.1-B: loadout persistente (4 activas + 1 ultimate + 3 pasivas) y skills aprendidas
+// 1.1-B/D.6: loadout persistente (4 activas + 1 ultimate + 3 pasivas) con autorreparación
 public static class LoadoutSystem
 {
     private static List<string> learned = new List<string>();
@@ -14,26 +14,65 @@ public static class LoadoutSystem
     {
         if (initialized) return;
         if (CharacterData.Instance == null || CharacterData.Instance.classData == null) return;
-        if (learned.Count > 0) { initialized = true; return; }
 
-        ClassRole role = CharacterData.Instance.classData.role;
-        List<string> starters = SkillPool.StartersFor(role);
-        foreach (string id in starters) if (!learned.Contains(id)) learned.Add(id);
+        // D.6: autorrestauración desde save.json (independiente de hooks externos)
+        SaveData data = SaveSystem.Load();
+        if (data != null) ApplyFromSave(data);
 
-        string ult = DefaultUltimate(role);
-        if (!learned.Contains(ult)) learned.Add(ult);
+        // Starters si no hay nada aprendido
+        if (learned.Count == 0)
+        {
+            ClassRole role = CharacterData.Instance.classData.role;
+            foreach (string id in SkillPool.StartersFor(role)) if (!learned.Contains(id)) learned.Add(id);
+            string ult = DefaultUltimate(role);
+            if (!learned.Contains(ult)) learned.Add(ult);
+        }
 
-        active[0] = starters[0];
-        active[1] = starters.Count > 1 ? starters[1] : "";
-        active[2] = "";
-        active[3] = "";
-        ultimate = ult;
-        passives[0] = starters.Count > 2 ? starters[2] : "";
-        passives[1] = "";
-        passives[2] = "";
-
+        RepairLoadout();
         initialized = true;
-        Debug.Log("[Loadout] inicializado para " + role + ": " + string.Join(", ", learned));
+        Debug.Log("[Loadout] listo. Aprendidas: " + string.Join(", ", learned) + " | Activas: " + string.Join(", ", active));
+    }
+
+    // D.6: rellena slots vacíos con skills aprendidas del tipo correspondiente
+    public static void RepairLoadout()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (!string.IsNullOrEmpty(active[i]) && SkillPool.Get(active[i]) != null) continue;
+            active[i] = "";
+            foreach (string id in learned)
+            {
+                SkillMeta m = SkillPool.Meta(id);
+                if (m == null || m.type != SkillType.Activa) continue;
+                if (System.Array.IndexOf(active, id) >= 0) continue;
+                active[i] = id;
+                break;
+            }
+        }
+
+        if (string.IsNullOrEmpty(ultimate) || SkillPool.Get(ultimate) == null)
+        {
+            ultimate = "";
+            foreach (string id in learned)
+            {
+                SkillMeta m = SkillPool.Meta(id);
+                if (m != null && m.type == SkillType.Ultimate) { ultimate = id; break; }
+            }
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            if (!string.IsNullOrEmpty(passives[i]) && SkillPool.Get(passives[i]) != null) continue;
+            passives[i] = "";
+            foreach (string id in learned)
+            {
+                SkillMeta m = SkillPool.Meta(id);
+                if (m == null || m.type != SkillType.Pasiva) continue;
+                if (System.Array.IndexOf(passives, id) >= 0) continue;
+                passives[i] = id;
+                break;
+            }
+        }
     }
 
     static string DefaultUltimate(ClassRole role)
@@ -164,8 +203,5 @@ public static class LoadoutSystem
         ultimate = data.ultimateSkill != null ? data.ultimateSkill : "";
         for (int i = 0; i < 3; i++)
             passives[i] = (data.passiveSkills != null && i < data.passiveSkills.Count) ? data.passiveSkills[i] : "";
-
-        initialized = true;
-        Debug.Log("[Loadout] restaurado desde save: " + string.Join(", ", learned));
     }
 }

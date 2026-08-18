@@ -20,7 +20,13 @@ public static class ItemGenerator
         item.requiredClass = classData != null ? classData.className : "";
         item.stats = StatBlock.Zero();
 
-        string baseName = SlotName(slot, classData);
+        // 4.3: armaduras con tipo y ponderación de drops (70% tipo propio)
+        if (slot != ItemSlot.Weapon)
+        {
+            item.armorType = RollArmorType(classData);
+            item.requiredClass = "";
+        }
+        string baseName = ArmorName(slot, item.armorType, classData);
         item.itemName = baseName + " " + quality[Random.Range(0, quality.Length)];
 
         int affixes = 1 + (int)rarity;
@@ -118,7 +124,7 @@ public static class ItemGenerator
         }
     }
 
-    public static int BuyPrice(Rarity r)
+     public static int BuyPrice(Rarity r)
     {
         switch (r)
         {
@@ -127,5 +133,43 @@ public static class ItemGenerator
             case Rarity.Epic: return 60;
             default: return 120;
         }
+    }
+
+    // --- 4.3: tipos de armadura por clase ---
+    public static ArmorType ArmorFor(ClassData cd)
+    {
+        if (cd == null) return ArmorType.Ninguna;
+        switch (cd.role)
+        {
+            case ClassRole.Tank: return ArmorType.Placas;
+            case ClassRole.DPS: return ArmorType.Cuero;
+            default: return ArmorType.Ropa;
+        }
+    }
+
+    static ArmorType RollArmorType(ClassData cd)
+    {
+        ArmorType own = ArmorFor(cd);
+        if (own == ArmorType.Ninguna) return (ArmorType)Random.Range(1, 4);
+        if (Random.Range(0f, 1f) < 0.7f) return own;
+        return (ArmorType)Random.Range(1, 4);
+    }
+
+    static string ArmorName(ItemSlot slot, ArmorType t, ClassData cd)
+    {
+        if (slot == ItemSlot.Weapon) return WeaponName(cd);
+        string baseN = slot == ItemSlot.Chest ? "Peto"
+                     : slot == ItemSlot.Legs ? "Pantalón"
+                     : slot == ItemSlot.Helm ? "Casco" : "Guantes";
+        if (t == ArmorType.Ninguna) return baseN;
+        return baseN + " de " + t;
+    }
+
+    public static bool CanEquipClass(ItemData item, ClassData cd)
+    {
+        if (item == null || cd == null) return false;
+        if (item.armorType != ArmorType.Ninguna) return item.armorType == ArmorFor(cd);
+        if (!string.IsNullOrEmpty(item.requiredClass)) return item.requiredClass == cd.className;
+        return true;
     }
 }

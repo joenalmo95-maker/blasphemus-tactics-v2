@@ -77,7 +77,10 @@
       "x": 55,
       "y": 8,
       "waves": [
-        { "spawns": [ { "archetype": "angel", "tier": "Jefe", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Elite", "x": 8, "y": 5 } ] }
+        { "spawns": [ { "archetype": "cherub", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "penitent", "tier": "Medio", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "inquisitor", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Elite", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "capitan", "tier": "EliteFuerte", "x": 7, "y": 4 } ] },
+        { "spawns": [ { "archetype": "angel", "tier": "Jefe", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Elite", "x": 8, "y": 5 } ] }     
       ]
     }
   ]

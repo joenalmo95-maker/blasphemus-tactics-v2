@@ -122,8 +122,11 @@ public class MerchantUI : MonoBehaviour
                 ItemData item = InventorySystem.Instance.items[i];
                 int idx = i;
                 int price = ItemGenerator.SellPrice(item);
-                MakeButton(root.transform, "Vender " + item.itemName + " +" + price + " oro", 80, sy, 360, 34, Color.yellow,
-                    () => { if (InventorySystem.Instance != null) { InventorySystem.Instance.SellItem(idx); Rebuild(); } });
+            GameObject vb = MakeButton(root.transform, "Vender " + item.itemName + " +" + price + " oro", 80, sy, 360, 34, Color.yellow,
+                () => { InventorySystem.Instance.SellItem(idx); Rebuild(); });
+            ItemTooltipTrigger vtt = vb.AddComponent<ItemTooltipTrigger>();
+            vtt.item = item;
+            vtt.compareWithEquipped = false;
                 sy -= 40;
                 count++;
             }

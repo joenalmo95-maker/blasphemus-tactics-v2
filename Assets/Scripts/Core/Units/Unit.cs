@@ -1,6 +1,9 @@
 using UnityEngine;
 using System.Collections;
 
+// 1.1-E: sector de ataque relativo al facing del objetivo
+public enum FlankType { Frontal, Lateral, Espalda }
+
 public class Unit : MonoBehaviour
 {
     public int currentAP = 3;
@@ -25,6 +28,9 @@ public class Unit : MonoBehaviour
     public int debuffTurns = 0;
 
     public int pendingApPenalty = 0;
+    // 1.1-E: dirección de mirada e intención telegrafiada
+    public Vector2 facing = new Vector2(0, -1);
+    public IntentType intent = IntentType.Ninguna;
 
     public static Unit Create(string name, Vector2Int cell, bool isEnemy, Color color,
         float scale = 0.8f, int maxHealth = 10, int maxAP = 3, string artKey = "circle")
@@ -47,12 +53,15 @@ public class Unit : MonoBehaviour
         unit.maxAP = maxAP;
         unit.currentAP = maxAP;
 
-        go.AddComponent<HealthBar2D>();
-
-        if (!isEnemy)
-        {
-            go.AddComponent<SelectionIndicator>();
-        }
+     go.AddComponent<HealthBar2D>();
+     if (isEnemy)
+     {
+         go.AddComponent<FacingIndicator>();
+     }
+     if (!isEnemy)
+     {
+         go.AddComponent<SelectionIndicator>();
+     }
 
         return unit;
     }
@@ -182,6 +191,28 @@ public class Unit : MonoBehaviour
             Debug.Log(gameObject.name + " está al máximo de HP.");
             CombatFeedback.SpawnText(transform.position, "MAX", Color.gray);
         }
+    }
+
+    // 1.1-E: actualización de mirada y cálculo de flanking
+    public void UpdateFacing(Vector2 dir)
+    {
+        if (dir.sqrMagnitude > 0.001f) facing = dir.normalized;
+    }
+
+    public FlankType GetFlankFrom(Unit attacker)
+    {
+        if (attacker == null) return FlankType.Frontal;
+        return GetFlankFromPos(attacker.currentGridPos);
+    }
+
+    public FlankType GetFlankFromPos(Vector2Int attackerCell)
+    {
+        Vector2 toAtt = new Vector2(attackerCell.x - currentGridPos.x, attackerCell.y - currentGridPos.y);
+        if (toAtt.sqrMagnitude < 0.001f) return FlankType.Frontal;
+        float ang = Mathf.Abs(Vector2.SignedAngle(facing, toAtt));
+        if (ang <= 60f) return FlankType.Frontal;
+        if (ang <= 120f) return FlankType.Lateral;
+        return FlankType.Espalda;
     }
 
     IEnumerator Flash()

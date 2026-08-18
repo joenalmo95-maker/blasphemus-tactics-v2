@@ -62,9 +62,13 @@ public class TurnManager : MonoBehaviour
                 playerUnit.pendingApPenalty = 0;
             }
 
-            playerUnit.TickBuffs();
-            playerUnit.TickDebuffs();
-        }
+         playerUnit.TickBuffs();
+         playerUnit.TickDebuffs();
+     }
+
+     // 1.1-E: telegrafía la intención enemiga durante el turno del jugador
+     EnemyIntentSystem.DecideAll();
+    
     }
 
     public void EndPlayerTurn()
