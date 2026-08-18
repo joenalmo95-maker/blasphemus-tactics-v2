@@ -86,7 +86,6 @@ public static class SaveSystem
 
         // 5.1: entrenos, pasiva y timers
         data.training = SkillTrainer.GetSnapshot();
-        data.passiveEnabled = PassiveSystem.Enabled;
         data.spawnTimers = SnapshotTimers(WorldSpawnManager.DefeatedAt);
         data.chestTimers = SnapshotTimers(WorldChestManager.OpenedAt);
 
@@ -144,7 +143,6 @@ public static class SaveSystem
         if (data.warehouse != null) WarehouseSystem.Instance.stored = data.warehouse;
 
         SkillTrainer.ApplySnapshot(data.training);
-        PassiveSystem.SetEnabled(data.passiveEnabled);
 
         RestoreTimers(data.spawnTimers, WorldSpawnManager.DefeatedAt, WorldSpawnManager.RespawnSeconds);
         RestoreTimers(data.chestTimers, WorldChestManager.OpenedAt, WorldChestManager.RespawnSeconds);

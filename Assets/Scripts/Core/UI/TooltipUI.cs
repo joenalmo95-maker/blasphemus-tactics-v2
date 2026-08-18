@@ -101,13 +101,63 @@ public class TooltipUI : MonoBehaviour
         sb.Append("Daño: " + skill.damage);
         if (skill.bonusCrit > 0) sb.Append(" (+" + skill.bonusCrit + "% crítico)");
         sb.Append("\nAmenaza: x" + skill.threatMult.ToString("F1"));
-        ClassRole tipRole = (CharacterData.Instance != null && CharacterData.Instance.classData != null)
-            ? CharacterData.Instance.classData.role : ClassRole.DPS;
-        int bonus = SkillTrainer.BonusDamageFor(tipRole, skill);
-        if (bonus > 0) sb.Append("\n<color=#00ff00>Entreno: +" + bonus + " daño</color>");
+
+        // 1.1-D: muestra bonos de pasivas del loadout
+        int bonus = CalculatePassiveBonusForTooltip(skill);
+        if (bonus > 0) sb.Append("\n<color=#00ff00>Pasivas: +" + bonus + " daño</color>");
 
         statsText.text = sb.ToString();
         panelRt.gameObject.SetActive(true);
+    }
+
+    // 1.1-D: tooltip especial para ultimates con cooldown
+    public void ShowUltimateTooltip(SkillData ult, int cooldown)
+    {
+        if (ult == null) return;
+        titleText.color = Color.magenta;
+        titleText.text = "ULTIMATE: " + ult.skillName;
+        descriptionText.text = ult.description;
+
+        StringBuilder sb = new StringBuilder();
+        string ultId = LoadoutSystem.UltimateId();
+        SkillMeta meta = (ultId != "") ? SkillPool.Meta(ultId) : null;
+        int cdTurns = (meta != null) ? meta.cooldown : 3;
+        sb.AppendLine("Cooldown: " + cdTurns + " turnos");
+        if (cooldown > 0)
+            sb.AppendLine("<color=#ff6666>Recarga: " + cooldown + " turnos restantes</color>");
+        else
+            sb.AppendLine("<color=#00ff00>LISTO PARA USAR</color>");
+        sb.AppendLine("Daño: " + ult.damage);
+        sb.AppendLine("Rango: " + ult.range + " casillas");
+
+        statsText.text = sb.ToString();
+        panelRt.gameObject.SetActive(true);
+    }
+
+    int CalculatePassiveBonusForTooltip(SkillData skill)
+    {
+        Unit player = null;
+        Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        foreach (Unit u in units)
+        {
+            if (!u.isEnemy) { player = u; break; }
+        }
+        if (player == null) return 0;
+
+        int bonus = 0;
+        foreach (SkillData passive in LoadoutSystem.GetPassives())
+        {
+            SkillMeta meta = SkillPool.Meta(passive.skillName);
+            if (meta == null) continue;
+
+            switch (meta.effectKey)
+            {
+                case "coloso": bonus += player.maxHealth / 10; break;
+                case "plegaria": bonus += player.stats.healingPower / 10; break;
+                case "ejecutor": bonus += player.stats.critChance / 5; break;
+            }
+        }
+        return bonus;
     }
 
     public void ShowUnitTooltip(Unit unit)
@@ -157,6 +207,14 @@ public class TooltipUI : MonoBehaviour
         titleText.text = item.itemName;
 
         string desc = RarityLabel(item.rarity) + " · " + SlotLabel(item.slot);
+        if (item.armorType != ArmorType.Ninguna)
+        {
+            desc += " · " + item.armorType;
+            ClassData cdTip = CharacterData.Instance != null ? CharacterData.Instance.classData : null;
+            desc += ItemGenerator.CanEquipClass(item, cdTip)
+                ? " <color=#00ff00>(usable)</color>"
+                : " <color=#ff5555>(no usable)</color>";
+        }
         if (!string.IsNullOrEmpty(item.requiredClass)) desc += "\nClase: " + item.requiredClass;
         if (equipped != null) desc += "\n<color=#aaaaaa>Reemplaza: " + equipped.itemName + "</color>";
         descriptionText.text = desc;

@@ -152,20 +152,6 @@ public class InventoryUI : MonoBehaviour
                            "  ATQ: " + stats.attack + "  CRIT: " + stats.critChance + "%  EVA: " + stats.evasion +
                            "%  AP: " + apText + "  CUR: " + stats.healingPower + "%  ROBO: " + stats.lifesteal + "%";
         MakeText(root.transform, statsText, 0, -220, 18); 
-
-        // 4.4-ext: pasiva visible y EQUIPABLE/DESEQUIPABLE (clic para alternar)
-        ClassData cdP = CharacterData.Instance != null ? CharacterData.Instance.classData : null;
-        if (cdP != null)
-        {
-            string state = PassiveSystem.Enabled ? "ACTIVADA" : "DESACTIVADA";
-            Color stColor = PassiveSystem.Enabled ? Color.green : Color.gray;
-            MakeButton(root.transform, "PASIVA [" + state + "] — " + PassiveSystem.Describe(cdP.role),
-                0, -250, 760, 30, stColor, () =>
-            {
-                PassiveSystem.Toggle();
-                Rebuild();
-            });
-        }
     }
 
     string SlotLabel(ItemSlot s)
