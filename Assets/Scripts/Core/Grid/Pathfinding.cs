@@ -3,6 +3,14 @@ using System.Collections.Generic;
 
 public static class Pathfinding
 {
+    // 1.1-E.5: 8 direcciones (4 ortogonales + 4 diagonales)
+    static readonly Vector2Int[] dirs = {
+        new Vector2Int(1, 0), new Vector2Int(-1, 0),
+        new Vector2Int(0, 1), new Vector2Int(0, -1),
+        new Vector2Int(1, 1), new Vector2Int(1, -1),
+        new Vector2Int(-1, 1), new Vector2Int(-1, -1)
+    };
+
     public static List<Vector2Int> FindPath(Vector2Int start, Vector2Int target, int maxRange)
     {
         List<Vector2Int> path = new List<Vector2Int>();
@@ -11,14 +19,6 @@ public static class Pathfinding
 
         queue.Enqueue(start);
         cameFrom[start] = start;
-
-        // 1.1-E.5: 8 direcciones (4 ortogonales + 4 diagonales)
-        Vector2Int[] dirs = {
-            new Vector2Int(1, 0), new Vector2Int(-1, 0),  // ortogonales
-            new Vector2Int(0, 1), new Vector2Int(0, -1),
-            new Vector2Int(1, 1), new Vector2Int(1, -1),  // diagonales
-            new Vector2Int(-1, 1), new Vector2Int(-1, -1)
-        };
 
         while (queue.Count > 0)
         {
@@ -62,7 +62,7 @@ public static class Pathfinding
         return path;
     }
 
-    // 1.1-E.5: devuelve todas las celdas alcanzables desde start con hasta maxRange pasos
+    // 1.1-E.5: celdas alcanzables desde start con hasta maxRange pasos (para highlights)
     public static HashSet<Vector2Int> GetReachableCells(Vector2Int start, int maxRange)
     {
         HashSet<Vector2Int> reachable = new HashSet<Vector2Int>();
@@ -71,13 +71,6 @@ public static class Pathfinding
 
         queue.Enqueue(start);
         distance[start] = 0;
-
-        Vector2Int[] dirs = {
-            new Vector2Int(1, 0), new Vector2Int(-1, 0),
-            new Vector2Int(0, 1), new Vector2Int(0, -1),
-            new Vector2Int(1, 1), new Vector2Int(1, -1),
-            new Vector2Int(-1, 1), new Vector2Int(-1, -1)
-        };
 
         while (queue.Count > 0)
         {
@@ -132,5 +125,11 @@ public static class Pathfinding
     public static bool IsFreeCell(Vector2Int cell)
     {
         return GridManager.Instance.InBounds(cell) && TerrainMap.IsWalkable(cell) && !IsOccupied(cell);
+    }
+
+    // 1.1-E.5: distancia Chebyshev (la diagonal cuenta como 1)
+    public static int GridDistance(Vector2Int a, Vector2Int b)
+    {
+        return Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
     }
 }

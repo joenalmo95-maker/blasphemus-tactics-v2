@@ -19,8 +19,8 @@ public static class EnemyIntentSystem
         {
             if (!e.isEnemy || e.currentHealth <= 0) continue;
 
-            int dist = Mathf.Abs(e.currentGridPos.x - player.currentGridPos.x) +
-                       Mathf.Abs(e.currentGridPos.y - player.currentGridPos.y);
+            int dist = Mathf.Max(Mathf.Abs(e.currentGridPos.x - player.currentGridPos.x),
+                                 Mathf.Abs(e.currentGridPos.y - player.currentGridPos.y));
 
             EnemyAI ai = e.GetComponent<EnemyAI>();
             int range = ai != null ? ai.attackRange : 1;

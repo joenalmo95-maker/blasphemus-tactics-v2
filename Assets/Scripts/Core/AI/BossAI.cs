@@ -31,7 +31,6 @@ public class BossAI : MonoBehaviour
     {
         Unit best = null;
         float bestThreat = float.MinValue;
-
         Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
         foreach (Unit u in units)
         {
@@ -42,7 +41,6 @@ public class BossAI : MonoBehaviour
                 best = u;
             }
         }
-
         if (best == null)
         {
             foreach (Unit u in units)
@@ -50,7 +48,6 @@ public class BossAI : MonoBehaviour
                 if (!u.isEnemy) return u;
             }
         }
-
         return best;
     }
 
@@ -68,7 +65,6 @@ public class BossAI : MonoBehaviour
         }
 
         int distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
-
         if (pattern == 0)
         {
             if (distance > 1)
@@ -78,6 +74,7 @@ public class BossAI : MonoBehaviour
             }
             if (distance <= 1)
             {
+                FaceTarget();
                 Debug.Log("Ángel de la Vigilia golpea al Renacido.");
                 targetUnit.ReceiveAttack(selfUnit, attackDamage);
             }
@@ -95,6 +92,15 @@ public class BossAI : MonoBehaviour
             Debug.Log("Mirada Opresiva: el Renacido perderá 1 AP en su próximo turno.");
             CombatFeedback.SpawnText(targetUnit.transform.position, "-1 AP", Color.magenta);
             pattern = 0;
+        }
+    }
+
+    void FaceTarget()
+    {
+        if (selfUnit != null && targetUnit != null)
+        {
+            selfUnit.UpdateFacing(new Vector2(targetUnit.currentGridPos.x - selfUnit.currentGridPos.x,
+                                              targetUnit.currentGridPos.y - selfUnit.currentGridPos.y).normalized);
         }
     }
 
@@ -154,13 +160,11 @@ public class BossAI : MonoBehaviour
         List<Vector2Int> path = Pathfinding.FindPath(
             selfUnit.currentGridPos, targetUnit.currentGridPos, 99);
         if (path == null || path.Count == 0) yield break;
-
         int steps = Mathf.Min(path.Count, 2);
         if (path[path.Count - 1] == targetUnit.currentGridPos)
         {
             steps = Mathf.Min(steps, path.Count - 1);
         }
-
         if (steps > 0)
         {
             Vector2Int dest = path[steps - 1];
@@ -172,11 +176,13 @@ public class BossAI : MonoBehaviour
             }
             transform.position = wp;
             selfUnit.currentGridPos = dest;
+            FaceTarget();
         }
     }
 
+    // 1.1-E.5 FIX: distancia Chebyshev (diagonal = 1) → el jefe ataca en diagonal
     int Dist(Vector2Int a, Vector2Int b)
     {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+        return Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
     }
 }

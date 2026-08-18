@@ -3,8 +3,8 @@ using UnityEngine.UI;
 
 public class WorldPlayerController : MonoBehaviour
 {
-    public float moveCooldown = 0.15f;
-    private float lastMoveTime = -1f;
+    public float speed = 5f;
+
     private Text promptText;
     private WorldBootstrap.ZoneDef nearZone;
 
@@ -23,42 +23,16 @@ public class WorldPlayerController : MonoBehaviour
 
     void Update()
     {
-        // 1.1-E.5: movimiento discreto 8-direccional (WASD combinado)
-        if (Time.time - lastMoveTime >= moveCooldown)
+        float x = Input.GetAxisRaw("Horizontal");
+        float y = Input.GetAxisRaw("Vertical");
+        Vector3 dir = new Vector3(x, y, 0).normalized;
+
+        if (dir != Vector3.zero)
         {
-            Vector2Int dir = Vector2Int.zero;
-            if (Input.GetKey(KeyCode.W)) dir.y += 1;
-            if (Input.GetKey(KeyCode.S)) dir.y -= 1;
-            if (Input.GetKey(KeyCode.A)) dir.x -= 1;
-            if (Input.GetKey(KeyCode.D)) dir.x += 1;
-
-            if (dir != Vector2Int.zero)
-            {
-                Vector2Int currentCell = new Vector2Int(Mathf.RoundToInt(transform.position.x),
-                                                         Mathf.RoundToInt(transform.position.y));
-                Vector2Int targetCell = currentCell + dir;
-
-                // Anti-corner-cutting para diagonales en mundo
-                if (dir.x != 0 && dir.y != 0)
-                {
-                    Vector2Int ortho1 = currentCell + new Vector2Int(dir.x, 0);
-                    Vector2Int ortho2 = currentCell + new Vector2Int(0, dir.y);
-                    if (!TerrainMap.IsWalkable(ortho1) && !TerrainMap.IsWalkable(ortho2))
-                    {
-                        // No cortar esquina: intentar solo horizontal o vertical
-                        if (TerrainMap.IsWalkable(ortho1)) targetCell = ortho1;
-                        else if (TerrainMap.IsWalkable(ortho2)) targetCell = ortho2;
-                        else targetCell = currentCell;
-                    }
-                }
-
-                if (targetCell != currentCell && GridManager.Instance.InBounds(targetCell) &&
-                    TerrainMap.IsWalkable(targetCell))
-                {
-                    transform.position = new Vector3(targetCell.x, targetCell.y, 0);
-                    lastMoveTime = Time.time;
-                }
-            }
+            Vector3 newPos = transform.position + dir * speed * Time.deltaTime;
+            Vector2Int targetCell = new Vector2Int(Mathf.RoundToInt(newPos.x), Mathf.RoundToInt(newPos.y));
+            if (TerrainMap.IsWalkable(targetCell))
+                transform.position = newPos;
         }
 
         transform.position = new Vector3(
@@ -75,6 +49,7 @@ public class WorldPlayerController : MonoBehaviour
     void CheckZones()
     {
         Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y));
+
         nearZone = null;
         foreach (WorldBootstrap.ZoneDef z in WorldBootstrap.Zones)
         {
@@ -84,6 +59,7 @@ public class WorldPlayerController : MonoBehaviour
                 break;
             }
         }
+
         if (nearZone != null)
         {
             // 5.2: tarjeta previa + límite diario de mazmorras

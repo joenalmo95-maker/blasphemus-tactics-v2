@@ -8,9 +8,10 @@ public class CombatController : MonoBehaviour
     private int ultimateCooldown = 0;
     private Unit lastFlankTarget = null;
 
-    // 1.1-E.5: sistema de movimiento por click
+    // 1.1-E.5: movimiento por click (dos fases, una sola ejecución por clic)
     private bool isMoving = false;
-    private List<GameObject> moveHighlights = new List<GameObject>();
+    private HashSet<Vector2Int> reachableCells = new HashSet<Vector2Int>();
+    private readonly List<GameObject> moveHighlights = new List<GameObject>();
 
     public int UltimateCooldown { get { return ultimateCooldown; } }
     public SkillData ArmedSkill { get { return armedSkill; } }
@@ -57,30 +58,30 @@ public class CombatController : MonoBehaviour
         // Ultimate (slot 5)
         if (Input.GetKeyDown(KeyCode.Alpha5)) TryUseUltimate();
 
-        // Consumibles (1.1-D.1: comidas en 8-9)
+        // Consumibles
         if (Input.GetKeyDown(KeyCode.Alpha6)) TryUse(ConsumableType.PocionHP);
         if (Input.GetKeyDown(KeyCode.Alpha7)) TryUse(ConsumableType.PocionAP);
         if (Input.GetKeyDown(KeyCode.Alpha8)) TryUse(ConsumableType.ComidaDano);
         if (Input.GetKeyDown(KeyCode.Alpha9)) TryUse(ConsumableType.ComidaDefensa);
 
-        // 1.1-E.5: movimiento por click en celda vacía
+        // 1.1-E.5 FIX: 1er clic muestra celdas; 2º clic sobre celda resaltada mueve (una sola vez)
         if (Input.GetMouseButtonDown(0) && armedSkill == null && !isMoving)
         {
             Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             Vector2Int cell = new Vector2Int(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
 
-            if (cell != playerUnit.currentGridPos && playerUnit.currentAP > 0)
+            if (reachableCells.Contains(cell))
+            {
+                TryMoveTo(cell);
+            }
+            else if (cell != playerUnit.currentGridPos && playerUnit.currentAP > 0)
             {
                 ShowMoveHighlights();
             }
-        }
-
-        // Click para mover (con highlights visibles)
-        if (Input.GetMouseButtonDown(0) && armedSkill == null && moveHighlights.Count > 0)
-        {
-            Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            Vector2Int cell = new Vector2Int(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
-            TryMoveTo(cell);
+            else
+            {
+                ClearMoveHighlights();
+            }
         }
 
         // Ataque con skill armada (click derecho)
@@ -92,8 +93,8 @@ public class CombatController : MonoBehaviour
 
             if (target != null && target.isEnemy)
             {
-                int distance = Mathf.Abs(target.currentGridPos.x - playerUnit.currentGridPos.x) +
-                               Mathf.Abs(target.currentGridPos.y - playerUnit.currentGridPos.y);
+                // 1.1-E.5 FIX: distancia Chebyshev (diagonal = 1)
+                int distance = Pathfinding.GridDistance(target.currentGridPos, playerUnit.currentGridPos);
 
                 if (distance <= armedSkill.range && playerUnit.currentAP >= armedSkill.actionPointCost)
                 {
@@ -120,10 +121,8 @@ public class CombatController : MonoBehaviour
                     playerUnit.UpdateFacing(new Vector2(target.currentGridPos.x - playerUnit.currentGridPos.x,
                                                         target.currentGridPos.y - playerUnit.currentGridPos.y).normalized);
 
-                    // 1.1-E: reposicionamiento con inmunidad de jefes
                     if (hit) ResolveEffectKey(target);
 
-                    // Si era ultimate, inicia cooldown
                     if (LoadoutSystem.UltimateId() != "" && SkillPool.Get(LoadoutSystem.UltimateId()) == armedSkill)
                     {
                         SkillMeta meta = SkillPool.Meta(LoadoutSystem.UltimateId());
@@ -165,13 +164,12 @@ public class CombatController : MonoBehaviour
         }
     }
 
-    // 1.1-E.5: muestra celdas alcanzables con overlay azul
     void ShowMoveHighlights()
     {
         ClearMoveHighlights();
-        HashSet<Vector2Int> reachable = Pathfinding.GetReachableCells(playerUnit.currentGridPos, playerUnit.currentAP);
+        reachableCells = Pathfinding.GetReachableCells(playerUnit.currentGridPos, playerUnit.currentAP);
 
-        foreach (Vector2Int cell in reachable)
+        foreach (Vector2Int cell in reachableCells)
         {
             GameObject go = new GameObject("MoveHighlight");
             go.transform.position = new Vector3(cell.x, cell.y, -0.1f);
@@ -184,17 +182,13 @@ public class CombatController : MonoBehaviour
         }
     }
 
-    // 1.1-E.5: mueve al jugador por pathfinding 8-dir
     void TryMoveTo(Vector2Int target)
     {
         if (isMoving) return;
+        if (!reachableCells.Contains(target)) { ClearMoveHighlights(); return; }
 
         List<Vector2Int> path = Pathfinding.FindPath(playerUnit.currentGridPos, target, playerUnit.currentAP);
-        if (path == null || path.Count == 0)
-        {
-            ClearMoveHighlights();
-            return;
-        }
+        if (path == null || path.Count == 0) { ClearMoveHighlights(); return; }
 
         StartCoroutine(MoveAlongPath(path));
     }
@@ -208,10 +202,10 @@ public class CombatController : MonoBehaviour
         {
             if (playerUnit.currentAP <= 0) break;
 
+            Vector2Int from = playerUnit.currentGridPos;
             playerUnit.currentAP--;
             playerUnit.currentGridPos = cell;
 
-            // Movimiento suave (lerp)
             Vector3 start = playerUnit.transform.position;
             Vector3 end = new Vector3(cell.x, cell.y, 0);
             float duration = 0.15f;
@@ -226,7 +220,7 @@ public class CombatController : MonoBehaviour
             }
 
             playerUnit.transform.position = end;
-            playerUnit.UpdateFacing(new Vector2(cell.x - start.x, cell.y - start.y).normalized);
+            playerUnit.UpdateFacing(new Vector2(cell.x - from.x, cell.y - from.y).normalized);
         }
 
         isMoving = false;
@@ -240,6 +234,7 @@ public class CombatController : MonoBehaviour
             if (go != null) Destroy(go);
         }
         moveHighlights.Clear();
+        reachableCells.Clear();
     }
 
     void TryToggleSkill(int slot)

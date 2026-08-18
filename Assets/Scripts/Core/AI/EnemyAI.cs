@@ -38,7 +38,6 @@ public class EnemyAI : MonoBehaviour
     {
         Unit best = null;
         float bestThreat = float.MinValue;
-
         Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
         foreach (Unit u in units)
         {
@@ -49,7 +48,6 @@ public class EnemyAI : MonoBehaviour
                 best = u;
             }
         }
-
         if (best == null)
         {
             foreach (Unit u in units)
@@ -57,14 +55,12 @@ public class EnemyAI : MonoBehaviour
                 if (!u.isEnemy) return u;
             }
         }
-
         return best;
     }
 
     public IEnumerator ExecuteTurn()
     {
         if (chargeCooldown > 0) chargeCooldown--;
-
         if (targetUnit == null)
         {
             targetUnit = FindTarget();
@@ -72,9 +68,9 @@ public class EnemyAI : MonoBehaviour
         }
 
         int distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
-
         if (distance <= attackRange)
         {
+            FaceTarget();
             yield return new WaitForSeconds(0.25f);
             Attack(0);
             yield return new WaitForSeconds(0.5f);
@@ -85,12 +81,10 @@ public class EnemyAI : MonoBehaviour
         {
             List<Vector2Int> path = Pathfinding.FindPath(
                 selfUnit.currentGridPos, targetUnit.currentGridPos, 99);
-
             if (path != null && path.Count > 0)
             {
                 int steps = Mathf.Min(path.Count - 1, 4);
                 while (steps > 0 && Pathfinding.UnitAt(path[steps - 1]) != null) steps--;
-
                 if (steps > 0)
                 {
                     Vector2Int dest = path[steps - 1];
@@ -102,7 +96,7 @@ public class EnemyAI : MonoBehaviour
                     }
                     transform.position = wp;
                     selfUnit.currentGridPos = dest;
-
+                    FaceTarget();
                     Debug.Log(gameObject.name + " ¡CARGA contra el Renacido!");
                     chargeCooldown = 3;
                     yield return new WaitForSeconds(0.2f);
@@ -115,16 +109,13 @@ public class EnemyAI : MonoBehaviour
 
         List<Vector2Int> walkPath = Pathfinding.FindPath(
             selfUnit.currentGridPos, targetUnit.currentGridPos, 99);
-
         if (walkPath != null && walkPath.Count > 0)
         {
             int stepsToTake = Mathf.Min(walkPath.Count, moveRange);
-
             if (walkPath[walkPath.Count - 1] == targetUnit.currentGridPos)
             {
                 stepsToTake = Mathf.Min(stepsToTake, walkPath.Count - 1);
             }
-
             Vector2Int destination = selfUnit.currentGridPos;
             while (stepsToTake > 0)
             {
@@ -136,20 +127,31 @@ public class EnemyAI : MonoBehaviour
                 }
                 stepsToTake--;
             }
-
             if (destination != selfUnit.currentGridPos)
             {
                 Vector3 worldPos = GridManager.Instance.GetWorldPosition(destination);
                 yield return MoveToPosition(worldPos, destination);
+                FaceTarget();
             }
         }
 
         distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
         if (distance <= attackRange)
         {
+            FaceTarget();
             yield return new WaitForSeconds(0.25f);
             Attack(0);
             yield return new WaitForSeconds(0.5f);
+        }
+    }
+
+    // 1.1-E.5: mira hacia su objetivo (coherencia de flanking y facing)
+    void FaceTarget()
+    {
+        if (selfUnit != null && targetUnit != null)
+        {
+            selfUnit.UpdateFacing(new Vector2(targetUnit.currentGridPos.x - selfUnit.currentGridPos.x,
+                                              targetUnit.currentGridPos.y - selfUnit.currentGridPos.y).normalized);
         }
     }
 
@@ -180,8 +182,9 @@ public class EnemyAI : MonoBehaviour
         selfUnit.currentGridPos = gridPos;
     }
 
+    // 1.1-E.5 FIX: distancia Chebyshev (diagonal = 1) → los enemigos atacan en diagonal
     int Dist(Vector2Int a, Vector2Int b)
     {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+        return Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
     }
 }
