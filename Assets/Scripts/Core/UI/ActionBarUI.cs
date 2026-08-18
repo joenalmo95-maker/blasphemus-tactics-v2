@@ -8,7 +8,6 @@ public class ActionBarUI : MonoBehaviour
     private GameObject actionBarRoot;
     private readonly List<ActionButton> actionButtons = new List<ActionButton>();
     private Unit playerUnit;
-    private SkillData armedSkill;
 
     struct ActionButton
     {
@@ -31,69 +30,172 @@ public class ActionBarUI : MonoBehaviour
 
     void Build()
     {
-        GameObject canvas = UIFactory.CreateCanvas("ActionBarCanvas", 60);
+        actionBarRoot = new GameObject("ActionBarCanvas");
+        Canvas canvas = actionBarRoot.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 55;
+        actionBarRoot.AddComponent<GraphicRaycaster>();
 
-        RectTransform barRt = UIFactory.CreatePanel(canvas.transform, "ActionBar",
+        // 1.1-D.1: 9 slots (4 activas + ultimate + 4 consumibles)
+        RectTransform panel = UIFactory.CreatePanel(actionBarRoot.transform, "ActionBarPanel",
             new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0),
-            new Vector2(0, 36), new Vector2(720, 84), new Color(0.08f, 0.08f, 0.1f, 0.9f));
+            new Vector2(0, 20), new Vector2(830, 70), new Color(0.05f, 0.05f, 0.08f, 0.9f));
 
-        actionBarRoot = barRt.gameObject;
+        for (int i = 0; i < 9; i++)
+        {
+            float x = -360 + i * 90;
+            int captured = i;
 
-        HorizontalLayoutGroup hlg = actionBarRoot.AddComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 10;
-        hlg.childAlignment = TextAnchor.MiddleCenter;
-        hlg.childForceExpandWidth = false;
-        hlg.childForceExpandHeight = true;
-        hlg.padding = new RectOffset(10, 10, 5, 5);
+            GameObject btnObj = new GameObject("Slot_" + i);
+            btnObj.transform.SetParent(panel, false);
+            RectTransform rt = btnObj.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(x, 0);
+            rt.sizeDelta = new Vector2(80, 60);
 
-        CreateActionButton("Skill 1", "1", "skill", 1);
-        CreateActionButton("Skill 2", "2", "skill", 2);
-        CreateActionButton("Skill 3", "3", "skill", 3);
-        CreateActionButton("Skill 4", "4", "skill", 4);
-        CreateActionButton("Utilidad", "5", "utility", 0);
-        CreateActionButton("Poc HP", "6", "consumable", (int)ConsumableType.PocionHP);
-        CreateActionButton("Poc AP", "7", "consumable", (int)ConsumableType.PocionAP);
+            Image bg = btnObj.AddComponent<Image>();
+            bg.sprite = SpriteFactory.Square();
+            bg.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
+
+            Button btn = btnObj.AddComponent<Button>();
+            btn.onClick.AddListener(() => OnActionButtonClicked(captured));
+
+            EventTrigger trigger = btnObj.AddComponent<EventTrigger>();
+            EventTrigger.Entry enterEntry = new EventTrigger.Entry();
+            enterEntry.eventID = EventTriggerType.PointerEnter;
+            enterEntry.callback.AddListener((data) => OnPointerEnterButton(captured));
+            trigger.triggers.Add(enterEntry);
+
+            EventTrigger.Entry exitEntry = new EventTrigger.Entry();
+            exitEntry.eventID = EventTriggerType.PointerExit;
+            exitEntry.callback.AddListener((data) => OnPointerExitButton(captured));
+            trigger.triggers.Add(exitEntry);
+
+            GameObject labelObj = new GameObject("Label");
+            labelObj.transform.SetParent(btnObj.transform, false);
+            RectTransform lrt = labelObj.AddComponent<RectTransform>();
+            lrt.anchorMin = new Vector2(0, 0.5f);
+            lrt.anchorMax = new Vector2(1, 1);
+            lrt.offsetMin = new Vector2(4, 0);
+            lrt.offsetMax = new Vector2(-4, -4);
+            Text label = labelObj.AddComponent<Text>();
+            label.font = GetFont();
+            label.fontSize = 11;
+            label.alignment = TextAnchor.UpperCenter;
+            label.color = Color.white;
+
+            GameObject costObj = new GameObject("Cost");
+            costObj.transform.SetParent(btnObj.transform, false);
+            RectTransform crt = costObj.AddComponent<RectTransform>();
+            crt.anchorMin = new Vector2(0, 0);
+            crt.anchorMax = new Vector2(1, 0.5f);
+            crt.offsetMin = new Vector2(4, 4);
+            crt.offsetMax = new Vector2(-4, 0);
+            Text cost = costObj.AddComponent<Text>();
+            cost.font = GetFont();
+            cost.fontSize = 10;
+            cost.alignment = TextAnchor.LowerCenter;
+            cost.color = Color.cyan;
+
+            actionButtons.Add(new ActionButton
+            {
+                button = btnObj,
+                background = bg,
+                label = label,
+                costText = cost,
+                actionType = "",
+                actionIndex = -1
+            });
+        }
+
+        RefreshButtons();
     }
 
-    void CreateActionButton(string label, string key, string type, int index)
+    void Update()
     {
-        ActionButton btn = new ActionButton();
-        btn.actionType = type;
-        btn.actionIndex = index;
+        if (playerUnit == null)
+        {
+            Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+            foreach (Unit u in units)
+            {
+                if (!u.isEnemy) { playerUnit = u; break; }
+            }
+        }
 
-        RectTransform rt = UIFactory.CreatePanel(actionBarRoot.transform, "Slot_" + key,
-            null, null, null, null, new Vector2(80, 70), new Color(0.2f, 0.2f, 0.2f, 1f));
-        btn.button = rt.gameObject;
-        btn.background = rt.GetComponent<Image>();
-
-        Button button = btn.button.AddComponent<Button>();
-        button.targetGraphic = btn.background;
-        ColorBlock colors = button.colors;
-        colors.highlightedColor = new Color(0.3f, 0.3f, 0.5f);
-        colors.pressedColor = new Color(0.4f, 0.4f, 0.6f);
-        colors.disabledColor = new Color(0.15f, 0.15f, 0.15f, 0.5f);
-        button.colors = colors;
-
-        ActionButtonTrigger trigger = btn.button.AddComponent<ActionButtonTrigger>();
-        trigger.buttonIndex = actionButtons.Count;
-        trigger.actionBar = this;
-
-        UIFactory.CreateText(btn.button.transform, "Key", key, 18, TextAnchor.UpperLeft, Color.yellow,
-            new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1), new Vector2(5, -5), new Vector2(30, 25));
-
-        btn.label = UIFactory.CreateText(btn.button.transform, "Label", label, 12, TextAnchor.MiddleCenter, Color.white,
-            new Vector2(0, 0.3f), new Vector2(1, 0.7f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(76, 30));
-
-        btn.costText = UIFactory.CreateText(btn.button.transform, "Cost", "", 10, TextAnchor.LowerCenter, Color.cyan,
-            new Vector2(0, 0), new Vector2(1, 0.3f), new Vector2(0.5f, 0), new Vector2(0, 5), new Vector2(76, 20));
-
-        int buttonIndex = actionButtons.Count;
-        button.onClick.AddListener(() => OnActionButtonClicked(buttonIndex));
-
-        actionButtons.Add(btn);
+        RefreshButtons();
     }
 
-    // --- TOOLTIPS (Bloque 1.4) ---
+    static ConsumableType ConsumableForSlot(int i)
+    {
+        switch (i)
+        {
+            case 5: return ConsumableType.PocionHP;
+            case 6: return ConsumableType.PocionAP;
+            case 7: return ConsumableType.ComidaDano;
+            default: return ConsumableType.ComidaDefensa;
+        }
+    }
+
+    void RefreshButtons()
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            ActionButton btn = actionButtons[i];
+            btn.background.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
+
+            if (i < 4)
+            {
+                SkillData sk = LoadoutSystem.GetActive(i);
+                if (sk != null)
+                {
+                    btn.label.text = sk.skillName;
+                    btn.costText.text = sk.actionPointCost + " AP";
+                    btn.actionType = "skill";
+                    btn.actionIndex = i;
+                }
+                else
+                {
+                    btn.label.text = "(vacío)";
+                    btn.costText.text = "";
+                    btn.actionType = "";
+                    btn.actionIndex = -1;
+                }
+            }
+            else if (i == 4)
+            {
+                SkillData ult = LoadoutSystem.GetUltimate();
+                CombatController cc = Object.FindAnyObjectByType<CombatController>();
+                int cd = (cc != null) ? cc.UltimateCooldown : 0;
+
+                if (ult != null)
+                {
+                    btn.label.text = "ULT: " + ult.skillName;
+                    btn.costText.text = (cd > 0) ? "CD: " + cd : "LISTO";
+                    btn.actionType = "ultimate";
+                    btn.actionIndex = 4;
+                    if (cd > 0) btn.background.color = new Color(0.4f, 0.2f, 0.2f, 0.9f);
+                }
+                else
+                {
+                    btn.label.text = "ULT: (vacío)";
+                    btn.costText.text = "";
+                    btn.actionType = "";
+                    btn.actionIndex = -1;
+                }
+            }
+            else
+            {
+                ConsumableType t = ConsumableForSlot(i);
+                int count = InventorySystem.Instance != null ? InventorySystem.Instance.GetConsumableCount(t) : 0;
+                btn.label.text = ConsumableCatalog.Name(t);
+                btn.costText.text = "x" + count;
+                btn.actionType = "consumable";
+                btn.actionIndex = (int)t;
+            }
+        }
+    }
+
     public void OnPointerEnterButton(int index)
     {
         if (TooltipUI.Instance == null) return;
@@ -102,20 +204,30 @@ public class ActionBarUI : MonoBehaviour
         switch (btn.actionType)
         {
             case "skill":
-                int playerLevel = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
-                SkillData skill = SkillCatalog.Get(GetRole(), btn.actionIndex);
-                bool isUnlocked = SkillCatalog.IsSkillUnlocked(GetRole(), btn.actionIndex, playerLevel);
-                TooltipUI.Instance.ShowSkillTooltip(skill, isUnlocked, playerLevel);
+                {
+                    string id = LoadoutSystem.ActiveId(btn.actionIndex);
+                    if (id != "") TooltipUI.Instance.ShowPoolSkillTooltip(id);
+                }
                 break;
 
-            case "utility":
-                ShowUtilityTooltip();
+            case "ultimate":
+                {
+                    SkillData ult = LoadoutSystem.GetUltimate();
+                    if (ult != null)
+                    {
+                        CombatController cc = Object.FindAnyObjectByType<CombatController>();
+                        int cd = (cc != null) ? cc.UltimateCooldown : 0;
+                        TooltipUI.Instance.ShowUltimateTooltip(ult, cd);
+                    }
+                }
                 break;
 
             case "consumable":
-                ConsumableType ctype = (ConsumableType)btn.actionIndex;
-                int count = GetConsumableCount(ctype);
-                TooltipUI.Instance.ShowConsumableTooltip(ctype, count);
+                {
+                    ConsumableType ctype = (ConsumableType)btn.actionIndex;
+                    int count = InventorySystem.Instance != null ? InventorySystem.Instance.GetConsumableCount(ctype) : 0;
+                    TooltipUI.Instance.ShowConsumableTooltip(ctype, count);
+                }
                 break;
         }
     }
@@ -125,41 +237,8 @@ public class ActionBarUI : MonoBehaviour
         if (TooltipUI.Instance != null) TooltipUI.Instance.Hide();
     }
 
-    void ShowUtilityTooltip()
-    {
-        ClassRole role = GetRole();
-        string name = "";
-        string desc = "";
-
-        switch (role)
-        {
-            case ClassRole.Tank:
-                name = "Grito de Guerra";
-                desc = "Buff de +2 daño por 3 turnos y genera amenaza alta";
-                break;
-            case ClassRole.Healer:
-                name = "Curación";
-                desc = "Cura 4 HP (escalado con poder de curación)";
-                break;
-            default:
-                name = "Ojos del Halo";
-                desc = "+15% crítico por 3 turnos";
-                break;
-        }
-
-        SkillData fakeSkill = ScriptableObject.CreateInstance<SkillData>();
-        fakeSkill.skillName = name;
-        fakeSkill.description = desc;
-        fakeSkill.actionPointCost = 1;
-        fakeSkill.unlockLevel = 0;
-
-        TooltipUI.Instance.ShowSkillTooltip(fakeSkill, true, 0);
-    }
-
-    // --- ACCIONES ---
     void OnActionButtonClicked(int index)
     {
-        // En mundo (sin TurnManager) la barra es informativa: sin acciones reales.
         if (TurnManager.Instance == null) return;
         if (playerUnit == null || !TurnManager.Instance.IsPlayerTurn()) return;
 
@@ -170,18 +249,20 @@ public class ActionBarUI : MonoBehaviour
         switch (btn.actionType)
         {
             case "skill":
-                int playerLevel = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
-                if (SkillCatalog.IsSkillUnlocked(GetRole(), btn.actionIndex, playerLevel))
                 {
-                    SkillData skill = SkillCatalog.Get(GetRole(), btn.actionIndex);
-                    if (skill != null && playerUnit.currentAP >= skill.actionPointCost)
-                        cc.ToggleSkill(skill);
+                    SkillData sk = LoadoutSystem.GetActive(btn.actionIndex);
+                    if (sk != null && playerUnit.currentAP >= sk.actionPointCost)
+                        cc.ToggleSkill(sk);
                 }
                 break;
 
-            case "utility":
-                if (playerUnit.currentAP >= 1)
-                    cc.TryUtilityPublic();
+            case "ultimate":
+                {
+                    if (cc.UltimateCooldown == 0)
+                        cc.TryUseUltimate();
+                    else
+                        Debug.Log("Ultimate en cooldown: " + cc.UltimateCooldown + " turnos.");
+                }
                 break;
 
             case "consumable":
@@ -191,124 +272,10 @@ public class ActionBarUI : MonoBehaviour
         }
     }
 
-    ClassRole GetRole()
+    Font GetFont()
     {
-        if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
-            return CharacterData.Instance.classData.role;
-        return ClassRole.DPS;
-    }
-
-    void Update()
-    {
-        if (playerUnit == null)
-        {
-            Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
-            foreach (Unit u in units) if (!u.isEnemy) { playerUnit = u; break; }
-        }
-
-        CombatController cc = Object.FindAnyObjectByType<CombatController>();
-        if (cc != null) armedSkill = cc.GetArmedSkill();
-
-        UpdateButtonStates();
-    }
-
-    void UpdateButtonStates()
-    {
-        if (CharacterData.Instance == null) return;
-
-        // worldMode: en mundo la barra se muestra activa e informativa.
-        bool worldMode = TurnManager.Instance == null;
-        bool isPlayerTurn = worldMode || TurnManager.Instance.IsPlayerTurn();
-        int playerLevel = CharacterData.Instance.level;
-
-        for (int i = 0; i < actionButtons.Count; i++)
-        {
-            ActionButton btn = actionButtons[i];
-            Button button = btn.button.GetComponent<Button>();
-            bool canUse = isPlayerTurn;
-            string labelText = "";
-            string costText = "";
-
-            switch (btn.actionType)
-            {
-                case "skill":
-                    SkillData skill = SkillCatalog.Get(GetRole(), btn.actionIndex);
-                    bool isUnlocked = SkillCatalog.IsSkillUnlocked(GetRole(), btn.actionIndex, playerLevel);
-
-                    if (skill != null)
-                    {
-                        labelText = skill.skillName;
-                        costText = skill.actionPointCost + " AP";
-
-                        if (!isUnlocked)
-                        {
-                            labelText = "Nv " + skill.unlockLevel;
-                            costText = "BLOQUEADA";
-                            canUse = false;
-                            btn.background.color = new Color(0.3f, 0.1f, 0.1f, 0.7f);
-                        }
-                        else
-                        {
-                            canUse = canUse && (worldMode || (playerUnit != null && playerUnit.currentAP >= skill.actionPointCost));
-                            btn.background.color = (armedSkill == skill)
-                                ? new Color(0.3f, 0.55f, 0.3f)
-                                : (canUse ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.15f, 0.15f, 0.15f, 0.5f));
-                        }
-                    }
-                    break;
-
-                case "utility":
-                    switch (GetRole())
-                    {
-                        case ClassRole.Tank: labelText = "Grito"; break;
-                        case ClassRole.Healer: labelText = "Curar"; break;
-                        default: labelText = "Ojos"; break;
-                    }
-                    costText = "1 AP";
-                    canUse = canUse && (worldMode || (playerUnit != null && playerUnit.currentAP >= 1));
-                    btn.background.color = canUse ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.15f, 0.15f, 0.15f, 0.5f);
-                    break;
-
-                case "consumable":
-                    ConsumableType ctype = (ConsumableType)btn.actionIndex;
-                    int count = GetConsumableCount(ctype);
-                    labelText = ConsumableCatalog.Name(ctype);
-                    costText = count + "x";
-                    canUse = canUse && count > 0;
-                    btn.background.color = canUse ? new Color(0.2f, 0.2f, 0.2f) : new Color(0.15f, 0.15f, 0.15f, 0.5f);
-                    break;
-            }
-
-            button.interactable = canUse;
-            if (btn.label != null) btn.label.text = labelText;
-            if (btn.costText != null) btn.costText.text = costText;
-        }
-    }
-
-    int GetConsumableCount(ConsumableType type)
-    {
-        if (InventorySystem.Instance == null) return 0;
-        foreach (var c in InventorySystem.Instance.consumables)
-        {
-            if (c.type == type) return c.count;
-        }
-        return 0;
-    }
-}
-
-// Componente auxiliar para detectar hover en botones y disparar tooltips
-public class ActionButtonTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
-{
-    public int buttonIndex;
-    public ActionBarUI actionBar;
-
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        actionBar.OnPointerEnterButton(buttonIndex);
-    }
-
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        actionBar.OnPointerExitButton(buttonIndex);
+        Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        return f;
     }
 }

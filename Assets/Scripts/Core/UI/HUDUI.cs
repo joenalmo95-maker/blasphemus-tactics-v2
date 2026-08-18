@@ -21,6 +21,7 @@ public class HUDUI : MonoBehaviour
     private Text bossHpText;
 
     private string currentPortraitKey = "";
+    private Text objectiveText;
 
     private Unit playerUnit;
     private readonly List<GameObject> activeBuffIcons = new List<GameObject>();
@@ -112,12 +113,15 @@ public class HUDUI : MonoBehaviour
             new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
             new Vector2(180, -25), new Vector2(xpBarWidth, 16), new Color(0.1f, 0.1f, 0.1f, 0.8f));
 
-        xpFill = UIFactory.CreatePanel(xpBg, "XP_Fill",
-            new Vector2(0, 0), new Vector2(0, 1), new Vector2(0, 0.5f),
-            Vector2.zero, new Vector2(0, 16), Color.cyan);
+
+        // 5.3: objetivo visible bajo oro/EXP
+        objectiveText = UIFactory.CreateText(root.transform, "Objective", "", 14, TextAnchor.UpperLeft,
+            new Color(0.9f, 0.8f, 0.4f),
+            new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, 1),
+            new Vector2(20, -50), new Vector2(760, 24));
 
         UIFactory.CreateText(root.transform, "Hint",
-            "1-4: habilidades 5: utilidad 6-7: consumibles I: inventario B: tienda E: fin de turno ESC: huir",
+            "1-4: habilidades 5: ultimate 6-9: consumibles I: inventario B: tienda E: fin de turno ESC: huir",
             14, TextAnchor.MiddleCenter, new Color(0.75f, 0.75f, 0.75f, 0.8f),
             new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0),
             new Vector2(0, 8), new Vector2(900, 24));
@@ -181,6 +185,9 @@ public class HUDUI : MonoBehaviour
             if (levelText != null) levelText.text = "Nv " + cd.level;
             SetPortrait();
         }
+
+        // 5.3: refresco del objetivo actual
+        if (objectiveText != null) objectiveText.text = ObjectiveSystem.Current();
 
         if (playerUnit != null)
         {

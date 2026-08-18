@@ -134,6 +134,43 @@ public class TooltipUI : MonoBehaviour
         panelRt.gameObject.SetActive(true);
     }
 
+    // 1.1-D.1: tarjeta rica de skill del pool (barra y entrenador)
+    public void ShowPoolSkillTooltip(string id)
+    {
+        SkillData sk = SkillPool.Get(id);
+        SkillMeta meta = SkillPool.Meta(id);
+        if (sk == null || meta == null) return;
+
+        titleText.color = ItemGenerator.RarityColor(meta.rarity);
+        titleText.text = sk.skillName + "  [" + meta.rarity + "]";
+
+        string desc = meta.type + " · " + meta.affinity;
+        if (!string.IsNullOrEmpty(meta.tag)) desc += " · " + meta.tag;
+        desc += "\n" + sk.description;
+        descriptionText.text = desc;
+
+        StringBuilder sb = new StringBuilder();
+        if (meta.type == SkillType.Pasiva)
+        {
+            sb.AppendLine("Pasiva permanente (slot de pasiva).");
+        }
+        else
+        {
+            sb.AppendLine("Coste: " + sk.actionPointCost + " AP");
+            if (meta.type == SkillType.Ultimate) sb.AppendLine("Cooldown: " + meta.cooldown + " turnos");
+            sb.AppendLine("Rango: " + sk.range + " casillas");
+            if (sk.damage > 0) sb.AppendLine("Daño: " + sk.damage + (sk.bonusCrit > 0 ? " (+" + sk.bonusCrit + "% crit)" : ""));
+            if (meta.heal > 0) sb.AppendLine("Curación: " + meta.heal);
+        }
+        if (!LoadoutSystem.IsLearned(id))
+            sb.AppendLine("Aprender: " + meta.cost + " oro (" + meta.origin + ")");
+        else
+            sb.AppendLine("Aprendida (" + meta.origin + ")");
+
+        statsText.text = sb.ToString();
+        panelRt.gameObject.SetActive(true);
+    }
+
     int CalculatePassiveBonusForTooltip(SkillData skill)
     {
         Unit player = null;

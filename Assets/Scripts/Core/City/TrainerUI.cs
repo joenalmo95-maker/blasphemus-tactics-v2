@@ -47,6 +47,9 @@ public class TrainerUI : MonoBehaviour
             es.AddComponent<StandaloneInputModule>();
         }
 
+        if (TooltipUI.Instance == null)
+            new GameObject("TooltipUI").AddComponent<TooltipUI>();
+
         root = new GameObject("TrainerCanvas");
         Canvas canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -70,7 +73,6 @@ public class TrainerUI : MonoBehaviour
         MakeText(root.transform, "ENTRENADOR DE HABILIDADES  (ESC cerrar)", 0, 260, 20, Color.white);
         MakeText(root.transform, "Oro: " + gold + "   Nivel: " + level, 0, 230, 15, Color.yellow);
 
-        // 1.1-C: pestañas
         MakeButton(root.transform, tab == 0 ? "> ENTRENAR DAÑO" : "ENTRENAR DAÑO", -120, 200, 200, 32,
             tab == 0 ? Color.green : Color.gray, () => { tab = 0; Rebuild(); });
         MakeButton(root.transform, tab == 1 ? "> SKILLS (LOADOUT)" : "SKILLS (LOADOUT)", 120, 200, 200, 32,
@@ -82,7 +84,7 @@ public class TrainerUI : MonoBehaviour
         MakeButton(root.transform, "CERRAR", 0, -250, 200, 40, Color.red, () => Close());
     }
 
-    // --- PESTAÑA 0: entreno legacy del 3.5 (intacto hasta Fase D) ---
+    // --- PESTAÑA 0: entreno legacy del 3.5 ---
     void BuildTrainTab()
     {
         int level = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
@@ -122,10 +124,9 @@ public class TrainerUI : MonoBehaviour
         }
     }
 
-    // --- PESTAÑA 1: SKILLS (1.1-C) ---
+    // --- PESTAÑA 1: SKILLS (1.1-C + tooltips 1.1-D.1) ---
     void BuildSkillsTab()
     {
-        // Columna izquierda: loadout actual
         MakeText(root.transform, "LOADOUT ACTUAL", -280, 168, 16, Color.white);
 
         float ly = 138;
@@ -134,16 +135,14 @@ public class TrainerUI : MonoBehaviour
             int s = i;
             string id = LoadoutSystem.ActiveId(i);
             string name = id == "" ? "(vacío)" : SkillPool.Get(id).skillName;
-            MakeText(root.transform, "Activa " + (i + 1) + ": " + name, -330, ly, 14, Color.white);
-            MakeButton(root.transform, "Vaciar", -170, ly, 70, 26, Color.gray,
+            MakeLoadoutRow("Activa " + (i + 1) + ": " + name, Color.white, id, -280, ly,
                 () => { LoadoutSystem.AssignActive(s, ""); Rebuild(); });
             ly -= 32;
         }
 
         string ultId = LoadoutSystem.UltimateId();
         string ultName = ultId == "" ? "(vacío)" : SkillPool.Get(ultId).skillName;
-        MakeText(root.transform, "Ultimate: " + ultName, -330, ly, 14, Color.magenta);
-        MakeButton(root.transform, "Vaciar", -170, ly, 70, 26, Color.gray,
+        MakeLoadoutRow("Ultimate: " + ultName, Color.magenta, ultId, -280, ly,
             () => { LoadoutSystem.AssignUltimate(""); Rebuild(); });
         ly -= 32;
 
@@ -152,13 +151,11 @@ public class TrainerUI : MonoBehaviour
             int s = i;
             string id = LoadoutSystem.PassiveId(i);
             string name = id == "" ? "(vacío)" : SkillPool.Get(id).skillName;
-            MakeText(root.transform, "Pasiva " + (i + 1) + ": " + name, -330, ly, 14, Color.cyan);
-            MakeButton(root.transform, "Vaciar", -170, ly, 70, 26, Color.gray,
+            MakeLoadoutRow("Pasiva " + (i + 1) + ": " + name, Color.cyan, id, -280, ly,
                 () => { LoadoutSystem.AssignPassive(s, ""); Rebuild(); });
             ly -= 32;
         }
 
-        // Columna derecha: filtros + pool con scroll
         MakeText(root.transform, "POOL DE SKILLS", 140, 168, 16, Color.white);
         MakeButton(root.transform, "Activas", 30, 140, 90, 28, filter == SkillType.Activa ? Color.green : Color.gray,
             () => { filter = SkillType.Activa; Rebuild(); });
@@ -168,6 +165,61 @@ public class TrainerUI : MonoBehaviour
             () => { filter = SkillType.Pasiva; Rebuild(); });
 
         BuildPoolScroll();
+    }
+
+    void MakeLoadoutRow(string label, Color color, string id, float x, float y, UnityEngine.Events.UnityAction onVaciar)
+    {
+        GameObject row = new GameObject("LoadoutRow");
+        row.transform.SetParent(root.transform, false);
+        RectTransform rrt = row.AddComponent<RectTransform>();
+        rrt.anchorMin = new Vector2(0.5f, 0.5f);
+        rrt.anchorMax = new Vector2(0.5f, 0.5f);
+        rrt.anchoredPosition = new Vector2(x, y);
+        rrt.sizeDelta = new Vector2(300, 26);
+
+        GameObject txtObj = new GameObject("Label");
+        txtObj.transform.SetParent(row.transform, false);
+        RectTransform trt = txtObj.AddComponent<RectTransform>();
+        trt.anchorMin = Vector2.zero;
+        trt.anchorMax = Vector2.one;
+        trt.offsetMin = Vector2.zero;
+        trt.offsetMax = Vector2.zero;
+        Text t = txtObj.AddComponent<Text>();
+        t.text = label;
+        t.font = GetFont();
+        t.fontSize = 14;
+        t.alignment = TextAnchor.MiddleLeft;
+        t.color = color;
+
+        GameObject btn = new GameObject("Vaciar");
+        btn.transform.SetParent(row.transform, false);
+        RectTransform brt = btn.AddComponent<RectTransform>();
+        brt.anchorMin = new Vector2(1, 0.5f);
+        brt.anchorMax = new Vector2(1, 0.5f);
+        brt.pivot = new Vector2(1, 0.5f);
+        brt.anchoredPosition = Vector2.zero;
+        brt.sizeDelta = new Vector2(70, 24);
+        Image img = btn.AddComponent<Image>();
+        img.sprite = SpriteFactory.Square();
+        img.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
+        Button b = btn.AddComponent<Button>();
+        b.onClick.AddListener(() => { onVaciar(); });
+
+        GameObject bl = new GameObject("L");
+        bl.transform.SetParent(btn.transform, false);
+        RectTransform blrt = bl.AddComponent<RectTransform>();
+        blrt.anchorMin = Vector2.zero;
+        blrt.anchorMax = Vector2.one;
+        blrt.offsetMin = Vector2.zero;
+        blrt.offsetMax = Vector2.zero;
+        Text bt = bl.AddComponent<Text>();
+        bt.text = "Vaciar";
+        bt.font = GetFont();
+        bt.fontSize = 12;
+        bt.alignment = TextAnchor.MiddleCenter;
+        bt.color = Color.gray;
+
+        if (id != "") AddSkillTooltipTrigger(row, id);
     }
 
     void BuildPoolScroll()
@@ -279,6 +331,22 @@ public class TrainerUI : MonoBehaviour
                 bx += 34;
             }
         }
+
+        // 1.1-D.1: tooltip rico al pasar el ratón
+        AddSkillTooltipTrigger(row, id);
+    }
+
+    void AddSkillTooltipTrigger(GameObject target, string id)
+    {
+        EventTrigger trigger = target.AddComponent<EventTrigger>();
+        EventTrigger.Entry enter = new EventTrigger.Entry();
+        enter.eventID = EventTriggerType.PointerEnter;
+        enter.callback.AddListener((d) => { if (TooltipUI.Instance != null) TooltipUI.Instance.ShowPoolSkillTooltip(id); });
+        trigger.triggers.Add(enter);
+        EventTrigger.Entry exit = new EventTrigger.Entry();
+        exit.eventID = EventTriggerType.PointerExit;
+        exit.callback.AddListener((d) => { if (TooltipUI.Instance != null) TooltipUI.Instance.Hide(); });
+        trigger.triggers.Add(exit);
     }
 
     void RowButton(Transform parent, string label, float x, float w, Color color, UnityEngine.Events.UnityAction onClick)

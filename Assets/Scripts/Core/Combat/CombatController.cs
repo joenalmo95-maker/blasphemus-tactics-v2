@@ -4,6 +4,9 @@ public class CombatController : MonoBehaviour
 {
     private SkillData armedSkill = null;
     private Unit playerUnit;
+    private int ultimateCooldown = 0;
+
+    public int UltimateCooldown { get { return ultimateCooldown; } }
 
     public SkillData ArmedSkill { get { return armedSkill; } }
 
@@ -40,14 +43,14 @@ public class CombatController : MonoBehaviour
 
         if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn()) return;
 
-        // Skills 1-4
-        if (Input.GetKeyDown(KeyCode.Alpha1)) TryToggleSkill(1);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) TryToggleSkill(2);
-        if (Input.GetKeyDown(KeyCode.Alpha3)) TryToggleSkill(3);
-        if (Input.GetKeyDown(KeyCode.Alpha4)) TryToggleSkill(4);
+        // 1.1-D: skills 1-4 desde loadout, slot 5 = ultimate
+        if (Input.GetKeyDown(KeyCode.Alpha1)) TryToggleSkill(0);
+        if (Input.GetKeyDown(KeyCode.Alpha2)) TryToggleSkill(1);
+        if (Input.GetKeyDown(KeyCode.Alpha3)) TryToggleSkill(2);
+        if (Input.GetKeyDown(KeyCode.Alpha4)) TryToggleSkill(3);
 
-        // Utilidad
-        if (Input.GetKeyDown(KeyCode.Alpha5)) TryUtilityPublic();
+        // Ultimate (slot 5)
+        if (Input.GetKeyDown(KeyCode.Alpha5)) TryUseUltimate();
 
         // Consumibles
         if (Input.GetKeyDown(KeyCode.Alpha6)) TryUse(ConsumableType.PocionHP);
@@ -67,8 +70,19 @@ public class CombatController : MonoBehaviour
                 if (distance <= armedSkill.range && playerUnit.currentAP >= armedSkill.actionPointCost)
                 {
                     playerUnit.currentAP -= armedSkill.actionPointCost;
-                    int raw = armedSkill.damage + SkillTrainer.BonusDamageFor(Role(), armedSkill) + playerUnit.stats.damage + playerUnit.buffDamage;
+                    // 4.4: pasiva de clase suma daño según el build
+                    // 1.1-D: daño base + bonos de pasivas del loadout
+                    int passiveBonus = CalculatePassiveBonus();
+                    int raw = armedSkill.damage + passiveBonus + playerUnit.stats.damage + playerUnit.buffDamage;
                     target.ReceiveAttack(playerUnit, raw, armedSkill.bonusCrit, armedSkill.threatMult);
+
+                    // Si era ultimate, inicia cooldown
+                    if (LoadoutSystem.UltimateId() != "" && SkillPool.Get(LoadoutSystem.UltimateId()) == armedSkill)
+                    {
+                        SkillMeta meta = SkillPool.Meta(LoadoutSystem.UltimateId());
+                        ultimateCooldown = meta.cooldown;
+                    }
+
                     Debug.Log(armedSkill.skillName + " ejecutado. AP restantes: " + playerUnit.currentAP);
                     armedSkill = null;
                 }
@@ -80,57 +94,54 @@ public class CombatController : MonoBehaviour
         }
     }
 
+    // 1.1-D: lee del loadout persistente
     void TryToggleSkill(int slot)
     {
-        int playerLevel = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
-        if (!SkillCatalog.IsSkillUnlocked(Role(), slot, playerLevel))
+        SkillData skill = LoadoutSystem.GetActive(slot);
+        if (skill == null)
         {
-            SkillData skill = SkillCatalog.Get(Role(), slot);
-            Debug.Log("Habilidad bloqueada. Requiere nivel " + skill.unlockLevel);
+            Debug.Log("Slot " + (slot + 1) + " vacío.");
             return;
         }
-        ToggleSkill(SkillCatalog.Get(Role(), slot));
+        ToggleSkill(skill);
     }
 
-    void TryUtilityInternal()
+    // 1.1-D: ultimate con cooldown
+    public void TryUseUltimate()
     {
-        if (playerUnit.currentAP < 1)
+        if (ultimateCooldown > 0)
         {
-            Debug.Log("AP insuficientes para la utilidad.");
+            Debug.Log("Ultimate en cooldown: " + ultimateCooldown + " turnos.");
             return;
         }
 
-        switch (Role())
+        SkillData ult = LoadoutSystem.GetUltimate();
+        if (ult == null)
         {
-            case ClassRole.Tank:
-                playerUnit.currentAP -= 1;
-                playerUnit.AddBuff(2, 0, 3);
-                playerUnit.threat += 5f * playerUnit.stats.threatMult;
-                Debug.Log("Grito de Guerra: +2 daño por 3 turnos y amenaza alta. AP restantes: " + playerUnit.currentAP);
-                break;
-
-            case ClassRole.Healer:
-                {
-                    int baseHeal = 4;
-                    int amount = Mathf.RoundToInt(baseHeal * (1 + playerUnit.stats.healingPower / 100f));
-                    playerUnit.currentAP -= 1;
-                    playerUnit.Heal(amount);
-                    playerUnit.threat += amount * 2f * playerUnit.stats.threatMult;
-                    Debug.Log("Curación ejecutada. AP restantes: " + playerUnit.currentAP);
-                    break;
-                }
-
-            default:
-                playerUnit.currentAP -= 1;
-                playerUnit.AddBuff(0, 0, 15, 3);
-                Debug.Log("Ojos del Halo: +15% crítico por 3 turnos. AP restantes: " + playerUnit.currentAP);
-                break;
+            Debug.Log("Sin ultimate asignado.");
+            return;
         }
+
+        ToggleSkill(ult);
     }
 
-    public void TryUtilityPublic()
+    // 1.1-D: calcula bonos de pasivas del loadout
+    int CalculatePassiveBonus()
     {
-        TryUtilityInternal();
+        int bonus = 0;
+        foreach (SkillData passive in LoadoutSystem.GetPassives())
+        {
+            SkillMeta meta = SkillPool.Meta(passive.skillName);
+            if (meta == null) continue;
+
+            switch (meta.effectKey)
+            {
+                case "coloso": bonus += playerUnit.maxHealth / 10; break;
+                case "plegaria": bonus += playerUnit.stats.healingPower / 10; break;
+                case "ejecutor": bonus += playerUnit.stats.critChance / 5; break;
+            }
+        }
+        return bonus;
     }
 
     void TryUse(ConsumableType t)
@@ -158,4 +169,10 @@ public class CombatController : MonoBehaviour
     {
         return armedSkill;
     }
+
+    // 1.1-D: decrementa cooldown de ultimate al final del turno del jugador
+    public void EndPlayerTurn()
+    {
+        if (ultimateCooldown > 0) ultimateCooldown--;
+    }    
 }
