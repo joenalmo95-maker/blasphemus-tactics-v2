@@ -1,14 +1,18 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class CombatController : MonoBehaviour
 {
+    // 1.1-E.7: instancia única (evita doble consumo de AP por controladores duplicados)
+    public static CombatController Instance { get; private set; }
+
     private SkillData armedSkill = null;
     private Unit playerUnit;
     private int ultimateCooldown = 0;
     private Unit lastFlankTarget = null;
 
-    // 1.1-E.6: indicadores persistentes (movimiento azul / rango naranja)
+    // Indicadores persistentes (movimiento azul / rango naranja)
     private bool isMoving = false;
     private readonly List<GameObject> moveOverlays = new List<GameObject>();
     private readonly List<GameObject> rangeOverlays = new List<GameObject>();
@@ -19,6 +23,17 @@ public class CombatController : MonoBehaviour
 
     public int UltimateCooldown { get { return ultimateCooldown; } }
     public SkillData ArmedSkill { get { return armedSkill; } }
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning("[CombatController] Instancia duplicada destruida.");
+            Destroy(this);
+            return;
+        }
+        Instance = this;
+    }
 
     void Start()
     {
@@ -51,7 +66,7 @@ public class CombatController : MonoBehaviour
             if (playerUnit == null) return;
         }
 
-        // 1.1-E.6: sin indicadores durante turno enemigo
+        // Sin indicadores ni acciones durante turno enemigo
         if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn())
         {
             ClearAllOverlays();
@@ -74,7 +89,7 @@ public class CombatController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha8)) TryUse(ConsumableType.ComidaDano);
         if (Input.GetKeyDown(KeyCode.Alpha9)) TryUse(ConsumableType.ComidaDefensa);
 
-        // 1.1-E.6: clic en celda alcanzable = mover (indicador azul siempre visible)
+        // ÚNICO bloque de clic de movimiento (1 clic = 1 ruta = 1 AP por casilla)
         if (Input.GetMouseButtonDown(0) && armedSkill == null && !isMoving)
         {
             Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -94,14 +109,14 @@ public class CombatController : MonoBehaviour
 
             if (target != null && target.isEnemy)
             {
-                // 1.1-E.5: distancia Chebyshev (diagonal = 1)
+                // Distancia Chebyshev (diagonal = 1)
                 int distance = Pathfinding.GridDistance(target.currentGridPos, playerUnit.currentGridPos);
 
                 if (distance <= armedSkill.range && playerUnit.currentAP >= armedSkill.actionPointCost)
                 {
                     playerUnit.currentAP -= armedSkill.actionPointCost;
 
-                    // 1.1-E: flanking (solo melee)
+                    // Flanking (solo melee)
                     float flankMult = 1f;
                     int flankCrit = 0;
                     FlankType ft = FlankType.Frontal;
@@ -140,7 +155,7 @@ public class CombatController : MonoBehaviour
             }
         }
 
-        // 1.1-E: arcos de sector mientras se apunta con melee
+        // Arcos de sector mientras se apunta con melee
         if (armedSkill != null && armedSkill.range <= 1 && playerUnit != null)
         {
             Vector3 w = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -163,7 +178,6 @@ public class CombatController : MonoBehaviour
             FlankIndicator.Hide();
         }
 
-        // 1.1-E.6: refresca indicadores solo cuando cambia AP/posición/skill armada
         RefreshIndicators();
     }
 
@@ -184,7 +198,6 @@ public class CombatController : MonoBehaviour
 
         if (armedSkill != null)
         {
-            // Anillo naranja: rango de la skill armada (Chebyshev)
             int r = armedSkill.range;
             for (int dx = -r; dx <= r; dx++)
             {
@@ -200,7 +213,6 @@ public class CombatController : MonoBehaviour
         }
         else if (playerUnit.currentAP > 0)
         {
-            // Azul: celdas alcanzables con los AP actuales (sin clic)
             reachableCells = Pathfinding.GetReachableCells(lastPos, playerUnit.currentAP);
             foreach (Vector2Int cell in reachableCells)
             {
@@ -242,7 +254,7 @@ public class CombatController : MonoBehaviour
         StartCoroutine(MoveAlongPath(path));
     }
 
-    System.Collections.IEnumerator MoveAlongPath(List<Vector2Int> path)
+    IEnumerator MoveAlongPath(List<Vector2Int> path)
     {
         isMoving = true;
 
@@ -419,7 +431,6 @@ public class CombatController : MonoBehaviour
     public void EndPlayerTurn()
     {
         if (ultimateCooldown > 0) ultimateCooldown--;
-        // 1.1-E.6: limpia indicadores al cerrar turno
         ClearAllOverlays();
         lastAP = -1;
     }

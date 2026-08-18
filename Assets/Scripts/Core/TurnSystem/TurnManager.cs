@@ -75,6 +75,9 @@ public class TurnManager : MonoBehaviour
     {
         if (currentState != TurnState.PlayerTurn) return;
         Debug.Log("Jugador termina turno.");
+        // 1.1-E.7: cooldown de ultimate y limpieza de indicadores
+        CombatController cc = FindAnyObjectByType<CombatController>();
+        if (cc != null) cc.EndPlayerTurn();
         currentState = TurnState.EnemyTurn;
         StartCoroutine(ExecuteEnemyTurns());
     }
