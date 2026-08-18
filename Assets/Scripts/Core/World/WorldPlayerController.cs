@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 public class WorldPlayerController : MonoBehaviour
 {
-    public float speed = 5f;
+    public float speed = 3.0f;
 
     private Text promptText;
     private WorldBootstrap.ZoneDef nearZone;
