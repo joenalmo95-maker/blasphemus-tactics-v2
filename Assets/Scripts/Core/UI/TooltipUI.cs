@@ -34,6 +34,11 @@ public class TooltipUI : MonoBehaviour
     static void EnsureAtBoot()
     {
         EnsureEventSystem();
+        if (Instance == null)
+        {
+            new GameObject("TooltipUI").AddComponent<TooltipUI>();
+            Debug.Log("[TooltipUI] instancia creada al arranque.");
+        }
     }
 
     static void EnsureEventSystem()
