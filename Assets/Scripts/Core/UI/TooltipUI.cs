@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using System.Text;
 
 public class TooltipUI : MonoBehaviour
@@ -14,6 +15,10 @@ public class TooltipUI : MonoBehaviour
 
     private const float PANEL_WIDTH = 300f;
     private const float OFFSET = 12f;
+
+    private bool pinned;
+    private RectTransform pinnedTarget;
+    private int noPointerFrames;
 
     void Awake()
     {
@@ -61,6 +66,22 @@ public class TooltipUI : MonoBehaviour
     {
         if (panelRt == null || !panelRt.gameObject.activeSelf) return;
 
+        // Auto-ocultado: si el puntero ya no está sobre UI, el tooltip muere (evita huérfanos tras Rebuild)
+        if (EventSystem.current != null && !EventSystem.current.IsPointerOverGameObject())
+        {
+            noPointerFrames++;
+            if (noPointerFrames > 10) { Hide(); noPointerFrames = 0; }
+        }
+        else noPointerFrames = 0;
+
+        // Modo pinned: anclado encima del slot
+        if (pinned && pinnedTarget != null)
+        {
+            PositionPinned();
+            return;
+        }
+
+        // Modo ratón (trainer/inventario/mercader)
         Vector2 localPoint;
         if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRt, Input.mousePosition, null, out localPoint))
             return;
@@ -102,99 +123,8 @@ public class TooltipUI : MonoBehaviour
         if (skill.bonusCrit > 0) sb.Append(" (+" + skill.bonusCrit + "% crítico)");
         sb.Append("\nAmenaza: x" + skill.threatMult.ToString("F1"));
 
-        // 1.1-D: muestra bonos de pasivas del loadout
-        int bonus = CalculatePassiveBonusForTooltip(skill);
-        if (bonus > 0) sb.Append("\n<color=#00ff00>Pasivas: +" + bonus + " daño</color>");
-
         statsText.text = sb.ToString();
         panelRt.gameObject.SetActive(true);
-    }
-
-    // 1.1-D: tooltip especial para ultimates con cooldown
-    public void ShowUltimateTooltip(SkillData ult, int cooldown)
-    {
-        if (ult == null) return;
-        titleText.color = Color.magenta;
-        titleText.text = "ULTIMATE: " + ult.skillName;
-        descriptionText.text = ult.description;
-
-        StringBuilder sb = new StringBuilder();
-        string ultId = LoadoutSystem.UltimateId();
-        SkillMeta meta = (ultId != "") ? SkillPool.Meta(ultId) : null;
-        int cdTurns = (meta != null) ? meta.cooldown : 3;
-        sb.AppendLine("Cooldown: " + cdTurns + " turnos");
-        if (cooldown > 0)
-            sb.AppendLine("<color=#ff6666>Recarga: " + cooldown + " turnos restantes</color>");
-        else
-            sb.AppendLine("<color=#00ff00>LISTO PARA USAR</color>");
-        sb.AppendLine("Daño: " + ult.damage);
-        sb.AppendLine("Rango: " + ult.range + " casillas");
-
-        statsText.text = sb.ToString();
-        panelRt.gameObject.SetActive(true);
-    }
-
-    // 1.1-D.1: tarjeta rica de skill del pool (barra y entrenador)
-    public void ShowPoolSkillTooltip(string id)
-    {
-        SkillData sk = SkillPool.Get(id);
-        SkillMeta meta = SkillPool.Meta(id);
-        if (sk == null || meta == null) return;
-
-        titleText.color = ItemGenerator.RarityColor(meta.rarity);
-        titleText.text = sk.skillName + "  [" + meta.rarity + "]";
-
-        string desc = meta.type + " · " + meta.affinity;
-        if (!string.IsNullOrEmpty(meta.tag)) desc += " · " + meta.tag;
-        desc += "\n" + sk.description;
-        descriptionText.text = desc;
-
-        StringBuilder sb = new StringBuilder();
-        if (meta.type == SkillType.Pasiva)
-        {
-            sb.AppendLine("Pasiva permanente (slot de pasiva).");
-        }
-        else
-        {
-            sb.AppendLine("Coste: " + sk.actionPointCost + " AP");
-            if (meta.type == SkillType.Ultimate) sb.AppendLine("Cooldown: " + meta.cooldown + " turnos");
-            sb.AppendLine("Rango: " + sk.range + " casillas");
-            if (sk.damage > 0) sb.AppendLine("Daño: " + sk.damage + (sk.bonusCrit > 0 ? " (+" + sk.bonusCrit + "% crit)" : ""));
-            if (meta.heal > 0) sb.AppendLine("Curación: " + meta.heal);
-        }
-        if (!LoadoutSystem.IsLearned(id))
-            sb.AppendLine("Aprender: " + meta.cost + " oro (" + meta.origin + ")");
-        else
-            sb.AppendLine("Aprendida (" + meta.origin + ")");
-
-        statsText.text = sb.ToString();
-        panelRt.gameObject.SetActive(true);
-    }
-
-    int CalculatePassiveBonusForTooltip(SkillData skill)
-    {
-        Unit player = null;
-        Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
-        foreach (Unit u in units)
-        {
-            if (!u.isEnemy) { player = u; break; }
-        }
-        if (player == null) return 0;
-
-        int bonus = 0;
-        foreach (SkillData passive in LoadoutSystem.GetPassives())
-        {
-            SkillMeta meta = SkillPool.Meta(passive.skillName);
-            if (meta == null) continue;
-
-            switch (meta.effectKey)
-            {
-                case "coloso": bonus += player.maxHealth / 10; break;
-                case "plegaria": bonus += player.stats.healingPower / 10; break;
-                case "ejecutor": bonus += player.stats.critChance / 5; break;
-            }
-        }
-        return bonus;
     }
 
     public void ShowUnitTooltip(Unit unit)
@@ -235,7 +165,6 @@ public class TooltipUI : MonoBehaviour
         panelRt.gameObject.SetActive(true);
     }
 
-    // BLOQUE 1.5: Tarjeta de item con comparativa contra el slot equipado.
     public void ShowItemTooltip(ItemData item, ItemData equipped)
     {
         if (item == null) return;
@@ -262,7 +191,7 @@ public class TooltipUI : MonoBehaviour
         AppendStat(sb, "Defensa", item.stats.defense, cmp ? equipped.stats.defense : 0, "", cmp);
         AppendStat(sb, "Daño", item.stats.damage, cmp ? equipped.stats.damage : 0, "", cmp);
         AppendStat(sb, "Precisión", item.stats.attack, cmp ? equipped.stats.attack : 0, "", cmp);
-        AppendStat(sb, "Crítico", item.stats.critChance, cmp ? equipped.stats.critChance : 0, "%", cmp);
+        AppendStat(sb, "Crítico", item.stats.crit_chance + 0, cmp ? equipped.stats.crit_chance : 0, "%", cmp);
         AppendStat(sb, "Evasión", item.stats.evasion, cmp ? equipped.stats.evasion : 0, "%", cmp);
         AppendStat(sb, "AP", item.stats.apMove, cmp ? equipped.stats.apMove : 0, "", cmp);
         AppendStat(sb, "Curación", item.stats.healingPower, cmp ? equipped.stats.healingPower : 0, "%", cmp);
@@ -271,6 +200,121 @@ public class TooltipUI : MonoBehaviour
 
         statsText.text = sb.ToString();
         panelRt.gameObject.SetActive(true);
+    }
+
+    // --- Tarjeta rica de skill del pool ---
+    public void ShowPoolSkillTooltip(string id)
+    {
+        SkillData sk = SkillPool.Get(id);
+        SkillMeta meta = SkillPool.Meta(id);
+        if (sk == null || meta == null) return;
+
+        titleText.color = ItemGenerator.RarityColor(meta.rarity);
+        titleText.text = sk.skillName + "  [" + meta.rarity + "]";
+
+        string desc = meta.type + " · " + meta.affinity;
+        if (!string.IsNullOrEmpty(meta.tag)) desc += " · " + meta.tag;
+        desc += "\n" + sk.description;
+        descriptionText.text = desc;
+
+        StringBuilder sb = new StringBuilder();
+        if (meta.type == SkillType.Pasiva)
+        {
+            sb.AppendLine("Pasiva permanente (slot de pasiva).");
+        }
+        else
+        {
+            sb.AppendLine("Coste: " + sk.actionPointCost + " AP");
+            if (meta.type == SkillType.Ultimate) sb.AppendLine("Cooldown: " + meta.cooldown + " turnos");
+            sb.AppendLine("Rango: " + sk.range + " casillas");
+            if (sk.damage > 0) sb.AppendLine("Daño: " + sk.damage + (sk.bonusCrit > 0 ? " (+" + sk.bonusCrit + "% crit)" : ""));
+            if (meta.heal > 0) sb.AppendLine("Curación: " + meta.heal);
+        }
+        if (!LoadoutSystem.IsLearned(id))
+            sb.AppendLine("Aprender: " + meta.cost + " oro (" + meta.origin + ")");
+        else
+            sb.AppendLine("Aprendida (" + meta.origin + ")");
+
+        statsText.text = sb.ToString();
+        panelRt.gameObject.SetActive(true);
+    }
+
+    public void ShowUltimateTooltip(SkillData ult, int cooldown)
+    {
+        if (ult == null) return;
+        titleText.color = Color.magenta;
+        titleText.text = "ULTIMATE: " + ult.skillName;
+        descriptionText.text = ult.description;
+
+        StringBuilder sb = new StringBuilder();
+        string ultId = LoadoutSystem.UltimateId();
+        SkillMeta meta = (ultId != "") ? SkillPool.Meta(ultId) : null;
+        int cdTurns = (meta != null) ? meta.cooldown : 3;
+        sb.AppendLine("Cooldown: " + cdTurns + " turnos");
+        if (cooldown > 0)
+            sb.AppendLine("<color=#ff6666>Recarga: " + cooldown + " turnos restantes</color>");
+        else
+            sb.AppendLine("<color=#00ff00>LISTO PARA USAR</color>");
+        sb.AppendLine("Daño: " + ult.damage);
+        sb.AppendLine("Rango: " + ult.range + " casillas");
+
+        statsText.text = sb.ToString();
+        panelRt.gameObject.SetActive(true);
+    }
+
+    // --- Variantes pinned ---
+    public void ShowPoolSkillTooltipPinned(string id, RectTransform target)
+    {
+        ShowPoolSkillTooltip(id);
+        SetPinned(target);
+    }
+
+    public void ShowUltimateTooltipPinned(SkillData ult, int cooldown, RectTransform target)
+    {
+        ShowUltimateTooltip(ult, cooldown);
+        SetPinned(target);
+    }
+
+    public void ShowConsumableTooltipPinned(ConsumableType type, int count, RectTransform target)
+    {
+        ShowConsumableTooltip(type, count);
+        SetPinned(target);
+    }
+
+    void SetPinned(RectTransform target)
+    {
+        pinned = true;
+        pinnedTarget = target;
+        PositionPinned();
+    }
+
+    void PositionPinned()
+    {
+        if (pinnedTarget == null || panelRt == null) return;
+
+        Vector3[] corners = new Vector3[4];
+        pinnedTarget.GetWorldCorners(corners);
+        Vector2 screenTopCenter = RectTransformUtility.WorldToScreenPoint(null, (corners[1] + corners[2]) * 0.5f);
+
+        Vector2 localPoint;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRt, screenTopCenter, null, out localPoint))
+            localPoint = Vector2.zero;
+
+        Vector2 half = canvasRt.rect.size * 0.5f;
+        Vector2 pos = localPoint + half;
+
+        float w = PANEL_WIDTH;
+        float h = Mathf.Max(panelRt.rect.height, 60f);
+        float cw = canvasRt.rect.width;
+        float ch = canvasRt.rect.height;
+
+        float x = pos.x - w * 0.5f;
+        float y = pos.y + OFFSET;
+
+        x = Mathf.Clamp(x, 5f, cw - w - 5f);
+        y = Mathf.Clamp(y, 5f, ch - h - 5f);
+
+        panelRt.anchoredPosition = new Vector2(x, y);
     }
 
     void AppendStat(StringBuilder sb, string label, int val, int eqVal, string suffix, bool compare)
@@ -314,6 +358,8 @@ public class TooltipUI : MonoBehaviour
 
     public void Hide()
     {
+        pinned = false;
+        pinnedTarget = null;
         if (panelRt != null) panelRt.gameObject.SetActive(false);
     }
 }
