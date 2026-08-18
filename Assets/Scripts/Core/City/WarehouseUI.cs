@@ -79,8 +79,11 @@ public class WarehouseUI : MonoBehaviour
             {
                 ItemData item = InventorySystem.Instance.items[i];
                 int idx = i;
-                MakeButton(root.transform, item.itemName + " [" + item.rarity + "]", -380, iy, 260, 34,
+                GameObject mb = MakeButton(root.transform, item.itemName + " [" + item.rarity + "]", -380, iy, 260, 34,
                     ItemGenerator.RarityColor(item.rarity), () => Deposit(idx));
+                ItemTooltipTrigger mit = mb.AddComponent<ItemTooltipTrigger>();
+                mit.item = item;
+                mit.compareWithEquipped = false;
                 MakeButton(root.transform, "Depositar", -105, iy, 90, 34, Color.cyan, () => Deposit(idx));
                 iy -= 40;
                 count++;
@@ -97,8 +100,11 @@ public class WarehouseUI : MonoBehaviour
             {
                 ItemData item = WarehouseSystem.Instance.stored[i];
                 int idx = i;
-                MakeButton(root.transform, item.itemName + " [" + item.rarity + "]", 80, sy, 260, 34,
+                GameObject sb = MakeButton(root.transform, item.itemName + " [" + item.rarity + "]", 80, sy, 260, 34,
                     ItemGenerator.RarityColor(item.rarity), () => Withdraw(idx));
+                ItemTooltipTrigger sit = sb.AddComponent<ItemTooltipTrigger>();
+                sit.item = item;
+                sit.compareWithEquipped = false;
                 MakeButton(root.transform, "Retirar", 355, sy, 90, 34, Color.yellow, () => Withdraw(idx));
                 sy -= 40;
                 count++;
@@ -138,7 +144,7 @@ public class WarehouseUI : MonoBehaviour
         Rebuild();
     }
 
-    void MakeButton(Transform parent, string label, float x, float y, float w, float h, Color textColor,
+    GameObject MakeButton(Transform parent, string label, float x, float y, float w, float h, Color textColor,
         UnityEngine.Events.UnityAction onClick)
     {
         GameObject go = new GameObject("Btn");
@@ -167,6 +173,7 @@ public class WarehouseUI : MonoBehaviour
         t.alignment = TextAnchor.MiddleCenter;
         t.color = textColor;
         btn.onClick.AddListener(onClick);
+        return go;
     }
 
     void MakeText(Transform parent, string content, float x, float y, int size, Color color)

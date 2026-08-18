@@ -7,7 +7,10 @@ public class ActionBarUI : MonoBehaviour
 {
     private GameObject actionBarRoot;
     private readonly List<ActionButton> actionButtons = new List<ActionButton>();
+    private readonly List<RectTransform> slotRects = new List<RectTransform>();
     private Unit playerUnit;
+    private int lastHovered = -1;
+    private bool eventSystemChecked;
 
     struct ActionButton
     {
@@ -21,6 +24,7 @@ public class ActionBarUI : MonoBehaviour
 
     void Awake()
     {
+        Debug.Log("[ActionBarUI] v1.1-D.3 hover manual activo.");
         if (TooltipUI.Instance == null)
         {
             new GameObject("TooltipUI").AddComponent<TooltipUI>();
@@ -28,15 +32,26 @@ public class ActionBarUI : MonoBehaviour
         Build();
     }
 
+    void EnsureEventSystem()
+    {
+        if (FindAnyObjectByType<EventSystem>() == null)
+        {
+            GameObject es = new GameObject("EventSystem");
+            es.AddComponent<EventSystem>();
+            es.AddComponent<StandaloneInputModule>();
+        }
+    }
+
     void Build()
     {
+        EnsureEventSystem();
+
         actionBarRoot = new GameObject("ActionBarCanvas");
         Canvas canvas = actionBarRoot.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 55;
         actionBarRoot.AddComponent<GraphicRaycaster>();
 
-        // 1.1-D.1: 9 slots (4 activas + ultimate + 4 consumibles)
         RectTransform panel = UIFactory.CreatePanel(actionBarRoot.transform, "ActionBarPanel",
             new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0),
             new Vector2(0, 20), new Vector2(830, 70), new Color(0.05f, 0.05f, 0.08f, 0.9f));
@@ -53,6 +68,7 @@ public class ActionBarUI : MonoBehaviour
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(x, 0);
             rt.sizeDelta = new Vector2(80, 60);
+            slotRects.Add(rt);
 
             Image bg = btnObj.AddComponent<Image>();
             bg.sprite = SpriteFactory.Square();
@@ -60,17 +76,6 @@ public class ActionBarUI : MonoBehaviour
 
             Button btn = btnObj.AddComponent<Button>();
             btn.onClick.AddListener(() => OnActionButtonClicked(captured));
-
-            EventTrigger trigger = btnObj.AddComponent<EventTrigger>();
-            EventTrigger.Entry enterEntry = new EventTrigger.Entry();
-            enterEntry.eventID = EventTriggerType.PointerEnter;
-            enterEntry.callback.AddListener((data) => OnPointerEnterButton(captured));
-            trigger.triggers.Add(enterEntry);
-
-            EventTrigger.Entry exitEntry = new EventTrigger.Entry();
-            exitEntry.eventID = EventTriggerType.PointerExit;
-            exitEntry.callback.AddListener((data) => OnPointerExitButton(captured));
-            trigger.triggers.Add(exitEntry);
 
             GameObject labelObj = new GameObject("Label");
             labelObj.transform.SetParent(btnObj.transform, false);
@@ -114,6 +119,12 @@ public class ActionBarUI : MonoBehaviour
 
     void Update()
     {
+        if (!eventSystemChecked)
+        {
+            eventSystemChecked = true;
+            EnsureEventSystem();
+        }
+
         if (playerUnit == null)
         {
             Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
@@ -124,6 +135,40 @@ public class ActionBarUI : MonoBehaviour
         }
 
         RefreshButtons();
+        UpdateHover();
+    }
+
+    // 1.1-D.3: hover manual por geometría de pantalla (no depende de EventSystem)
+    void UpdateHover()
+    {
+        // Si hay una UI modal abierta, la barra no roba tooltips
+        if (InventoryUI.IsOpen || ShopUI.IsOpen || TrainerUI.IsOpen || DungeonCardUI.IsOpen)
+        {
+            if (lastHovered != -1)
+            {
+                lastHovered = -1;
+                if (TooltipUI.Instance != null) TooltipUI.Instance.Hide();
+            }
+            return;
+        }
+
+        int hovered = -1;
+        for (int i = 0; i < slotRects.Count; i++)
+        {
+            if (slotRects[i] != null &&
+                RectTransformUtility.RectangleContainsScreenPoint(slotRects[i], Input.mousePosition, null))
+            {
+                hovered = i;
+                break;
+            }
+        }
+
+        if (hovered != lastHovered)
+        {
+            lastHovered = hovered;
+            if (hovered >= 0) OnPointerEnterButton(hovered);
+            else if (TooltipUI.Instance != null) TooltipUI.Instance.Hide();
+        }
     }
 
     static ConsumableType ConsumableForSlot(int i)
@@ -230,11 +275,6 @@ public class ActionBarUI : MonoBehaviour
                 }
                 break;
         }
-    }
-
-    public void OnPointerExitButton(int index)
-    {
-        if (TooltipUI.Instance != null) TooltipUI.Instance.Hide();
     }
 
     void OnActionButtonClicked(int index)

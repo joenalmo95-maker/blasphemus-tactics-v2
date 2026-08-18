@@ -88,8 +88,10 @@ public class MerchantUI : MonoBehaviour
         {
             ConsumableType ct = t;
             int price = ConsumableCatalog.Price(t);
-            MakeButton(root.transform, ConsumableCatalog.Name(t) + " - " + price + " oro", -260, cy, 320, 34, Color.white,
+            GameObject cb = MakeButton(root.transform, ConsumableCatalog.Name(t) + " - " + price + " oro", -260, cy, 320, 34, Color.white,
                 () => BuyConsumable(ct));
+            ConsumableTooltipTrigger ctt = cb.AddComponent<ConsumableTooltipTrigger>();
+            ctt.type = ct;
             cy -= 40;
         }
 
@@ -101,8 +103,11 @@ public class MerchantUI : MonoBehaviour
             ItemData item = equipmentStock[i];
             int idx = i;
             int price = ItemGenerator.BuyPrice(item.rarity);
-            MakeButton(root.transform, item.itemName + " [" + item.rarity + "] - " + price + " oro", 80, ey, 360, 34,
+            GameObject eb = MakeButton(root.transform, item.itemName + " [" + item.rarity + "] - " + price + " oro", 80, ey, 360, 34,
                 ItemGenerator.RarityColor(item.rarity), () => BuyEquipment(idx));
+            ItemTooltipTrigger itt = eb.AddComponent<ItemTooltipTrigger>();
+            itt.item = item;
+            itt.compareWithEquipped = false;
             ey -= 40;
         }
 
@@ -162,7 +167,7 @@ public class MerchantUI : MonoBehaviour
         inv.consumables.Add(new ConsumableData { type = t, count = 1 });
     }
 
-    void MakeButton(Transform parent, string label, float x, float y, float w, float h, Color textColor,
+    GameObject MakeButton(Transform parent, string label, float x, float y, float w, float h, Color textColor,
         UnityEngine.Events.UnityAction onClick)
     {
         GameObject go = new GameObject("Btn");
@@ -191,6 +196,7 @@ public class MerchantUI : MonoBehaviour
         t.alignment = TextAnchor.MiddleCenter;
         t.color = textColor;
         btn.onClick.AddListener(onClick);
+        return go;
     }
 
     void MakeText(Transform parent, string content, float x, float y, int size, Color color)
@@ -215,5 +221,25 @@ public class MerchantUI : MonoBehaviour
         Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
         return f;
+    }
+}
+
+// 1.1-D.4: tooltip de consumibles para el mercader
+public class ConsumableTooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+{
+    public ConsumableType type;
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (TooltipUI.Instance != null)
+        {
+            int count = InventorySystem.Instance != null ? InventorySystem.Instance.GetConsumableCount(type) : 0;
+            TooltipUI.Instance.ShowConsumableTooltip(type, count);
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (TooltipUI.Instance != null) TooltipUI.Instance.Hide();
     }
 }
