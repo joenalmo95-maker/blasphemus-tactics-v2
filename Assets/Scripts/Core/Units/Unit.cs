@@ -166,6 +166,8 @@ public class Unit : MonoBehaviour
             {
                 EnemyAI ai = GetComponent<EnemyAI>();
                 LootSystem.DropFrom(this, ai != null ? ai.tier : EnemyTier.Basico);
+                // 2.1: progreso de misiones
+                QuestSystem.NotifyEnemyKilled(isBoss, isElite);
             }
             Destroy(gameObject);
             if (TurnManager.Instance != null) TurnManager.Instance.NotifyUnitDeath(wasEnemy);

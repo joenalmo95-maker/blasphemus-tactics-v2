@@ -146,6 +146,8 @@ public class TurnManager : MonoBehaviour
             {
                 ForceGameOver();
                 Debug.Log("=== VICTORIA ===");
+                // 2.1: progreso de misiones (mazmorra completada)
+                QuestSystem.NotifyDungeonCompleted();
                 ShowGameOver(true);
             }
         }

@@ -31,7 +31,12 @@ public class SaveData
     public List<string> learnedSkills = new List<string>();
     public List<string> activeSkills = new List<string>();
     public string ultimateSkill = "";
-    public List<string> passiveSkills = new List<string>();
+
+    // 2.1: misiones temporizadas
+    public List<QuestSaveEntry> activeQuests = new List<QuestSaveEntry>();
+    public long lastDailyReset;
+    public long lastWeeklyReset;
+    public int seasonPhase;
 }
 
 [System.Serializable]
@@ -99,6 +104,7 @@ public static class SaveSystem
 
         // 1.1-B: loadout en el guardado unificado
         LoadoutSystem.SnapshotToSave(data);
+        QuestSystem.SnapshotToSave(data);
 
         File.WriteAllText(Path, JsonUtility.ToJson(data, true));
         Debug.Log("Partida guardada (v" + data.version + ").");
@@ -137,7 +143,8 @@ public static class SaveSystem
 
         // 1.1-B: restaura loadout (los saves v2 migran vía EnsureInitialized)
         LoadoutSystem.ApplyFromSave(data);
-
+        QuestSystem.ApplyFromSave(data);
+        
         if (WarehouseSystem.Instance == null)
             new GameObject("WarehouseSystem").AddComponent<WarehouseSystem>();
         if (data.warehouse != null) WarehouseSystem.Instance.stored = data.warehouse;

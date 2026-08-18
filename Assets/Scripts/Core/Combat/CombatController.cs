@@ -145,7 +145,8 @@ public class CombatController : MonoBehaviour
                         ultimateCooldown = meta.cooldown;
                     }
 
-                    Debug.Log(armedSkill.skillName + " ejecutado. AP restantes: " + playerUnit.currentAP);
+                    // 2.1: progreso de misiones
+                    QuestSystem.NotifySkillUsed();
                     armedSkill = null;
                 }
                 else
