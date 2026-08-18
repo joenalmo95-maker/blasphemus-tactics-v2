@@ -8,10 +8,14 @@ public class CombatController : MonoBehaviour
     private int ultimateCooldown = 0;
     private Unit lastFlankTarget = null;
 
-    // 1.1-E.5: movimiento por click (dos fases, una sola ejecución por clic)
+    // 1.1-E.6: indicadores persistentes (movimiento azul / rango naranja)
     private bool isMoving = false;
+    private readonly List<GameObject> moveOverlays = new List<GameObject>();
+    private readonly List<GameObject> rangeOverlays = new List<GameObject>();
     private HashSet<Vector2Int> reachableCells = new HashSet<Vector2Int>();
-    private readonly List<GameObject> moveHighlights = new List<GameObject>();
+    private int lastAP = -1;
+    private Vector2Int lastPos = new Vector2Int(int.MinValue, int.MinValue);
+    private SkillData lastArmed = null;
 
     public int UltimateCooldown { get { return ultimateCooldown; } }
     public SkillData ArmedSkill { get { return armedSkill; } }
@@ -47,7 +51,13 @@ public class CombatController : MonoBehaviour
             if (playerUnit == null) return;
         }
 
-        if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn()) return;
+        // 1.1-E.6: sin indicadores durante turno enemigo
+        if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn())
+        {
+            ClearAllOverlays();
+            lastAP = -1;
+            return;
+        }
 
         // Skills 1-4 desde loadout
         if (Input.GetKeyDown(KeyCode.Alpha1)) TryToggleSkill(0);
@@ -64,23 +74,14 @@ public class CombatController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha8)) TryUse(ConsumableType.ComidaDano);
         if (Input.GetKeyDown(KeyCode.Alpha9)) TryUse(ConsumableType.ComidaDefensa);
 
-        // 1.1-E.5 FIX: 1er clic muestra celdas; 2º clic sobre celda resaltada mueve (una sola vez)
+        // 1.1-E.6: clic en celda alcanzable = mover (indicador azul siempre visible)
         if (Input.GetMouseButtonDown(0) && armedSkill == null && !isMoving)
         {
             Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             Vector2Int cell = new Vector2Int(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
-
             if (reachableCells.Contains(cell))
             {
                 TryMoveTo(cell);
-            }
-            else if (cell != playerUnit.currentGridPos && playerUnit.currentAP > 0)
-            {
-                ShowMoveHighlights();
-            }
-            else
-            {
-                ClearMoveHighlights();
             }
         }
 
@@ -93,7 +94,7 @@ public class CombatController : MonoBehaviour
 
             if (target != null && target.isEnemy)
             {
-                // 1.1-E.5 FIX: distancia Chebyshev (diagonal = 1)
+                // 1.1-E.5: distancia Chebyshev (diagonal = 1)
                 int distance = Pathfinding.GridDistance(target.currentGridPos, playerUnit.currentGridPos);
 
                 if (distance <= armedSkill.range && playerUnit.currentAP >= armedSkill.actionPointCost)
@@ -131,7 +132,6 @@ public class CombatController : MonoBehaviour
 
                     Debug.Log(armedSkill.skillName + " ejecutado. AP restantes: " + playerUnit.currentAP);
                     armedSkill = null;
-                    ClearMoveHighlights();
                 }
                 else
                 {
@@ -162,41 +162,89 @@ public class CombatController : MonoBehaviour
             lastFlankTarget = null;
             FlankIndicator.Hide();
         }
+
+        // 1.1-E.6: refresca indicadores solo cuando cambia AP/posición/skill armada
+        RefreshIndicators();
     }
 
-    void ShowMoveHighlights()
+    void RefreshIndicators()
     {
-        ClearMoveHighlights();
-        reachableCells = Pathfinding.GetReachableCells(playerUnit.currentGridPos, playerUnit.currentAP);
+        if (playerUnit == null || isMoving) return;
 
-        foreach (Vector2Int cell in reachableCells)
+        bool changed = playerUnit.currentAP != lastAP ||
+                       playerUnit.currentGridPos != lastPos ||
+                       armedSkill != lastArmed;
+        if (!changed) return;
+
+        lastAP = playerUnit.currentAP;
+        lastPos = playerUnit.currentGridPos;
+        lastArmed = armedSkill;
+
+        ClearAllOverlays();
+
+        if (armedSkill != null)
         {
-            GameObject go = new GameObject("MoveHighlight");
-            go.transform.position = new Vector3(cell.x, cell.y, -0.1f);
-            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = SpriteFactory.Square();
-            sr.color = new Color(0.2f, 0.5f, 1f, 0.3f);
-            sr.sortingOrder = 1;
-            go.transform.localScale = new Vector3(0.9f, 0.9f, 1f);
-            moveHighlights.Add(go);
+            // Anillo naranja: rango de la skill armada (Chebyshev)
+            int r = armedSkill.range;
+            for (int dx = -r; dx <= r; dx++)
+            {
+                for (int dy = -r; dy <= r; dy++)
+                {
+                    if (dx == 0 && dy == 0) continue;
+                    Vector2Int cell = lastPos + new Vector2Int(dx, dy);
+                    if (!GridManager.Instance.InBounds(cell)) continue;
+                    SpawnOverlay(cell, new Color(0.9f, 0.4f, 0.1f, 0.22f), rangeOverlays);
+                }
+            }
+            reachableCells.Clear();
         }
+        else if (playerUnit.currentAP > 0)
+        {
+            // Azul: celdas alcanzables con los AP actuales (sin clic)
+            reachableCells = Pathfinding.GetReachableCells(lastPos, playerUnit.currentAP);
+            foreach (Vector2Int cell in reachableCells)
+            {
+                SpawnOverlay(cell, new Color(0.2f, 0.5f, 1f, 0.28f), moveOverlays);
+            }
+        }
+        else
+        {
+            reachableCells.Clear();
+        }
+    }
+
+    void SpawnOverlay(Vector2Int cell, Color color, List<GameObject> list)
+    {
+        GameObject go = new GameObject("CellOverlay");
+        go.transform.position = new Vector3(cell.x, cell.y, -0.1f);
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = SpriteFactory.Square();
+        sr.color = color;
+        sr.sortingOrder = 1;
+        go.transform.localScale = new Vector3(0.9f, 0.9f, 1f);
+        list.Add(go);
+    }
+
+    void ClearAllOverlays()
+    {
+        foreach (GameObject go in moveOverlays) if (go != null) Destroy(go);
+        moveOverlays.Clear();
+        foreach (GameObject go in rangeOverlays) if (go != null) Destroy(go);
+        rangeOverlays.Clear();
+        reachableCells.Clear();
     }
 
     void TryMoveTo(Vector2Int target)
     {
         if (isMoving) return;
-        if (!reachableCells.Contains(target)) { ClearMoveHighlights(); return; }
-
         List<Vector2Int> path = Pathfinding.FindPath(playerUnit.currentGridPos, target, playerUnit.currentAP);
-        if (path == null || path.Count == 0) { ClearMoveHighlights(); return; }
-
+        if (path == null || path.Count == 0) return;
         StartCoroutine(MoveAlongPath(path));
     }
 
     System.Collections.IEnumerator MoveAlongPath(List<Vector2Int> path)
     {
         isMoving = true;
-        ClearMoveHighlights();
 
         foreach (Vector2Int cell in path)
         {
@@ -227,16 +275,6 @@ public class CombatController : MonoBehaviour
         Debug.Log("Movimiento completado. AP restantes: " + playerUnit.currentAP);
     }
 
-    void ClearMoveHighlights()
-    {
-        foreach (GameObject go in moveHighlights)
-        {
-            if (go != null) Destroy(go);
-        }
-        moveHighlights.Clear();
-        reachableCells.Clear();
-    }
-
     void TryToggleSkill(int slot)
     {
         SkillData skill = LoadoutSystem.GetActive(slot);
@@ -245,7 +283,6 @@ public class CombatController : MonoBehaviour
             Debug.Log("Slot " + (slot + 1) + " vacío.");
             return;
         }
-        ClearMoveHighlights();
         ToggleSkill(skill);
     }
 
@@ -263,7 +300,6 @@ public class CombatController : MonoBehaviour
             Debug.Log("Sin ultimate asignado.");
             return;
         }
-        ClearMoveHighlights();
         ToggleSkill(ult);
     }
 
@@ -383,5 +419,8 @@ public class CombatController : MonoBehaviour
     public void EndPlayerTurn()
     {
         if (ultimateCooldown > 0) ultimateCooldown--;
+        // 1.1-E.6: limpia indicadores al cerrar turno
+        ClearAllOverlays();
+        lastAP = -1;
     }
 }
