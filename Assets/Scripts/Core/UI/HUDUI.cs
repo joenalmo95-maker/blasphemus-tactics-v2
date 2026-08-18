@@ -23,6 +23,10 @@ public class HUDUI : MonoBehaviour
 
     private string currentPortraitKey = "";
     private Text objectiveText;
+ // 2.2: seguimiento de misiones aceptadas (tecla J)
+    private GameObject questTrackerRoot;
+    private Text questTrackerText;
+    private float questTrackerTimer;
 
     private Unit playerUnit;
     private readonly List<GameObject> activeBuffIcons = new List<GameObject>();
@@ -201,6 +205,18 @@ public class HUDUI : MonoBehaviour
 
         // 5.3: refresco del objetivo actual
         if (objectiveText != null) objectiveText.text = ObjectiveSystem.Current();
+             // 2.2: toggle J del seguimiento de misiones aceptadas
+        if (Input.GetKeyDown(KeyCode.J))
+        {
+            if (questTrackerRoot == null) OpenQuestTracker();
+            else CloseQuestTracker();
+        }
+        if (questTrackerRoot != null)
+        {
+            QuestSystem.Tick();
+            questTrackerTimer += Time.deltaTime;
+            if (questTrackerTimer >= 1f) { questTrackerTimer = 0f; RefreshQuestTracker(); }
+        }
 
         if (playerUnit != null)
         {
@@ -267,6 +283,83 @@ public class HUDUI : MonoBehaviour
         Image img = icon.GetComponent<Image>();
         if (img != null) img.color = color;
     }
+ // --- 2.2: tracker de misiones aceptadas (J) ---
+ void OpenQuestTracker()
+ {
+     questTrackerRoot = new GameObject("QuestTrackerCanvas");
+     Canvas c = questTrackerRoot.AddComponent<Canvas>();
+     c.renderMode = RenderMode.ScreenSpaceOverlay;
+     c.sortingOrder = 60;
+     questTrackerRoot.AddComponent<GraphicRaycaster>();
+
+     GameObject panel = new GameObject("Panel");
+     panel.transform.SetParent(questTrackerRoot.transform, false);
+     RectTransform prt = panel.AddComponent<RectTransform>();
+     prt.anchorMin = new Vector2(1, 1);
+     prt.anchorMax = new Vector2(1, 1);
+     prt.pivot = new Vector2(1, 1);
+     prt.anchoredPosition = new Vector2(-10, -60);
+     prt.sizeDelta = new Vector2(480, 320);
+     Image img = panel.AddComponent<Image>();
+     img.sprite = SpriteFactory.Square();
+     img.color = new Color(0.03f, 0.03f, 0.05f, 0.88f);
+
+     GameObject txtObj = new GameObject("Body");
+     txtObj.transform.SetParent(panel.transform, false);
+     RectTransform brt = txtObj.AddComponent<RectTransform>();
+     brt.anchorMin = Vector2.zero;
+     brt.anchorMax = Vector2.one;
+     brt.offsetMin = new Vector2(12, 12);
+     brt.offsetMax = new Vector2(-12, -12);
+     questTrackerText = txtObj.AddComponent<Text>();
+     questTrackerText.font = GetTrackerFont();
+     questTrackerText.fontSize = 13;
+     questTrackerText.alignment = TextAnchor.UpperLeft;
+     questTrackerText.color = Color.white;
+     questTrackerText.horizontalOverflow = HorizontalWrapMode.Wrap;
+     questTrackerText.verticalOverflow = VerticalWrapMode.Overflow;
+     RefreshQuestTracker();
+ }
+
+ void CloseQuestTracker()
+ {
+     if (questTrackerRoot != null) Destroy(questTrackerRoot);
+     questTrackerRoot = null;
+     questTrackerText = null;
+ }
+
+ void RefreshQuestTracker()
+ {
+     if (questTrackerText == null) return;
+     System.Text.StringBuilder sb = new System.Text.StringBuilder();
+     sb.AppendLine("<b>MISIONES ACEPTADAS</b>  (J para cerrar)");
+     sb.AppendLine();
+     int count = 0;
+     foreach (QuestState q in QuestSystem.Actives())
+     {
+         if (!q.accepted || q.claimed) continue;
+         QuestDef d = QuestSystem.GetDef(q.id);
+         if (d == null) continue;
+         count++;
+         sb.Append("• " + d.description + "  [" + q.progress + "/" + d.target + "]");
+         if (q.expiry > 0) sb.Append("  <color=#ffcc44>(" + QuestSystem.MinutesLeft(q.id) + " min)</color>");
+         sb.AppendLine();
+     }
+     if (count == 0)
+     {
+         sb.AppendLine("Sin misiones aceptadas.");
+         sb.AppendLine("Visita el Tablón en la ciudad (Q o E junto al NPC cian).");
+     }
+        questTrackerText.text = sb.ToString();
+    }
+
+    Font GetTrackerFont()
+    {
+     Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+     if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
+     return f;
+ }
+
 
     void UpdateBossBar()
     {

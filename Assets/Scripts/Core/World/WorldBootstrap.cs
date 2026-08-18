@@ -86,6 +86,7 @@ public class WorldBootstrap : MonoBehaviour
 
         new GameObject("WorldSpawnManager").AddComponent<WorldSpawnManager>();
         new GameObject("WorldChestManager").AddComponent<WorldChestManager>();
+        new GameObject("WorldEncounterManager").AddComponent<WorldEncounterManager>();
 
         // UI global disponible en mundo
         new GameObject("HUDUI").AddComponent<HUDUI>();

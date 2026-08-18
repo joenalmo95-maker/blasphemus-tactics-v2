@@ -7,7 +7,7 @@ using System;
 public class SaveData
 {
     // 5.1: versionado (los saves antiguos quedan en 0 y migran al guardar)
-    public int version = 5;
+    public int version = 6;
 
     public string className;
     public int level;
@@ -38,6 +38,9 @@ public class SaveData
     public long lastDailyReset;
     public long lastWeeklyReset;
     public int seasonPhase;
+    // 2.2: encuentros aleatorios (cooldowns)
+    public List<TimerEntry> encounterCooldowns = new List<TimerEntry>();
+
 }
 
 [System.Serializable]
@@ -94,6 +97,7 @@ public static class SaveSystem
         data.training = SkillTrainer.GetSnapshot();
         data.spawnTimers = SnapshotTimers(WorldSpawnManager.DefeatedAt);
         data.chestTimers = SnapshotTimers(WorldChestManager.OpenedAt);
+        data.encounterCooldowns = SnapshotTimers(WorldEncounterManager.Cooldowns);
 
         // 5.1: posición de mundo pendiente de restaurar
         if (PlayerPrefs.HasKey("LastWorldX"))
@@ -154,7 +158,8 @@ public static class SaveSystem
 
         RestoreTimers(data.spawnTimers, WorldSpawnManager.DefeatedAt, WorldSpawnManager.RespawnSeconds);
         RestoreTimers(data.chestTimers, WorldChestManager.OpenedAt, WorldChestManager.RespawnSeconds);
-
+        RestoreTimers(data.encounterCooldowns, WorldEncounterManager.Cooldowns, 0); // cooldowns ya tienen timestamp absoluto
+        
         if (data.hasLastWorld)
         {
             PlayerPrefs.SetInt("LastWorldX", data.lastWorldX);

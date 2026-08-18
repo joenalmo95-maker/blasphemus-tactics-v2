@@ -46,6 +46,13 @@ public class WorldPlayerController : MonoBehaviour
         CheckZones();
     }
 
+    // 2.2: detecta encuentros cercanos (emboscadas, tesoros, santuarios, mercaderes, cazadores)
+    void CheckEncounters()
+    {
+        // El WorldEncounterManager maneja su propio prompt y detección
+    }
+ 
+
     void CheckZones()
     {
         Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y));

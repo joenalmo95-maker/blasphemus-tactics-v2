@@ -5,11 +5,11 @@ using System.Collections.Generic;
 public class WorldEncounterManager : MonoBehaviour
 {
     public const float DespawnSeconds = 3600f; // 60 min sin interacción
-    public const float EmboscadaCooldown = 300f; // 5 min
+    public const float EmboscadaCooldown = 240f; // 4 min
     public const float TesoroCooldown = 900f; // 15 min
     public const float SantuarioCooldown = 1800f; // 30 min
     public const float MercaderCooldown = 2700f; // 45 min
-    public const float CazadorCooldown = 1200f; // 20 min
+    public const float CazadorCooldown = 1800f; // 30 min
     
     public static readonly Dictionary<int, float> Cooldowns = new Dictionary<int, float>();
     
@@ -37,11 +37,11 @@ public class WorldEncounterManager : MonoBehaviour
     {
         float now = Time.realtimeSinceStartup;
         
-        // 2 emboscadas
-        for (int i = 0; i < 2; i++) TrySpawn(EncounterType.Emboscada, now);
+        // 5 emboscadas (más presentes, pero invisibles y no invasivas)
+        for (int i = 0; i < 5; i++) TrySpawn(EncounterType.Emboscada, now);
         
-        // 2 tesoros
-        for (int i = 0; i < 2; i++) TrySpawn(EncounterType.Tesoro, now);
+        // 4 tesoros
+        for (int i = 0; i < 4; i++) TrySpawn(EncounterType.Tesoro, now);
         
         // 1 santuario
         TrySpawn(EncounterType.Santuario, now);
@@ -156,8 +156,8 @@ public class WorldEncounterManager : MonoBehaviour
     
     bool IsFreeForEncounter(Vector2Int c)
     {
-        if (!TerrainMap.IsWalkable(c)) return false;
-        if (c == WorldBootstrap.PlayerSpawn) return false;
+        // 2.2: no invasivo — nunca cerca del spawn del jugador
+        if (Vector2Int.Distance(c, WorldBootstrap.PlayerSpawn) < 6) return false;
         
         // No sobre zonas
         foreach (WorldBootstrap.ZoneDef z in WorldBootstrap.Zones)
