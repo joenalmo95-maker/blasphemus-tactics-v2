@@ -24,7 +24,8 @@ public class QuestUI : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F9))
         {
             QuestSystem.DebugForceDailyReset();
-            Debug.Log("[QuestUI] DEBUG: reset diario forzado.");
+            DungeonDaily.ResetToday();
+            Debug.Log("[QuestUI] DEBUG: reset diario forzado (misiones + mazmorras).");
             Rebuild();
         }
     }
