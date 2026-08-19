@@ -74,10 +74,12 @@ public class CharacterData : MonoBehaviour
         return Mathf.RoundToInt(12 * Mathf.Pow(1.22f, level));
     }
 
-    public void GainXP(int amount)
-    {
-        xp += amount;
-        bool leveled = false;
+ public void GainXP(int amount)
+ {
+     // 2.2-fix: tope de nivel 20 — la XP ya no se acumula
+     if (level >= 20) { xp = 0; return; }
+     xp += amount;
+     bool leveled = false;
         while (level < 20 && xp >= XpToNextLevel())
         {
             xp -= XpToNextLevel();
@@ -85,6 +87,7 @@ public class CharacterData : MonoBehaviour
             leveled = true;
             Debug.Log("¡Nivel " + level + " alcanzado!");
         }
+        if (level >= 20) xp = 0; // limpia el sobrante al tocar el tope
         if (leveled)
         {
             if (InventorySystem.Instance != null) InventorySystem.Instance.ApplyToUnit();

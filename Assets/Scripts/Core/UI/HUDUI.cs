@@ -31,7 +31,7 @@ public class HUDUI : MonoBehaviour
     private Unit playerUnit;
     private readonly List<GameObject> activeBuffIcons = new List<GameObject>();
     private readonly List<GameObject> activeDebuffIcons = new List<GameObject>();
-
+    private string lastStatusSig = "";
     void Awake()
     {
         Build();
@@ -198,7 +198,7 @@ public class HUDUI : MonoBehaviour
                 if (cd.xp > 0 && wpx < 2) wpx = 2; // mínimo visible
                 xpFill.sizeDelta = new Vector2(wpx, 16);
             }
-            if (xpText != null) xpText.text = "XP " + cd.xp + "/" + cd.XpToNextLevel();
+            if (xpText != null) xpText.text = cd.level >= 20 ? "Nv 20 (MAX)" : "XP " + cd.xp + "/" + cd.XpToNextLevel();
             if (levelText != null) levelText.text = "Nv " + cd.level;
             SetPortrait();
         }
@@ -241,55 +241,56 @@ public class HUDUI : MonoBehaviour
         UpdateBossBar();
     }
 
-    void UpdateStatusIcons()
-    {
-        int buffCount = (playerUnit.buffTurns > 0) ? 1 : 0;
-        int debuffCount = (playerUnit.debuffTurns > 0) ? 1 : 0;
+ void UpdateStatusIcons()
+ {
+     // Firma de estados: reconstruye iconos solo cuando algo cambia
+     string sig = "";
+     if (playerUnit.buffTurns > 0)
+     {
+         sig += "B" + playerUnit.buffDamage + "." + playerUnit.buffDefense + "." + playerUnit.buffCrit + "." + playerUnit.buffTurns;
+     }
+     if (playerUnit.debuffTurns > 0)
+     {
+         sig += "D" + playerUnit.debuffAttack + "." + playerUnit.debuffTurns;
+     }
+     if (sig == lastStatusSig) return;
+     lastStatusSig = sig;
 
-        if (activeBuffIcons.Count != buffCount)
-        {
-            foreach (var g in activeBuffIcons) Destroy(g);
-            activeBuffIcons.Clear();
-            if (buffCount > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "BUFF", Color.blue, playerUnit.buffTurns));
-        }
-        else if (buffCount > 0)
-        {
-            UpdateStatusIconText(activeBuffIcons[0], "BUFF\n" + playerUnit.buffTurns + "t", Color.blue);
-        }
+     foreach (var g in activeBuffIcons) Destroy(g);
+     activeBuffIcons.Clear();
+     foreach (var g in activeDebuffIcons) Destroy(g);
+     activeDebuffIcons.Clear();
 
-        if (activeDebuffIcons.Count != debuffCount)
-        {
-            foreach (var g in activeDebuffIcons) Destroy(g);
-            activeDebuffIcons.Clear();
-            if (debuffCount > 0) activeDebuffIcons.Add(CreateStatusIcon(debuffContainer, "MALDIC.", Color.magenta, playerUnit.debuffTurns));
-        }
-        else if (debuffCount > 0)
-        {
-            UpdateStatusIconText(activeDebuffIcons[0], "MALDIC.\n" + playerUnit.debuffTurns + "t", Color.magenta);
-        }
-    }
+     // Buffs propios (comida, skills, santuario) bajo la barra de AP
+     if (playerUnit.buffTurns > 0)
+     {
+         if (playerUnit.buffDamage > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "+" + playerUnit.buffDamage + " DMG", Color.blue, playerUnit.buffTurns));
+         if (playerUnit.buffDefense > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "+" + playerUnit.buffDefense + " DEF", Color.cyan, playerUnit.buffTurns));
+         if (playerUnit.buffCrit > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "+" + playerUnit.buffCrit + " CRIT", Color.yellow, playerUnit.buffTurns));
+     }
+     // Debuffs (maldición)
+     if (playerUnit.debuffTurns > 0)
+     {
+         activeDebuffIcons.Add(CreateStatusIcon(debuffContainer, "-" + playerUnit.debuffAttack + " PREC", Color.magenta, playerUnit.debuffTurns));
+     }
+ }
 
-    GameObject CreateStatusIcon(Transform parent, string label, Color color, int turns)
-    {
-        RectTransform rt = UIFactory.CreatePanel(parent, "StatusIcon",
-            null, null, null, null, new Vector2(40, 30), color);
-
-        Text t = UIFactory.CreateText(rt, "Label", label + "\n" + turns + "t", 10,
-            TextAnchor.MiddleCenter, Color.white,
-            new Vector2(0, 0), new Vector2(1, 1), new Vector2(0.5f, 0.5f),
-            Vector2.zero, Vector2.zero);
-        Stretch(t.rectTransform);
-
-        return rt.gameObject;
-    }
-
-    void UpdateStatusIconText(GameObject icon, string label, Color color)
-    {
-        Text t = icon.GetComponentInChildren<Text>();
-        if (t != null) t.text = label;
-        Image img = icon.GetComponent<Image>();
-        if (img != null) img.color = color;
-    }
+ GameObject CreateStatusIcon(Transform parent, string label, Color color, int turns)
+ {
+     GameObject go = new GameObject("StatusIcon");
+     go.transform.SetParent(parent, false);
+     RectTransform rt = go.AddComponent<RectTransform>();
+     rt.sizeDelta = new Vector2(56, 30);
+     Image img = go.AddComponent<Image>();
+     img.color = new Color(color.r * 0.35f, color.g * 0.35f, color.b * 0.35f, 0.9f);
+     Text t = go.AddComponent<Text>();
+     t.text = label + "\n" + turns + "t";
+     t.font = GetTrackerFont();
+     t.fontSize = 10;
+     t.alignment = TextAnchor.MiddleCenter;
+     t.color = color;
+     return go;
+ }
  // --- 2.2: tracker de misiones aceptadas (J) ---
  void OpenQuestTracker()
  {

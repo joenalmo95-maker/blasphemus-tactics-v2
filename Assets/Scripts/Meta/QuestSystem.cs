@@ -299,13 +299,7 @@ public static class QuestSystem
         CharacterData cd = CharacterData.Instance;
         if (cd == null) return;
         cd.gold += d.gold;
-        cd.xp += d.xp;
-        while (cd.xp >= cd.XpToNextLevel())
-        {
-            cd.xp -= cd.XpToNextLevel();
-            cd.level++;
-            Debug.Log("[Quests] ¡Nivel " + cd.level + " alcanzado!");
-        }
+        cd.GainXP(d.xp); // respeta el tope de nivel 20
         Debug.Log("[Quests] Recompensa: +" + d.gold + " oro, +" + d.xp + " XP");
     }
 
