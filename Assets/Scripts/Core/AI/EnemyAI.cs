@@ -11,6 +11,11 @@ public class EnemyAI : MonoBehaviour
     public bool applyCurse = false;
     public bool canCharge = false;
 
+    // === NUEVOS CAMPOS (Fase A) ===
+    public EnemyBehavior behavior = EnemyBehavior.Normal;
+    public int baseDefense = 0;
+    public string unitName = "";
+
     private Unit selfUnit;
     private Unit targetUnit;
     private int chargeCooldown = 0;
@@ -22,10 +27,24 @@ public class EnemyAI : MonoBehaviour
         {
             selfUnit.stats.attack = 70;
             selfUnit.stats.evasion = 5;
-            selfUnit.stats.defense = 1;
+            selfUnit.stats.defense = 1 + baseDefense; // ← aplica defensa del arquetipo
             selfUnit.stats.critChance = 5;
             selfUnit.stats.lifesteal = 0;
             selfUnit.stats.threatMult = 1f;
+
+            // Hook de muerte para Penitente de la Ceniza
+            if (behavior == EnemyBehavior.ExplodeOnDeath)
+            {
+                selfUnit.onDeath += OnExplodeDeath;
+            }
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (selfUnit != null && behavior == EnemyBehavior.ExplodeOnDeath)
+        {
+            selfUnit.onDeath -= OnExplodeDeath;
         }
     }
 
@@ -67,8 +86,25 @@ public class EnemyAI : MonoBehaviour
             if (targetUnit == null) yield break;
         }
 
+        // === HEALER: cura aliados antes de actuar ===
+        if (behavior == EnemyBehavior.Healer)
+        {
+            yield return TryHealAlly();
+        }
+
         int distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
-        if (distance <= attackRange)
+
+        // === RANGED: ataca a distancia sin moverse ===
+        if (behavior == EnemyBehavior.Ranged && distance <= attackRange)
+        {
+            FaceTarget();
+            yield return new WaitForSeconds(0.25f);
+            Attack(0);
+            yield return new WaitForSeconds(0.5f);
+            yield break;
+        }
+
+        if (distance <= attackRange && behavior != EnemyBehavior.Ranged)
         {
             FaceTarget();
             yield return new WaitForSeconds(0.25f);
@@ -97,7 +133,7 @@ public class EnemyAI : MonoBehaviour
                     transform.position = wp;
                     selfUnit.currentGridPos = dest;
                     FaceTarget();
-                    Debug.Log(gameObject.name + " ¡CARGA contra el Renacido!");
+                    Debug.Log(unitName + " ¡CARGA contra el Renacido!");
                     chargeCooldown = 3;
                     yield return new WaitForSeconds(0.2f);
                     Attack(1);
@@ -107,11 +143,33 @@ public class EnemyAI : MonoBehaviour
             }
         }
 
+        // Ranged no se mueve para perseguir, solo reposiciona si está muy lejos
+        if (behavior == EnemyBehavior.Ranged && distance > attackRange + 2)
+        {
+            yield return MoveTowardsTarget(2);
+        }
+        else if (behavior != EnemyBehavior.Ranged)
+        {
+            yield return MoveTowardsTarget(moveRange);
+        }
+
+        distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
+        if (distance <= attackRange)
+        {
+            FaceTarget();
+            yield return new WaitForSeconds(0.25f);
+            Attack(0);
+            yield return new WaitForSeconds(0.5f);
+        }
+    }
+
+    IEnumerator MoveTowardsTarget(int maxSteps)
+    {
         List<Vector2Int> walkPath = Pathfinding.FindPath(
             selfUnit.currentGridPos, targetUnit.currentGridPos, 99);
         if (walkPath != null && walkPath.Count > 0)
         {
-            int stepsToTake = Mathf.Min(walkPath.Count, moveRange);
+            int stepsToTake = Mathf.Min(walkPath.Count, maxSteps);
             if (walkPath[walkPath.Count - 1] == targetUnit.currentGridPos)
             {
                 stepsToTake = Mathf.Min(stepsToTake, walkPath.Count - 1);
@@ -134,18 +192,8 @@ public class EnemyAI : MonoBehaviour
                 FaceTarget();
             }
         }
-
-        distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
-        if (distance <= attackRange)
-        {
-            FaceTarget();
-            yield return new WaitForSeconds(0.25f);
-            Attack(0);
-            yield return new WaitForSeconds(0.5f);
-        }
     }
 
-    // 1.1-E.5: mira hacia su objetivo (coherencia de flanking y facing)
     void FaceTarget()
     {
         if (selfUnit != null && targetUnit != null)
@@ -157,11 +205,97 @@ public class EnemyAI : MonoBehaviour
 
     void Attack(int bonus)
     {
-        Debug.Log(gameObject.name + " ataca al jugador. Daño base: " + (attackDamage + bonus));
-        bool hit = targetUnit.ReceiveAttack(selfUnit, attackDamage + bonus);
+        int finalDamage = attackDamage + bonus;
+
+        // === SELF DAMAGE: Flagelante se auto-hiere ===
+        if (behavior == EnemyBehavior.SelfDamage)
+        {
+            selfUnit.currentHealth -= 5;
+            selfUnit.UpdateHealthBar();
+            finalDamage += 15;
+            Debug.Log(unitName + " se flagela (-5 HP) y ataca con +15 daño!");
+            if (selfUnit.currentHealth <= 0)
+            {
+                Debug.Log(unitName + " muere por su propio castigo.");
+                Destroy(selfUnit.gameObject);
+                return;
+            }
+        }
+
+        // === BACKSTABBER: Heraldo Ciego crítico desde atrás ===
+        if (behavior == EnemyBehavior.Backstabber && IsAttackingFromBehind())
+        {
+            finalDamage *= 2;
+            Debug.Log(unitName + " ¡ATAQUE POR LA ESPALDA! Daño duplicado: " + finalDamage);
+        }
+
+        Debug.Log(unitName + " ataca al jugador. Daño: " + finalDamage);
+        bool hit = targetUnit.ReceiveAttack(selfUnit, finalDamage);
         if (hit && applyCurse)
         {
             targetUnit.ApplyDebuff(10, 2);
+        }
+    }
+
+    bool IsAttackingFromBehind()
+    {
+        if (targetUnit == null || selfUnit == null) return false;
+        Vector2 facing = targetUnit.facing;
+        if (facing.sqrMagnitude < 0.01f) return false;
+        Vector2 attackDir = (selfUnit.currentGridPos - targetUnit.currentGridPos);
+        attackDir = attackDir.normalized;
+        // Está detrás si el producto punto con el facing del jugador es negativo y grande
+        float dot = Vector2.Dot(facing, attackDir);
+        return dot < -0.5f;
+    }
+
+    IEnumerator TryHealAlly()
+    {
+        Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        Unit wounded = null;
+        int maxWound = 0;
+        foreach (Unit u in units)
+        {
+            if (!u.isEnemy || u == selfUnit) continue;
+            int d = Dist(selfUnit.currentGridPos, u.currentGridPos);
+            if (d > 2) continue;
+            int wound = u.maxHealth - u.currentHealth;
+            if (wound > maxWound)
+            {
+                maxWound = wound;
+                wounded = u;
+            }
+        }
+        if (wounded != null && maxWound >= 10)
+        {
+            int healAmount = Mathf.Min(10, maxWound);
+            wounded.currentHealth += healAmount;
+            wounded.UpdateHealthBar();
+            Debug.Log(unitName + " cura " + healAmount + " HP a " + wounded.unitName + ".");
+            yield return new WaitForSeconds(0.4f);
+        }
+    }
+
+    void OnExplodeDeath()
+    {
+        Debug.Log(unitName + " ¡EXPLOTA EN CENIZAS!");
+        Vector2Int center = selfUnit.currentGridPos;
+        Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        foreach (Unit u in units)
+        {
+            if (u == selfUnit) continue;
+            int d = Dist(center, u.currentGridPos);
+            if (d <= 1)
+            {
+                int dmg = u.isEnemy ? 10 : 20; // menos daño a aliados
+                u.currentHealth -= dmg;
+                u.UpdateHealthBar();
+                Debug.Log("Explosión afecta a " + u.unitName + " (-" + dmg + " HP).");
+                if (u.currentHealth <= 0 && !u.isEnemy)
+                {
+                    Debug.Log("¡El jugador fue derribado por la explosión!");
+                }
+            }
         }
     }
 
@@ -182,7 +316,6 @@ public class EnemyAI : MonoBehaviour
         selfUnit.currentGridPos = gridPos;
     }
 
-    // 1.1-E.5 FIX: distancia Chebyshev (diagonal = 1) → los enemigos atacan en diagonal
     int Dist(Vector2Int a, Vector2Int b)
     {
         return Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));

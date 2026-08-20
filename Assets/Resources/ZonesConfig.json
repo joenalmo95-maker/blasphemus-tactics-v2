@@ -7,7 +7,7 @@
       "y": 8,
       "waves": [
         { "spawns": [ { "archetype": "penitent", "tier": "Basico", "x": 7, "y": 4 }, { "archetype": "penitent", "tier": "Basico", "x": 8, "y": 5 } ] },
-        { "spawns": [ { "archetype": "cherub", "tier": "Basico", "x": 7, "y": 4 } ] }
+        { "spawns": [ { "archetype": "flagelante", "tier": "Basico", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Basico", "x": 8, "y": 5 } ] }
       ]
     },
     {
@@ -16,8 +16,8 @@
       "x": 20,
       "y": 5,
       "waves": [
-        { "spawns": [ { "archetype": "penitent", "tier": "Basico", "x": 7, "y": 4 } ] },
-        { "spawns": [ { "archetype": "penitent", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Basico", "x": 8, "y": 5 } ] }
+        { "spawns": [ { "archetype": "penitent", "tier": "Basico", "x": 7, "y": 4 }, { "archetype": "ceniza", "tier": "Basico", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "censor", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Basico", "x": 8, "y": 5 } ] }
       ]
     },
     {
@@ -26,8 +26,8 @@
       "x": 30,
       "y": 20,
       "waves": [
-        { "spawns": [ { "archetype": "cherub", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Medio", "x": 8, "y": 5 } ] },
-        { "spawns": [ { "archetype": "inquisitor", "tier": "Medio", "x": 7, "y": 4 } ] }
+        { "spawns": [ { "archetype": "cherub", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "incensario", "tier": "Medio", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "heraldo", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "censor", "tier": "Medio", "x": 8, "y": 5 } ] }
       ]
     },
     {
@@ -36,8 +36,8 @@
       "x": 18,
       "y": 30,
       "waves": [
-        { "spawns": [ { "archetype": "inquisitor", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "penitent", "tier": "Medio", "x": 8, "y": 5 } ] },
-        { "spawns": [ { "archetype": "inquisitor", "tier": "Elite", "x": 7, "y": 4 } ] }
+        { "spawns": [ { "archetype": "inquisitor", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "flagelante", "tier": "Medio", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "heraldo", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "penitent", "tier": "Medio", "x": 8, "y": 5 } ] }
       ]
     },
     {
@@ -46,8 +46,8 @@
       "x": 42,
       "y": 12,
       "waves": [
-        { "spawns": [ { "archetype": "capitan", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Medio", "x": 8, "y": 5 } ] },
-        { "spawns": [ { "archetype": "capitan", "tier": "Elite", "x": 7, "y": 4 } ] }
+        { "spawns": [ { "archetype": "automata", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "censor", "tier": "Elite", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "capitan", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "incensario", "tier": "Elite", "x": 8, "y": 5 } ] }
       ]
     },
     {
@@ -56,9 +56,9 @@
       "x": 35,
       "y": 28,
       "waves": [
-        { "spawns": [ { "archetype": "cherub", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "penitent", "tier": "Medio", "x": 8, "y": 5 } ] },
-        { "spawns": [ { "archetype": "inquisitor", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Elite", "x": 8, "y": 5 } ] },
-        { "spawns": [ { "archetype": "capitan", "tier": "EliteFuerte", "x": 7, "y": 4 } ] }
+        { "spawns": [ { "archetype": "ceniza", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "heraldo", "tier": "Elite", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "inquisitor", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "automata", "tier": "Elite", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "capitan", "tier": "EliteFuerte", "x": 7, "y": 4 }, { "archetype": "incensario", "tier": "Elite", "x": 8, "y": 5 } ] }
       ]
     },
     {
@@ -67,8 +67,8 @@
       "x": 50,
       "y": 32,
       "waves": [
-        { "spawns": [ { "archetype": "capitan", "tier": "EliteFuerte", "x": 7, "y": 4 }, { "archetype": "inquisitor", "tier": "Elite", "x": 8, "y": 5 } ] },
-        { "spawns": [ { "archetype": "angel", "tier": "Jefe", "x": 7, "y": 4 } ] }
+        { "spawns": [ { "archetype": "automata", "tier": "EliteFuerte", "x": 7, "y": 4 }, { "archetype": "heraldo", "tier": "Elite", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "angel", "tier": "Jefe", "x": 7, "y": 4 }, { "archetype": "incensario", "tier": "Elite", "x": 8, "y": 5 } ] }
       ]
     },
     {
@@ -77,10 +77,10 @@
       "x": 55,
       "y": 8,
       "waves": [
-        { "spawns": [ { "archetype": "cherub", "tier": "Medio", "x": 7, "y": 4 }, { "archetype": "penitent", "tier": "Medio", "x": 8, "y": 5 } ] },
-        { "spawns": [ { "archetype": "inquisitor", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Elite", "x": 8, "y": 5 } ] },
-        { "spawns": [ { "archetype": "capitan", "tier": "EliteFuerte", "x": 7, "y": 4 } ] },
-        { "spawns": [ { "archetype": "angel", "tier": "Jefe", "x": 7, "y": 4 }, { "archetype": "cherub", "tier": "Elite", "x": 8, "y": 5 } ] }     
+        { "spawns": [ { "archetype": "flagelante", "tier": "Elite", "x": 7, "y": 4 }, { "archetype": "ceniza", "tier": "Elite", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "automata", "tier": "EliteFuerte", "x": 7, "y": 4 }, { "archetype": "censor", "tier": "Elite", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "heraldo", "tier": "EliteFuerte", "x": 7, "y": 4 }, { "archetype": "incensario", "tier": "Elite", "x": 8, "y": 5 } ] },
+        { "spawns": [ { "archetype": "angel", "tier": "Jefe", "x": 7, "y": 4 }, { "archetype": "capitan", "tier": "EliteFuerte", "x": 8, "y": 5 } ] }
       ]
     }
   ]
