@@ -1,18 +1,24 @@
 using UnityEngine;
-using UnityEngine.UI;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 public class WorldBootstrap : MonoBehaviour
 {
-    public const int WorldWidth = 60;
-    public const int WorldHeight = 40;
+    // 0.1: Mundo expandido 4x (120x80 = 9,600 celdas)
+    public const int WorldWidth = 120;
+    public const int WorldHeight = 80;
+    
+    // Spawn del jugador en el Bastión de San Veritas (Región I)
+    public static Vector2Int PlayerSpawn = new Vector2Int(2, 38);
 
-    public static Vector2Int PlayerSpawn = new Vector2Int(2, 2);
+    // Portal de salida a la ciudad (junto al bastión)
+    public static Vector2Int CityPortal = new Vector2Int(5, 38);
+    
+    // Última posición conocida del jugador (para restaurar al volver de la ciudad)
+    public static Vector2Int LastKnownPosition = PlayerSpawn;
 
-    // Si aparece vacío en el Inspector de WorldMap, arrastre aquí los 3 assets
-    // de ScriptableObjects/Classes (igual que en el Bootstrap de combate).
-    public List<ClassData> availableClasses = new List<ClassData>();
-
+    // === CLASES ANIDADAS PARA ZONAS ===
     public class ZoneDef
     {
         public string name;
@@ -21,19 +27,31 @@ public class WorldBootstrap : MonoBehaviour
         public List<WaveDef> dungeon;
     }
 
-    // Data-driven: se pobla desde Assets/Resources/ZonesConfig.json (Bloque 2.4)
+    public class WaveDef
+    {
+        public List<SpawnDef> spawns;
+    }
+
+    public class SpawnDef
+    {
+        public string archetype;
+        public EnemyTier tier;
+        public Vector2Int cell;
+    }
+
+    // Lista de zonas (se carga desde ZoneConfigLoader)
     public static List<ZoneDef> Zones = new List<ZoneDef>();
 
     void Awake()
     {
-        // GUARD: WorldBootstrap solo vive en WorldMap (protege CityScene duplicada)
-        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == GameFlow.CityScene)
+        // Guard anti-secuestro
+        if (Object.FindObjectsByType<WorldBootstrap>(FindObjectsInactive.Exclude).Length > 1)
         {
             Destroy(gameObject);
             return;
         }
 
-        // Singletons persistentes (patrón del Bootstrap de combate)
+        // Inicializar managers persistentes
         if (Object.FindAnyObjectByType<CharacterData>() == null)
             new GameObject("CharacterData").AddComponent<CharacterData>();
         if (Object.FindAnyObjectByType<InventorySystem>() == null)
@@ -41,85 +59,167 @@ public class WorldBootstrap : MonoBehaviour
         if (Object.FindAnyObjectByType<PersistentManagers>() == null)
             new GameObject("PersistentManagers").AddComponent<PersistentManagers>();
 
-        // Cámara: Tag MainCamera + fondo NEGRO
+        // Configurar cámara
         Camera cam = Camera.main;
         if (cam == null)
         {
-            cam = Object.FindAnyObjectByType<Camera>();
-            if (cam != null) cam.tag = "MainCamera";
+            GameObject camObj = new GameObject("MainCamera");
+            cam = camObj.AddComponent<Camera>();
+            camObj.tag = "MainCamera";
+            camObj.AddComponent<AudioListener>();
         }
-        if (cam != null)
+        cam.backgroundColor = new Color(0.02f, 0.02f, 0.03f);
+        cam.orthographic = true;
+        cam.orthographicSize = 8f;
+        cam.transform.position = new Vector3(PlayerSpawn.x, PlayerSpawn.y, -10f);
+
+        // Restaurar posición si venimos de la ciudad
+        int savedX = PlayerPrefs.GetInt("LastWorldX", -1);
+        int savedY = PlayerPrefs.GetInt("LastWorldY", -1);
+        if (savedX >= 0 && savedY >= 0)
         {
-            cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = Color.black;
+            PlayerSpawn = new Vector2Int(savedX, savedY);
+            LastKnownPosition = PlayerSpawn;
+            PlayerPrefs.DeleteKey("LastWorldX");
+            PlayerPrefs.DeleteKey("LastWorldY");
         }
 
-        // Zonas data-driven con fallback seguro
+        // Cargar zonas usando el loader correcto
         Zones = ZoneConfigLoader.Load();
+        Debug.Log("[WorldBootstrap] Zonas cargadas: " + Zones.Count);
 
-        // Mapa dibujado por el usuario; si no existe, respaldo procedural
-        if (!TerrainMap.TryLoadWorldMap(WorldWidth, WorldHeight))
-            TerrainMap.GenerateWorldObstacles(WorldWidth, WorldHeight);
-
-        // 3.4: el teletransporte desde la ciudad tiene prioridad absoluta
-        if (TeleportUI.PendingDestination.HasValue)
-        {
-            PlayerSpawn = TeleportUI.PendingDestination.Value;
-            TeleportUI.PendingDestination = null;
-            PlayerPrefs.DeleteKey("LastWorldX");
-            PlayerPrefs.DeleteKey("LastWorldY");
-        }
-        // 3.1: restaura la posición guardada al volver desde la ciudad por el portal
-        else if (PlayerPrefs.HasKey("LastWorldX"))
-        {
-            PlayerSpawn = new Vector2Int(PlayerPrefs.GetInt("LastWorldX", 2), PlayerPrefs.GetInt("LastWorldY", 2));
-            PlayerPrefs.DeleteKey("LastWorldX");
-            PlayerPrefs.DeleteKey("LastWorldY");
-        }
-
-        ClearAround(PlayerSpawn);
-        foreach (ZoneDef z in Zones) ClearAround(z.center);
-
-        BuildGround();
-        BuildZoneMarkers();
-        BuildCityPortal();
-
-        new GameObject("WorldSpawnManager").AddComponent<WorldSpawnManager>();
-        new GameObject("WorldChestManager").AddComponent<WorldChestManager>();
-        new GameObject("WorldEncounterManager").AddComponent<WorldEncounterManager>();
-
-        // UI global disponible en mundo
-        new GameObject("HUDUI").AddComponent<HUDUI>();
-        new GameObject("InventoryUI").AddComponent<InventoryUI>();
-        new GameObject("ShopUI").AddComponent<ShopUI>();
-        new GameObject("WorldMapUI").AddComponent<WorldMapUI>();
-
-        // La creación/continuación de personaje vive en MUNDO, no en mazmorra
-        if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
-        {
-            SpawnPlayer();
-        }
-        else
-        {
-            GameObject c = new GameObject("CharacterCreation");
-            CharacterCreationUI ui = c.AddComponent<CharacterCreationUI>();
-            ui.availableClasses = availableClasses;
-            ui.showContinue = SaveSystem.HasSave();
-            ui.onFinished = () => { SpawnPlayer(); };
-            ui.Build();
-        }
+        // Cargar mapa (generar si no existe o es antiguo)
+        EnsureWorldMapExists();
+        TerrainMap.TryLoadWorldMap(WorldWidth, WorldHeight);
+        BuildWorld();
+        SpawnPlayer();
+        BuildUI();
     }
 
-    static void ClearAround(Vector2Int c)
+    void EnsureWorldMapExists()
     {
-        TerrainMap.Set(c, TerrainType.Caminable);
-        TerrainMap.Set(c + new Vector2Int(1, 0), TerrainType.Caminable);
-        TerrainMap.Set(c + new Vector2Int(-1, 0), TerrainType.Caminable);
-        TerrainMap.Set(c + new Vector2Int(0, 1), TerrainType.Caminable);
-        TerrainMap.Set(c + new Vector2Int(0, -1), TerrainType.Caminable);
+        string path = Path.Combine(Application.dataPath, "Resources", "WorldMapData.txt");
+        
+        if (File.Exists(path))
+        {
+            string[] lines = File.ReadAllLines(path);
+            if (lines.Length == WorldHeight && lines[0].Length == WorldWidth)
+            {
+                Debug.Log("[WorldBootstrap] WorldMapData.txt cargado (120x80).");
+                return;
+            }
+            Debug.Log("[WorldBootstrap] WorldMapData.txt antiguo o corrupto. Regenerando...");
+        }
+
+        Debug.Log("[WorldBootstrap] Generando mapa mundial 120x80 con Región I (Valle de la Luz Eterna)...");
+        char[,] grid = new char[WorldWidth, WorldHeight];
+
+        // Rellenar todo con X (zonas bloqueadas)
+        for (int x = 0; x < WorldWidth; x++)
+            for (int y = 0; y < WorldHeight; y++)
+                grid[x, y] = 'X';
+
+        // Pintar Región I (filas 0-39, columnas 0-59)
+        for (int x = 0; x < 60; x++)
+            for (int y = 0; y < 40; y++)
+                grid[x, y] = '.';
+
+        // Río inferior
+        for (int x = 0; x < 60; x++)
+            for (int y = 0; y < 3; y++)
+                grid[x, y] = '~';
+
+        // Bastión de San Veritas
+        for (int x = 1; x <= 5; x++)
+            for (int y = 37; y <= 39; y++)
+                grid[x, y] = 'B';
+
+        // Spawn del jugador (fuera del bastión, en terreno caminable)
+        grid[6, 38] = 'P';
+        // Portal a la ciudad (junto al spawn, en terreno caminable)
+        grid[7, 38] = '.'; // Será marcado como portal por código
+
+        // Campos de Penitencia
+        for (int i = 0; i < 15; i++)
+        {
+            int tx = 8 + Random.Range(0, 18);
+            int ty = 3 + Random.Range(0, 8);
+            if (tx < 60 && ty < 40) grid[tx, ty] = 'T';
+        }
+
+        // Camino de los Peregrinos
+        for (int x = 0; x < 60; x++)
+        {
+            grid[x, 15] = '.';
+            if (x % 7 == 0) grid[x, 14] = 'T';
+            if (x % 9 == 0) grid[x, 16] = 'T';
+        }
+
+        // Bosque de los Cirios
+        for (int i = 0; i < 80; i++)
+        {
+            int tx = 10 + Random.Range(0, 31);
+            int ty = 20 + Random.Range(0, 11);
+            if (tx < 60 && ty < 40) grid[tx, ty] = 'T';
+        }
+
+        // Monasterio de Santa Lucía
+        for (int x = 45; x <= 55; x++)
+            for (int y = 30; y <= 35; y++)
+            {
+                if (x == 45 || x == 55 || y == 30 || y == 35)
+                    grid[x, y] = '#';
+                else
+                    grid[x, y] = 'R';
+            }
+
+        // Canteras de Aurelia
+        for (int i = 0; i < 40; i++)
+        {
+            int rx = 40 + Random.Range(0, 16);
+            int ry = 5 + Random.Range(0, 8);
+            if (rx < 60 && ry < 40) grid[rx, ry] = '#';
+        }
+
+        // Cementerio de los Devotos
+        for (int i = 0; i < 25; i++)
+        {
+            int rx = 2 + Random.Range(0, 14);
+            int ry = 25 + Random.Range(0, 8);
+            if (rx < 60 && ry < 40) grid[rx, ry] = 'R';
+        }
+
+        // Ruinas de la Primera Catedral
+        for (int i = 0; i < 30; i++)
+        {
+            int rx = 20 + Random.Range(0, 16);
+            int ry = 10 + Random.Range(0, 9);
+            if (rx < 60 && ry < 40) grid[rx, ry] = (i % 2 == 0) ? 'R' : '#';
+        }
+
+        // Lago sagrado
+        for (int x = 25; x <= 32; x++)
+            for (int y = 8; y <= 12; y++)
+            {
+                int dx = x - 28;
+                int dy = y - 10;
+                if (dx * dx + dy * dy <= 9)
+                    grid[x, y] = '~';
+            }
+
+        StringBuilder sb = new StringBuilder();
+        for (int y = WorldHeight - 1; y >= 0; y--)
+        {
+            for (int x = 0; x < WorldWidth; x++)
+                sb.Append(grid[x, y]);
+            if (y > 0) sb.AppendLine();
+        }
+
+        File.WriteAllText(path, sb.ToString());
+        Debug.Log("[WorldBootstrap] Mapa 120x80 generado y guardado en WorldMapData.txt");
     }
 
-    void BuildGround()
+    void BuildWorld()
     {
         for (int x = 0; x < WorldWidth; x++)
         {
@@ -129,114 +229,89 @@ public class WorldBootstrap : MonoBehaviour
                 GameObject t = new GameObject("WTile_" + x + "_" + y);
                 t.transform.position = new Vector3(x, y, 0);
                 SpriteRenderer sr = t.AddComponent<SpriteRenderer>();
-                sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
-                sr.sortingOrder = 0;
-
+                
                 TerrainType terrain = TerrainMap.Get(cell);
-                if (terrain != TerrainType.Caminable)
+                
+                if (terrain == TerrainType.Caminable)
                 {
+                    sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
+                    sr.sortingOrder = 0;
+                }
+                else
+                {
+                    sr.sprite = ArtProvider.Get((x + y) % 2 == 0 ? "tileA" : "tileB");
+                    sr.sortingOrder = 0;
+                    
                     GameObject ob = new GameObject("Obstacle");
                     ob.transform.SetParent(t.transform);
                     ob.transform.localPosition = Vector3.zero;
-                    SpriteRenderer osr = ob.AddComponent<SpriteRenderer>();
-                    osr.sprite = ArtProvider.Get(terrain == TerrainType.Roca ? "rock" : (terrain == TerrainType.Agua ? "water" : "ruins"));
-                    osr.sortingOrder = 1;
+                    SpriteRenderer obsr = ob.AddComponent<SpriteRenderer>();
+                    obsr.sortingOrder = 1;
+                    
+                    switch (terrain)
+                    {
+                        case TerrainType.Roca:
+                            obsr.sprite = ArtProvider.Get("rock");
+                            break;
+                        case TerrainType.Agua:
+                            obsr.sprite = ArtProvider.Get("water");
+                            break;
+                        case TerrainType.Ruinas:
+                            obsr.sprite = ArtProvider.Get("ruins");
+                            break;
+                    }
+                    
+                    BoxCollider2D col = ob.AddComponent<BoxCollider2D>();
+                    col.size = Vector2.one * 0.9f;
                 }
             }
         }
-    }
 
-    void BuildZoneMarkers()
-    {
-        foreach (ZoneDef z in Zones)
+        // Bastión
+        for (int x = 1; x <= 5; x++)
         {
-            GameObject m = new GameObject("Zone_" + z.name);
-            m.transform.position = new Vector3(z.center.x, z.center.y, 0);
-            SpriteRenderer sr = m.AddComponent<SpriteRenderer>();
-            sr.sprite = SpriteFactory.Square();
-            sr.color = new Color(0.6f, 0.2f, 0.8f, 0.35f);
-            m.transform.localScale = Vector3.one * 0.9f;
-            sr.sortingOrder = 1;
+            for (int y = 37; y <= 39; y++)
+            {
+                GameObject bastion = new GameObject("Bastion_" + x + "_" + y);
+                bastion.transform.position = new Vector3(x, y, 0);
+                SpriteRenderer sr = bastion.AddComponent<SpriteRenderer>();
+                sr.sprite = ArtProvider.Get("ruins");
+                sr.color = new Color(0.6f, 0.5f, 0.3f);
+                sr.sortingOrder = 2;
+                BoxCollider2D col = bastion.AddComponent<BoxCollider2D>();
+                col.size = Vector2.one * 0.9f;
+            }
         }
-    }
 
-    void BuildCityPortal()
-    {
-        GameObject p = new GameObject("WorldToCityPortal");
-        p.transform.position = new Vector3(2, 38, 0);
-        SpriteRenderer sr = p.AddComponent<SpriteRenderer>();
-        sr.sprite = SpriteFactory.Square();
-        sr.color = new Color(0.2f, 0.6f, 0.9f, 0.6f);
-        sr.sortingOrder = 1;
-        p.AddComponent<WorldToCityPortalTrigger>();
+        // Portal
+        GameObject portal = new GameObject("CityPortal");
+        portal.transform.position = new Vector3(CityPortal.x, CityPortal.y, 0);
+        SpriteRenderer psr = portal.AddComponent<SpriteRenderer>();
+        psr.sprite = SpriteFactory.Square();
+        psr.color = new Color(0.2f, 0.6f, 0.9f, 0.6f);
+        psr.sortingOrder = 1;
+        portal.AddComponent<CityPortalTrigger>();
     }
 
     void SpawnPlayer()
     {
-        // 5.1: restaura bloques extendidos del guardado versionado
-        SaveSystem.ApplyExtendedOnce();
-        // 1.1-B: garantiza loadout (migra starters si el save es anterior)
-        LoadoutSystem.EnsureInitialized();
-
         GameObject p = new GameObject("WorldPlayer");
         p.transform.position = new Vector3(PlayerSpawn.x, PlayerSpawn.y, 0);
         SpriteRenderer sr = p.AddComponent<SpriteRenderer>();
-        sr.sprite = ArtProvider.Get(PlayerArt());
+        sr.sprite = ArtProvider.Get("inquisitor");
         sr.sortingOrder = 2;
         p.transform.localScale = Vector3.one * 0.8f;
         p.AddComponent<SelectionIndicator>();
         p.AddComponent<WorldPlayerController>();
     }
 
-    string PlayerArt()
+    void BuildUI()
     {
-        if (CharacterData.Instance != null && CharacterData.Instance.classData != null)
-        {
-            switch (CharacterData.Instance.classData.role)
-            {
-                case ClassRole.Tank: return "tank";
-                case ClassRole.Healer: return "healer";
-                default: return "dps";
-            }
-        }
-        return "dps";
-    }
-}
-
-public class WorldToCityPortalTrigger : MonoBehaviour
-{
-    private Text promptText;
-
-    void Awake()
-    {
-        GameObject canvas = UIFactory.CreateCanvas("CityPortalPromptCanvas", 43);
-        promptText = UIFactory.CreateText(canvas.transform, "PortalPrompt", "", 16, TextAnchor.MiddleCenter,
-            new Color(0.4f, 0.8f, 1f),
-            new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0),
-            new Vector2(0, 160), new Vector2(500, 30));
-    }
-
-    void Update()
-    {
-        WorldPlayerController pc = Object.FindAnyObjectByType<WorldPlayerController>();
-        if (pc == null) { promptText.text = ""; return; }
-
-        Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(pc.transform.position.x), Mathf.RoundToInt(pc.transform.position.y));
-        Vector2Int portal = new Vector2Int(2, 38);
-
-        if (Mathf.Abs(myCell.x - portal.x) <= 1 && Mathf.Abs(myCell.y - portal.y) <= 1)
-        {
-            promptText.text = "Pulsa E para entrar a la Ciudad";
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                PlayerPrefs.SetInt("LastWorldX", myCell.x);
-                PlayerPrefs.SetInt("LastWorldY", myCell.y);
-                GameFlow.EnterCity();
-            }
-        }
-        else
-        {
-            promptText.text = "";
-        }
+        if (Object.FindAnyObjectByType<HUDUI>() == null)
+            new GameObject("HUDUI").AddComponent<HUDUI>();
+        if (Object.FindAnyObjectByType<ActionBarUI>() == null)
+            new GameObject("ActionBarUI").AddComponent<ActionBarUI>();
+        if (Object.FindAnyObjectByType<WorldMapUI>() == null)
+            new GameObject("WorldMapUI").AddComponent<WorldMapUI>();
     }
 }
