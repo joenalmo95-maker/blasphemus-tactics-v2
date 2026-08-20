@@ -167,7 +167,7 @@ public class CityPlayerController : MonoBehaviour
         rt.sizeDelta = new Vector2(380, 40);
         Text t = go.AddComponent<Text>();
         t.text = content;
-        t.font = UIFactory.GetFont();
+        t.font = GetFont();
         t.fontSize = size;
         t.alignment = TextAnchor.MiddleCenter;
         t.color = color;
@@ -200,9 +200,16 @@ public class CityPlayerController : MonoBehaviour
         trt.offsetMax = Vector2.zero;
         Text t = txtObj.AddComponent<Text>();
         t.text = label;
-        t.font = UIFactory.GetFont();
+        t.font = GetFont();
         t.fontSize = 16;
         t.alignment = TextAnchor.MiddleCenter;
         t.color = textColor;
     }
+    static Font GetFont()
+    {
+        Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        return f;
+    }
+    
 }
