@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public static class EnemyFactory
 {
@@ -10,69 +11,95 @@ public static class EnemyFactory
         int dmgBonus = 0;
         switch (tier)
         {
-            case EnemyTier.Medio: hpMult = 1.4f; dmgBonus = 1; break;
-            case EnemyTier.Elite: hpMult = 1.8f; dmgBonus = 2; break;
-            case EnemyTier.EliteFuerte: hpMult = 2.2f; dmgBonus = 3; break;
-            case EnemyTier.Jefe: hpMult = 3f; dmgBonus = 4; break;
+            case EnemyTier.Medio: hpMult = 1.4f; dmgBonus = 5; break;
+            case EnemyTier.Elite: hpMult = 1.8f; dmgBonus = 10; break;
+            case EnemyTier.EliteFuerte: hpMult = 2.2f; dmgBonus = 15; break;
+            case EnemyTier.Jefe: hpMult = 3f; dmgBonus = 20; break;
         }
 
-        bool boss = archetype == "boss";
-        bool cherub = archetype == "cherub";
-        bool inquisitor = archetype == "inquisitor";
-        bool capitan = archetype == "capitan";
+        // 0.3: Nuevos stats base escalados
+        int baseHp = 100;
+        int baseDamage = 20;
+        string art = "penitent";
+        string name = "Cruzado";
+        float scale = 0.8f;
 
-        int baseHp = boss ? 40 : cherub ? 6 : inquisitor ? 8 : capitan ? 14 : 10;
-        int hp = boss ? baseHp : Mathf.RoundToInt(baseHp * hpMult);
+        switch (archetype)
+        {
+            case "boss":
+                baseHp = 400;
+                baseDamage = 40;
+                art = "angel";
+                name = "Ángel de la Vigilia";
+                scale = 1.6f;
+                break;
+            case "cherub":
+                baseHp = 60;
+                baseDamage = 20;
+                art = "cherub";
+                name = "Querubín";
+                scale = 0.7f;
+                break;
+            case "inquisitor":
+                baseHp = 80;
+                baseDamage = 20;
+                art = "inquisitor";
+                name = "Inquisidor";
+                scale = 0.8f;
+                break;
+            case "capitan":
+                baseHp = 140;
+                baseDamage = 30;
+                art = "capitan";
+                name = "Capitán Templario";
+                scale = 1.0f;
+                break;
+            case "penitent":
+            default:
+                baseHp = 100;
+                baseDamage = 20;
+                art = "penitent";
+                name = "Cruzado";
+                scale = 0.8f;
+                break;
+        }
 
-        // 4.2: escalado simétrico según el nivel del jugador
+        int hp = Mathf.RoundToInt(baseHp * hpMult);
+
         int playerLevel = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
         hp = Mathf.RoundToInt(hp * Progression.EnemyHpMult(playerLevel));
 
-        string art = boss ? "angel" : cherub ? "cherub" : inquisitor ? "inquisitor" : capitan ? "capitan" : "penitent";
-        float scale = boss ? 1.6f : cherub ? 0.7f : capitan ? 1.0f : 0.8f;
-        string name = boss ? "Ángel de la Vigilia" : cherub ? "Querubín" : inquisitor ? "Inquisidor" : capitan ? "Capitán Templario" : "Cruzado";
-
         Unit unit = Unit.Create(name, cell, true, Color.white, scale, hp, 3, art);
 
-        if (boss)
+        if (archetype == "boss")
         {
             BossAI ai = unit.gameObject.AddComponent<BossAI>();
-            ai.attackDamage = 4 + Progression.EnemyDamageBonus(playerLevel);
+            ai.attackDamage = baseDamage + dmgBonus + Progression.EnemyDamageBonus(playerLevel);
             ai.tier = tier;
         }
         else
         {
             EnemyAI ai = unit.gameObject.AddComponent<EnemyAI>();
             ai.tier = tier;
-            ai.attackDamage = (capitan ? 3 : 2) + dmgBonus + Progression.EnemyDamageBonus(playerLevel);
-            ai.attackRange = (cherub || inquisitor) ? 3 : 1;
-            ai.moveRange = 2;
-            ai.applyCurse = inquisitor;
-            ai.canCharge = capitan;
+            ai.attackDamage = baseDamage + dmgBonus + Progression.EnemyDamageBonus(playerLevel);
         }
 
         return unit;
     }
 
-    static Vector2Int FindFreeCell(Vector2Int desired)
+    static Vector2Int FindFreeCell(Vector2Int start)
     {
-        if (GridManager.Instance.InBounds(desired) && !Pathfinding.IsOccupied(desired))
-            return desired;
-
-        for (int r = 1; r <= 4; r++)
+        for (int r = 0; r < 5; r++)
         {
             for (int dx = -r; dx <= r; dx++)
             {
                 for (int dy = -r; dy <= r; dy++)
                 {
-                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
-                    Vector2Int c = desired + new Vector2Int(dx, dy);
-                    if (GridManager.Instance.InBounds(c) && !Pathfinding.IsOccupied(c))
-                        return c;
+                    Vector2Int c = new Vector2Int(start.x + dx, start.y + dy);
+                    if (TerrainMap.IsWalkable(c) && !Unit.At(c)) return c;
                 }
             }
         }
-
-        return desired;
+        return start;
     }
 }

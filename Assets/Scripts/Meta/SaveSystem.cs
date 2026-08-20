@@ -1,180 +1,106 @@
 using UnityEngine;
 using System.IO;
-using System.Collections.Generic;
-using System;
-
-[System.Serializable]
-public class SaveData
-{
-    // 5.1: versionado (los saves antiguos quedan en 0 y migran al guardar)
-    public int version = 6;
-
-    public string className;
-    public int level;
-    public int xp;
-    public int gold;
-    public List<ItemData> items = new List<ItemData>();
-    public List<ItemData> equipped = new List<ItemData>();
-    public List<ConsumableData> consumables = new List<ConsumableData>();
-
-    // Bloques extendidos 5.1
-    public List<ItemData> warehouse = new List<ItemData>();
-    public TrainingSnapshot training;
-    public bool passiveEnabled = true;
-    public List<TimerEntry> spawnTimers = new List<TimerEntry>();
-    public List<TimerEntry> chestTimers = new List<TimerEntry>();
-    public bool hasLastWorld;
-    public int lastWorldX;
-    public int lastWorldY;
-
-    // 1.1-B: skills aprendidas y loadout (v3)
-    public List<string> learnedSkills = new List<string>();
-    public List<string> activeSkills = new List<string>();
-    public string ultimateSkill = "";
-    public List<string> passiveSkills = new List<string>();
-
-    // 2.1: misiones temporizadas
-    public List<QuestSaveEntry> activeQuests = new List<QuestSaveEntry>();
-    public long lastDailyReset;
-    public long lastWeeklyReset;
-    public int seasonPhase;
-    // 2.2: encuentros aleatorios (cooldowns)
-    public List<TimerEntry> encounterCooldowns = new List<TimerEntry>();
-
-}
-
-[System.Serializable]
-public class TrainingSnapshot
-{
-    public bool learned2;
-    public bool learned3;
-    public bool learned4;
-    public int train1;
-    public int train2;
-    public int train3;
-    public int train4;
-}
-
-[System.Serializable]
-public class TimerEntry
-{
-    public int id;
-    public long ticks;
-}
 
 public static class SaveSystem
 {
     static string Path => System.IO.Path.Combine(Application.persistentDataPath, "save.json");
-    private static bool extendedApplied;
+
+    public static void Save()
+    {
+        SaveData data = new SaveData();
+        data.version = 6;
+        data.playerName = CharacterData.Instance != null ? CharacterData.Instance.playerName : "Valerius";
+        data.level = CharacterData.Instance != null ? CharacterData.Instance.level : 1;
+        data.xp = CharacterData.Instance != null ? CharacterData.Instance.xp : 0;
+        data.gold = CharacterData.Instance != null ? CharacterData.Instance.gold : 0;
+
+        LoadoutSystem.SnapshotToSave(data);
+
+        if (InventorySystem.Instance != null)
+        {
+            data.inventory = InventorySystem.Instance.Serialize();
+        }
+
+        if (WarehouseSystem.Instance != null)
+        {
+            data.warehouse = WarehouseSystem.Instance.Serialize();
+        }
+
+        string json = JsonUtility.ToJson(data, true);
+        File.WriteAllText(Path, json);
+        Debug.Log("[SaveSystem] Guardado: " + Path);
+    }
+
+    public static void Load()
+    {
+        if (!File.Exists(Path))
+        {
+            Debug.Log("[SaveSystem] No hay save. Creando nuevo.");
+            return;
+        }
+
+        string json = File.ReadAllText(Path);
+        SaveData data = JsonUtility.FromJson<SaveData>(json);
+
+        if (data.version < 6)
+        {
+            Debug.Log("[SaveSystem] Migrando save v" + data.version + " → v6 (Valerius único)");
+            data.playerName = "Valerius";
+            data.version = 6;
+        }
+
+        if (CharacterData.Instance == null)
+        {
+            new GameObject("CharacterData").AddComponent<CharacterData>();
+        }
+
+        CharacterData.Instance.playerName = data.playerName;
+        CharacterData.Instance.level = data.level;
+        CharacterData.Instance.xp = data.xp;
+        CharacterData.Instance.gold = data.gold;
+
+        LoadoutSystem.ApplyFromSave(data);
+
+        if (InventorySystem.Instance != null && data.inventory != null)
+        {
+            InventorySystem.Instance.Deserialize(data.inventory);
+        }
+
+        if (WarehouseSystem.Instance != null && data.warehouse != null)
+        {
+            WarehouseSystem.Instance.Deserialize(data.warehouse);
+        }
+
+        Debug.Log("[SaveSystem] Cargado: " + data.playerName + " nivel " + data.level);
+    }
 
     public static bool HasSave()
     {
         return File.Exists(Path);
     }
 
-    public static void Save()
+    public static void DeleteSave()
     {
-        if (CharacterData.Instance == null || InventorySystem.Instance == null) return;
-
-        // Carry-over: si algún sistema no existe en esta escena, se conserva lo último guardado
-        SaveData prev = HasSave() ? Load() : null;
-
-        SaveData data = new SaveData();
-        data.className = CharacterData.Instance.classData != null ? CharacterData.Instance.classData.className : "";
-        data.level = CharacterData.Instance.level;
-        data.xp = CharacterData.Instance.xp;
-        data.gold = CharacterData.Instance.gold;
-        data.items = InventorySystem.Instance.items;
-        data.equipped = InventorySystem.Instance.GetAllEquipped();
-        data.consumables = InventorySystem.Instance.consumables;
-
-        // 5.1: almacén unificado
-        data.warehouse = WarehouseSystem.Instance != null
-            ? WarehouseSystem.Instance.stored
-            : (prev != null && prev.warehouse != null ? prev.warehouse : new List<ItemData>());
-
-        // 5.1: entrenos, pasiva y timers
-        data.training = SkillTrainer.GetSnapshot();
-        data.spawnTimers = SnapshotTimers(WorldSpawnManager.DefeatedAt);
-        data.chestTimers = SnapshotTimers(WorldChestManager.OpenedAt);
-        data.encounterCooldowns = SnapshotTimers(WorldEncounterManager.Cooldowns);
-
-        // 5.1: posición de mundo pendiente de restaurar
-        if (PlayerPrefs.HasKey("LastWorldX"))
+        if (File.Exists(Path))
         {
-            data.hasLastWorld = true;
-            data.lastWorldX = PlayerPrefs.GetInt("LastWorldX", 2);
-            data.lastWorldY = PlayerPrefs.GetInt("LastWorldY", 2);
-        }
-
-        // 1.1-B: loadout en el guardado unificado
-        LoadoutSystem.SnapshotToSave(data);
-        QuestSystem.SnapshotToSave(data);
-
-        File.WriteAllText(Path, JsonUtility.ToJson(data, true));
-        Debug.Log("Partida guardada (v" + data.version + ").");
-    }
-
-    static List<TimerEntry> SnapshotTimers(Dictionary<int, float> live)
-    {
-        List<TimerEntry> list = new List<TimerEntry>();
-        float now = Time.realtimeSinceStartup;
-        foreach (var kv in live)
-        {
-            double age = now - kv.Value;
-            list.Add(new TimerEntry
-            {
-                id = kv.Key,
-                ticks = DateTime.UtcNow.Ticks - (long)(age * TimeSpan.TicksPerSecond)
-            });
-        }
-        return list;
-    }
-
-    public static SaveData Load()
-    {
-        if (!HasSave()) return null;
-        return JsonUtility.FromJson<SaveData>(File.ReadAllText(Path));
-    }
-
-    // 5.1: restaura bloques extendidos (una vez por sesión; legacy queda en sus stores)
-    public static void ApplyExtendedOnce()
-    {
-        if (extendedApplied) return;
-        extendedApplied = true;
-
-        SaveData data = Load();
-        if (data == null || data.version < 2) return;
-
-        // 1.1-B: restaura loadout (los saves v2 migran vía EnsureInitialized)
-        LoadoutSystem.ApplyFromSave(data);
-        QuestSystem.ApplyFromSave(data);
-        
-        if (WarehouseSystem.Instance == null)
-            new GameObject("WarehouseSystem").AddComponent<WarehouseSystem>();
-        if (data.warehouse != null) WarehouseSystem.Instance.stored = data.warehouse;
-
-        SkillTrainer.ApplySnapshot(data.training);
-
-        RestoreTimers(data.spawnTimers, WorldSpawnManager.DefeatedAt, WorldSpawnManager.RespawnSeconds);
-        RestoreTimers(data.chestTimers, WorldChestManager.OpenedAt, WorldChestManager.RespawnSeconds);
-        RestoreTimers(data.encounterCooldowns, WorldEncounterManager.Cooldowns, 0); // cooldowns ya tienen timestamp absoluto
-        
-        if (data.hasLastWorld)
-        {
-            PlayerPrefs.SetInt("LastWorldX", data.lastWorldX);
-            PlayerPrefs.SetInt("LastWorldY", data.lastWorldY);
+            File.Delete(Path);
+            Debug.Log("[SaveSystem] Save eliminado.");
         }
     }
+}
 
-    static void RestoreTimers(List<TimerEntry> entries, Dictionary<int, float> live, float respawnSeconds)
-    {
-        if (entries == null) return;
-        float now = Time.realtimeSinceStartup;
-        foreach (TimerEntry e in entries)
-        {
-            double age = (DateTime.UtcNow.Ticks - e.ticks) / (double)TimeSpan.TicksPerSecond;
-            if (age < respawnSeconds) live[e.id] = now - (float)age;
-        }
-    }
+[System.Serializable]
+public class SaveData
+{
+    public int version = 6;
+    public string playerName = "Valerius";
+    public int level = 1;
+    public int xp = 0;
+    public int gold = 0;
+    public System.Collections.Generic.List<string> learnedSkills;
+    public System.Collections.Generic.List<string> activeSkills;
+    public string ultimateSkill = "";
+    public System.Collections.Generic.List<string> passiveSkills;
+    public InventorySaveData inventory;
+    public WarehouseSaveData warehouse;
 }
