@@ -29,8 +29,12 @@ public class Unit : MonoBehaviour
 
     public int pendingApPenalty = 0;
     // 1.1-E: dirección de mirada e intención telegrafiada
+
     public Vector2 facing = new Vector2(0, -1);
     public IntentType intent = IntentType.Ninguna;
+
+    // Fase A: hook para comportamientos al morir (Penitente de la Ceniza)
+    public System.Action onDeath;
 
     public static Unit Create(string name, Vector2Int cell, bool isEnemy, Color color,
         float scale = 0.8f, int maxHealth = 10, int maxAP = 3, string artKey = "circle")
@@ -162,6 +166,10 @@ public class Unit : MonoBehaviour
         {
             Debug.Log(gameObject.name + " ha sido derrotado.");
             bool wasEnemy = isEnemy;
+            
+            // Fase A: disparar hook de muerte ANTES de destruir (para Penitente de la Ceniza)
+            if (onDeath != null) onDeath.Invoke();
+            
             if (wasEnemy)
             {
                 EnemyAI ai = GetComponent<EnemyAI>();
@@ -228,7 +236,7 @@ public class Unit : MonoBehaviour
         }
     }
 
-    // 0.3: Método estático para verificar si hay una unidad en una celda
+    // 0.3: Metodo estatico para verificar si hay una unidad en una celda
     public static Unit At(Vector2Int cell)
     {
         Unit[] all = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
@@ -238,4 +246,12 @@ public class Unit : MonoBehaviour
         }
         return null;
     }
+
+    // Fase A: actualizar barra de vida visual (para Flagelante e Incensario)
+    public void UpdateHealthBar()
+    {
+        HealthBar2D hb = GetComponent<HealthBar2D>();
+        if (hb != null) hb.UpdateBar(currentHealth, maxHealth);
+    }
 }
+
