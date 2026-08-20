@@ -19,21 +19,15 @@ public class WorldPlayerController : MonoBehaviour
 
     void Update()
     {
-        // Sistema de pausa con ESC (no usa Time.timeScale para que la UI funcione)
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             isPaused = !isPaused;
             if (isPaused)
-            {
                 ShowPauseMenu();
-            }
             else
-            {
                 HidePauseMenu();
-            }
         }
 
-        // No procesar movimiento si está pausado
         if (isPaused) return;
 
         float x = Input.GetAxisRaw("Horizontal");
@@ -48,18 +42,15 @@ public class WorldPlayerController : MonoBehaviour
                 transform.position = newPos;
         }
 
-        // Límites del mundo expandido 120x80
         transform.position = new Vector3(
             Mathf.Clamp(transform.position.x, 0, WorldBootstrap.WorldWidth - 1),
             Mathf.Clamp(transform.position.y, 0, WorldBootstrap.WorldHeight - 1),
             0);
 
-        // Actualizar posición conocida
         WorldBootstrap.LastKnownPosition = new Vector2Int(
             Mathf.RoundToInt(transform.position.x),
             Mathf.RoundToInt(transform.position.y));
 
-        // Cámara sigue al jugador
         if (Camera.main != null)
             Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, -10);
 
@@ -70,13 +61,11 @@ public class WorldPlayerController : MonoBehaviour
     {
         Vector2Int myCell = new Vector2Int(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y));
 
-        // Portal a la ciudad
         if (Mathf.Abs(myCell.x - WorldBootstrap.CityPortal.x) <= 1 &&
             Mathf.Abs(myCell.y - WorldBootstrap.CityPortal.y) <= 1)
         {
             if (Input.GetKeyDown(KeyCode.E))
             {
-                // Autoguardado antes de entrar a la ciudad
                 SaveSystem.Save();
                 PlayerPrefs.SetInt("LastWorldX", myCell.x);
                 PlayerPrefs.SetInt("LastWorldY", myCell.y);
@@ -92,14 +81,13 @@ public class WorldPlayerController : MonoBehaviour
 
     void ShowPauseMenu()
     {
-        // Crear canvas de pausa con sorting order alto
         pauseCanvas = new GameObject("PauseCanvas");
         Canvas canvas = pauseCanvas.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 200;
         pauseCanvas.AddComponent<GraphicRaycaster>();
 
-        // Fondo oscuro semi-transparente
+        // Fondo oscuro semitransparente
         GameObject bg = new GameObject("Background");
         bg.transform.SetParent(pauseCanvas.transform, false);
         RectTransform brt = bg.AddComponent<RectTransform>();
@@ -107,80 +95,54 @@ public class WorldPlayerController : MonoBehaviour
         brt.anchorMax = Vector2.one;
         brt.offsetMin = Vector2.zero;
         brt.offsetMax = Vector2.zero;
-        Image bimg = bg.AddComponent<Image>();
-        bimg.sprite = SpriteFactory.Square();
-        bimg.color = new Color(0f, 0f, 0f, 0.85f);
+        Image bgImg = bg.AddComponent<Image>();
+        bgImg.sprite = SpriteFactory.Square();
+        bgImg.color = new Color(0f, 0f, 0f, 0.75f);
 
-        // Panel central con borde
+        // Panel central (estilo ciudad: marrón cálido, sin borde)
         GameObject panel = new GameObject("Panel");
         panel.transform.SetParent(pauseCanvas.transform, false);
         RectTransform prt = panel.AddComponent<RectTransform>();
         prt.anchorMin = new Vector2(0.5f, 0.5f);
         prt.anchorMax = new Vector2(0.5f, 0.5f);
-        prt.sizeDelta = new Vector2(400, 350);
-        prt.anchoredPosition = Vector2.zero;
-        Image pimg = panel.AddComponent<Image>();
-        pimg.sprite = SpriteFactory.Square();
-        pimg.color = new Color(0.08f, 0.08f, 0.12f, 0.95f);
-
-        // Borde del panel
-        GameObject border = new GameObject("Border");
-        border.transform.SetParent(panel.transform, false);
-        RectTransform brdrt = border.AddComponent<RectTransform>();
-        brdrt.anchorMin = Vector2.zero;
-        brdrt.anchorMax = Vector2.one;
-        brdrt.offsetMin = new Vector2(-4, -4);
-        brdrt.offsetMax = new Vector2(4, 4);
-        Image brdimg = border.AddComponent<Image>();
-        brdimg.sprite = SpriteFactory.Square();
-        brdimg.color = new Color(0.6f, 0.5f, 0.2f, 1f);
+        prt.sizeDelta = new Vector2(400, 320);
+        Image panelImg = panel.AddComponent<Image>();
+        panelImg.sprite = SpriteFactory.Square();
+        panelImg.color = new Color(0.12f, 0.10f, 0.08f, 0.95f);
 
         // Título
-        CreateText(panel.transform, "⚔ PAUSA ⚔", 0, 130, 28, new Color(0.9f, 0.8f, 0.3f));
-        CreateText(panel.transform, "Valle de la Luz Eterna", 0, 95, 16, new Color(0.7f, 0.7f, 0.7f));
+        CreateText(panel.transform, "VALLE DE LA LUZ ETERNA", 0, 110, 24, new Color(1f, 0.9f, 0.4f));
+        CreateText(panel.transform, "— Menú de Pausa —", 0, 80, 14, new Color(0.7f, 0.7f, 0.7f));
 
-        // Separador
-        GameObject sep = new GameObject("Separator");
-        sep.transform.SetParent(panel.transform, false);
-        RectTransform seprt = sep.AddComponent<RectTransform>();
-        seprt.anchorMin = new Vector2(0.5f, 0.5f);
-        seprt.anchorMax = new Vector2(0.5f, 0.5f);
-        seprt.sizeDelta = new Vector2(350, 2);
-        seprt.anchoredPosition = new Vector2(0, 70);
-        Image sepimg = sep.AddComponent<Image>();
-        sepimg.sprite = SpriteFactory.Square();
-        sepimg.color = new Color(0.6f, 0.5f, 0.2f, 0.8f);
-
-        // Botón Guardar Partida
-        CreateButton(panel.transform, "💾 GUARDAR PARTIDA", 0, 30, 300, 50, new Color(0.2f, 0.8f, 0.3f), () =>
-        {
-            SaveSystem.Save();
-            Debug.Log("[Pause] Partida guardada correctamente.");
-            // Feedback visual
-            CreateText(panel.transform, "✓ Guardado", 0, -10, 14, Color.green);
-        });
-
-        // Botón Continuar
-        CreateButton(panel.transform, "▶ CONTINUAR", 0, -40, 300, 50, new Color(0.3f, 0.7f, 0.9f), () =>
+        // Botón CONTINUAR
+        CreateButton(panel.transform, "CONTINUAR", 0, 30, 300, 50, Color.green, () =>
         {
             isPaused = false;
             HidePauseMenu();
         });
 
-        // Botón Salir al Menú Principal
-        CreateButton(panel.transform, "✕ SALIR AL MENÚ", 0, -110, 300, 50, new Color(0.9f, 0.3f, 0.3f), () =>
+        // Botón GUARDAR PARTIDA
+        CreateButton(panel.transform, "GUARDAR PARTIDA", 0, -30, 300, 50, Color.cyan, () =>
         {
-            Debug.Log("[WorldPlayer] Guardado y regresando al menú principal.");
+            SaveSystem.Save();
+            Debug.Log("[WorldPause] Partida guardada correctamente.");
+        });
+
+        // Botón SALIR AL MENÚ PRINCIPAL
+        CreateButton(panel.transform, "SALIR AL MENÚ", 0, -90, 300, 50, new Color(0.9f, 0.3f, 0.3f), () =>
+        {
+            Debug.Log("[WorldPause] Guardado y regresando al menú principal.");
             HidePauseMenu();
             GameFlow.ReturnToMainMenu();
         });
 
-        // Texto de ayuda
-        CreateText(panel.transform, "ESC para cerrar", 0, -160, 12, new Color(0.5f, 0.5f, 0.5f));
+        // Info inferior
+        CreateText(panel.transform, "ESC para cerrar este menú", 0, -140, 12, new Color(0.5f, 0.5f, 0.5f));
     }
 
     void HidePauseMenu()
     {
+        isPaused = false;
         if (pauseCanvas != null)
         {
             Destroy(pauseCanvas);
@@ -196,7 +158,7 @@ public class WorldPlayerController : MonoBehaviour
         rt.anchorMin = new Vector2(0.5f, 0.5f);
         rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = new Vector2(x, y);
-        rt.sizeDelta = new Vector2(400, 40);
+        rt.sizeDelta = new Vector2(380, 40);
         Text t = go.AddComponent<Text>();
         t.text = content;
         t.font = GetFont();
@@ -219,21 +181,9 @@ public class WorldPlayerController : MonoBehaviour
         rt.sizeDelta = new Vector2(w, h);
         Image img = go.AddComponent<Image>();
         img.sprite = SpriteFactory.Square();
-        img.color = new Color(0.15f, 0.15f, 0.2f, 0.9f);
+        img.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
         Button btn = go.AddComponent<Button>();
         btn.onClick.AddListener(onClick);
-
-        // Borde del botón
-        GameObject border = new GameObject("Border");
-        border.transform.SetParent(go.transform, false);
-        RectTransform brdrt = border.AddComponent<RectTransform>();
-        brdrt.anchorMin = Vector2.zero;
-        brdrt.anchorMax = Vector2.one;
-        brdrt.offsetMin = new Vector2(-2, -2);
-        brdrt.offsetMax = new Vector2(2, 2);
-        Image brdimg = border.AddComponent<Image>();
-        brdimg.sprite = SpriteFactory.Square();
-        brdimg.color = new Color(textColor.r, textColor.g, textColor.b, 0.6f);
 
         GameObject txtObj = new GameObject("Label");
         txtObj.transform.SetParent(go.transform, false);
@@ -245,7 +195,7 @@ public class WorldPlayerController : MonoBehaviour
         Text t = txtObj.AddComponent<Text>();
         t.text = label;
         t.font = GetFont();
-        t.fontSize = 18;
+        t.fontSize = 16;
         t.alignment = TextAnchor.MiddleCenter;
         t.color = textColor;
     }
@@ -257,7 +207,6 @@ public class WorldPlayerController : MonoBehaviour
         return f;
     }
 
-    // Autoguardado al cerrar la aplicación
     void OnApplicationQuit()
     {
         SaveSystem.Save();
