@@ -167,11 +167,12 @@ public class WorldPlayerController : MonoBehaviour
             HidePauseMenu();
         });
 
-        // Botón Salir al Menú
+        // Botón Salir al Menú Principal
         CreateButton(panel.transform, "✕ SALIR AL MENÚ", 0, -110, 300, 50, new Color(0.9f, 0.3f, 0.3f), () =>
         {
-            SaveSystem.Save();
-            Application.Quit();
+            Debug.Log("[WorldPlayer] Guardado y regresando al menú principal.");
+            HidePauseMenu();
+            GameFlow.ReturnToMainMenu();
         });
 
         // Texto de ayuda

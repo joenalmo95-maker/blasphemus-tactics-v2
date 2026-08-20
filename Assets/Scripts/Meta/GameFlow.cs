@@ -20,10 +20,12 @@ public static class GameFlow
 {
     public static EnemyTier pendingTier = EnemyTier.Basico;
     public static List<WaveDef> pendingDungeon = null;
-    // 4.1: true si el combate proviene de mundo (spawns/cofres), false si es mazmorra de zona
     public static bool pendingIsWorld = false;
+
+    public const string MainMenuScene = "MainMenu";
     public const string WorldScene = "WorldMap";
     public const string CombatScene = "SampleScene";
+    public const string CityScene = "CityScene";
 
     public static void EnterCombat(EnemyTier tier, List<WaveDef> dungeon)
     {
@@ -31,8 +33,6 @@ public static class GameFlow
         pendingDungeon = dungeon;
         SceneManager.LoadScene(CombatScene);
     }
-
-    public const string CityScene = "CityScene";
 
     public static void EnterCity()
     {
@@ -42,5 +42,11 @@ public static class GameFlow
     public static void ReturnToWorld()
     {
         SceneManager.LoadScene(WorldScene);
+    }
+
+    public static void ReturnToMainMenu()
+    {
+        SaveSystem.Save();
+        SceneManager.LoadScene(MainMenuScene);
     }
 }

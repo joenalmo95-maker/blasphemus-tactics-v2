@@ -111,13 +111,12 @@ public class CityPlayerController : MonoBehaviour
             Debug.Log("[CityPlayer] Partida guardada correctamente.");
         });
 
-        // Botón SALIR AL MUNDO
-        MakeButton(panel.transform, "SALIR AL MUNDO", 0, -90, 300, 50, new Color(1f, 0.6f, 0.2f), () =>
+        // Botón SALIR AL MENÚ PRINCIPAL
+        MakeButton(panel.transform, "✕ SALIR AL MENÚ", 0, -150, 300, 50, new Color(0.9f, 0.3f, 0.3f), () =>
         {
-            SaveSystem.Save();
-            Debug.Log("[CityPlayer] Autoguardado antes de salir de la ciudad.");
+            Debug.Log("[CityPlayer] Guardado y regresando al menú principal.");
             HidePauseMenu();
-            GameFlow.ReturnToWorld();
+            GameFlow.ReturnToMainMenu();
         });
 
         // Info inferior
