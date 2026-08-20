@@ -246,12 +246,5 @@ public class Unit : MonoBehaviour
         }
         return null;
     }
-
-    // Fase A: actualizar barra de vida visual (para Flagelante e Incensario)
-    public void UpdateHealthBar()
-    {
-        HealthBar2D hb = GetComponent<HealthBar2D>();
-        if (hb != null) hb.UpdateBar(currentHealth, maxHealth);
-    }
 }
 

@@ -269,7 +269,7 @@ public class EnemyAI : MonoBehaviour
         {
             int healAmount = Mathf.Min(10, maxWound);
             wounded.currentHealth += healAmount;
-            Debug.Log(unitName + " cura " + healAmount + " HP a " + wounded.unitName + ".");
+            Debug.Log(unitName + " cura " + healAmount + " HP a " + wounded.name + ".");
             yield return new WaitForSeconds(0.4f);
         }
     }
@@ -287,7 +287,7 @@ public class EnemyAI : MonoBehaviour
             {
                 int dmg = u.isEnemy ? 10 : 20; // menos daño a aliados
                 u.currentHealth -= dmg;
-                Debug.Log("Explosión afecta a " + u.unitName + " (-" + dmg + " HP).");
+                Debug.Log("Explosión afecta a " + u.name + " (-" + dmg + " HP).");
                 if (u.currentHealth <= 0 && !u.isEnemy)
                 {
                     Debug.Log("¡El jugador fue derribado por la explosión!");
