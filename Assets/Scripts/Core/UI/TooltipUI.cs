@@ -194,7 +194,11 @@ public class TooltipUI : MonoBehaviour
     {
         if (item == null) return;
 
-        titleText.color = ItemGenerator.RarityColor(item.rarity);
+        Rarity rar = Rarity.Common;
+        if (item.rarity == "Rare") rar = Rarity.Rare;
+        else if (item.rarity == "Epic") rar = Rarity.Epic;
+        else if (item.rarity == "Legendary") rar = Rarity.Legendary;
+        titleText.color = ItemGenerator.RarityColor(rar);
         titleText.text = item.itemName;
 
         string desc = RarityLabel(item.rarity) + " · " + SlotLabel(item.slot);

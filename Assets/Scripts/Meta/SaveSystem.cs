@@ -124,5 +124,5 @@ public class SaveData
     
     // Campos legacy (para compatibilidad)
     public InventorySaveData inventory;
-    public WarehouseSaveData warehouseData;
+    public WarehouseSaveData warehouse;
 }
