@@ -42,7 +42,6 @@ public class DungeonCardUI : MonoBehaviour
     void Rebuild()
     {
         if (root != null) Destroy(root);
-
         if (FindAnyObjectByType<EventSystem>() == null)
         {
             GameObject es = new GameObject("EventSystem");
@@ -53,7 +52,7 @@ public class DungeonCardUI : MonoBehaviour
         root = new GameObject("DungeonCardCanvas");
         Canvas canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 99;
+        canvas.sortingOrder = 97;
         root.AddComponent<GraphicRaycaster>();
 
         GameObject bg = new GameObject("Background");
@@ -70,21 +69,20 @@ public class DungeonCardUI : MonoBehaviour
         if (zone == null) { Close(); return; }
 
         MakeText(root.transform, "TARJETA DE MAZMORRA", 0, 250, 22, Color.white);
-        MakeText(root.transform, zone.name + "  [" + zone.tier + "]", 0, 210, 20, Color.magenta);
+        MakeText(root.transform, zone.name + " [" + zone.tier + "]", 0, 210, 20, Color.magenta);
         MakeText(root.transform, "Entradas de hoy: " + DungeonDaily.Count + "/" + DungeonDaily.MaxPerDay
-            + "  ·  Restantes: " + DungeonDaily.Remaining(), 0, 178, 15, Color.yellow);
+            + " · Restantes: " + DungeonDaily.Remaining(), 0, 178, 15, Color.yellow);
 
         StringBuilder sb = new StringBuilder();
         int totalXp = 0;
         int gmin = 0;
         int gmax = 0;
-
         for (int i = 0; i < zone.dungeon.Count; i++)
         {
             sb.AppendLine("Oleada " + (i + 1) + ":");
-            foreach (SpawnDef sp in zone.dungeon[i].spawns)
+            foreach (WorldBootstrap.SpawnDef sp in zone.dungeon[i].spawns)
             {
-                sb.AppendLine("   - " + sp.archetype + " (" + sp.tier + ")");
+                sb.AppendLine("  - " + sp.archetype + " (" + sp.tier + ")");
                 totalXp += LootSystem.XpForTier(sp.tier);
                 LootSystem.GoldRange(sp.tier, out int a, out int b);
                 gmin += a;
@@ -102,38 +100,8 @@ public class DungeonCardUI : MonoBehaviour
             Close();
             if (cb != null) cb();
         });
+
         MakeButton(root.transform, "CANCELAR", 110, -200, 200, 44, Color.red, () => Close());
-    }
-
-    void MakeButton(Transform parent, string label, float x, float y, float w, float h, Color textColor,
-        UnityEngine.Events.UnityAction onClick)
-    {
-        GameObject go = new GameObject("Btn");
-        go.transform.SetParent(parent, false);
-        RectTransform rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.5f, 0.5f);
-        rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(x, y);
-        rt.sizeDelta = new Vector2(w, h);
-        Image img = go.AddComponent<Image>();
-        img.sprite = SpriteFactory.Square();
-        img.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
-        Button btn = go.AddComponent<Button>();
-
-        GameObject txtObj = new GameObject("Label");
-        txtObj.transform.SetParent(go.transform, false);
-        RectTransform trt = txtObj.AddComponent<RectTransform>();
-        trt.anchorMin = Vector2.zero;
-        trt.anchorMax = Vector2.one;
-        trt.offsetMin = Vector2.zero;
-        trt.offsetMax = Vector2.zero;
-        Text t = txtObj.AddComponent<Text>();
-        t.text = label;
-        t.font = GetFont();
-        t.fontSize = 16;
-        t.alignment = TextAnchor.MiddleCenter;
-        t.color = textColor;
-        btn.onClick.AddListener(onClick);
     }
 
     void MakeText(Transform parent, string content, float x, float y, int size, Color color)
@@ -156,9 +124,41 @@ public class DungeonCardUI : MonoBehaviour
         t.fontSize = size;
         t.alignment = TextAnchor.MiddleCenter;
         t.color = color;
+        t.horizontalOverflow = HorizontalWrapMode.Wrap;
+        t.verticalOverflow = VerticalWrapMode.Overflow;
     }
 
-    Font GetFont()
+    void MakeButton(Transform parent, string label, float x, float y, float w, float h, Color textColor,
+        UnityEngine.Events.UnityAction onClick)
+    {
+        GameObject go = new GameObject("Btn");
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(x, y);
+        rt.sizeDelta = new Vector2(w, h);
+        Image img = go.AddComponent<Image>();
+        img.sprite = SpriteFactory.Square();
+        img.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
+        Button btn = go.AddComponent<Button>();
+        btn.onClick.AddListener(onClick);
+        GameObject txtObj = new GameObject("Label");
+        txtObj.transform.SetParent(go.transform, false);
+        RectTransform trt = txtObj.AddComponent<RectTransform>();
+        trt.anchorMin = Vector2.zero;
+        trt.anchorMax = Vector2.one;
+        trt.offsetMin = Vector2.zero;
+        trt.offsetMax = Vector2.zero;
+        Text t = txtObj.AddComponent<Text>();
+        t.text = label;
+        t.font = GetFont();
+        t.fontSize = 16;
+        t.alignment = TextAnchor.MiddleCenter;
+        t.color = textColor;
+    }
+
+    static Font GetFont()
     {
         Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");

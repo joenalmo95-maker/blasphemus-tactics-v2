@@ -145,7 +145,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 296376865}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 98d46884ff9cfe341967f314ffd4b796, type: 3}
+  m_Script: {fileID: 11500000, guid: 9473b127aacccff4b887f22ed87fcc5e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CityBootstrap
 --- !u!4 &296376868

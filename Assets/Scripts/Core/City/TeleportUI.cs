@@ -83,7 +83,7 @@ public class TeleportUI : MonoBehaviour
             float lx = ((z.center.x + 0.5f) / w - 0.5f) * FULL_W;
             float ly = ((z.center.y + 0.5f) / h - 0.5f) * FULL_H;
             WorldBootstrap.ZoneDef captured = z;
-
+            
             GameObject btnObj = new GameObject("ZoneBtn_" + z.name);
             btnObj.transform.SetParent(imgRt, false);
             RectTransform brt = btnObj.AddComponent<RectTransform>();

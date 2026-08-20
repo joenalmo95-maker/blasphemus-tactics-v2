@@ -106,7 +106,12 @@ public class CombatController : MonoBehaviour
             Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             Vector2Int cell = new Vector2Int(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
             Unit target = Pathfinding.UnitAt(cell);
-
+            // FIX 1: rango 0 = autocast sobre sí mismo; apoyo sobre aliado/uno mismo
+            if (armedSkill.range <= 0) target = playerUnit;
+            if (target != null && !target.isEnemy)
+            {
+                TryCastSupport(target);
+            }
             if (target != null && target.isEnemy)
             {
                 // Distancia Chebyshev (diagonal = 1)
@@ -139,10 +144,13 @@ public class CombatController : MonoBehaviour
 
                     if (hit) ResolveEffectKey(target);
 
-                    if (LoadoutSystem.UltimateId() != "" && SkillPool.Get(LoadoutSystem.UltimateId()) == armedSkill)
+                    // FIX: cooldown del ultimate por ID (no por referencia) + CD por defecto 3
+                    string usedId = ArmedSkillId();
+                    if (usedId != "" && usedId == LoadoutSystem.UltimateId())
                     {
-                        SkillMeta meta = SkillPool.Meta(LoadoutSystem.UltimateId());
-                        ultimateCooldown = meta.cooldown;
+                        SkillMeta meta = SkillPool.Meta(usedId);
+                        ultimateCooldown = (meta != null && meta.cooldown > 0) ? meta.cooldown : 3;
+                        Debug.Log("[Cooldown] Ultimate en CD: " + ultimateCooldown + " turnos.");
                     }
 
                     // 2.1: progreso de misiones
@@ -384,6 +392,42 @@ public class CombatController : MonoBehaviour
     {
         return new Vector2Int(v.x > 0 ? 1 : v.x < 0 ? -1 : 0, v.y > 0 ? 1 : v.y < 0 ? -1 : 0);
     }
+    // FIX 1: uso propio/aliados (curación/buff)
+    void TryCastSupport(Unit target)
+    {
+        int dist = Mathf.Abs(target.currentGridPos.x - playerUnit.currentGridPos.x) +
+                   Mathf.Abs(target.currentGridPos.y - playerUnit.currentGridPos.y);
+        if (target != playerUnit && dist > armedSkill.range)
+        {
+            Debug.Log("Aliado fuera de rango.");
+            return;
+        }
+        if (playerUnit.currentAP < armedSkill.actionPointCost)
+        {
+            Debug.Log("AP insuficientes.");
+            return;
+        }
+        playerUnit.currentAP -= armedSkill.actionPointCost;
+
+        SkillMeta meta = SkillPool.Meta(ArmedSkillId());
+        if (meta != null && meta.heal > 0)
+        {
+            target.Heal(meta.heal + playerUnit.stats.healingPower / 2);
+        }
+        if (meta != null && meta.effectKey == "buff")
+        {
+            target.AddBuff(2, 2, 5, 3);
+        }
+        else if (meta == null || meta.heal <= 0)
+        {
+            target.AddBuff(2, 0, 0, 3); // buff genérico si la skill no define efecto
+        }
+
+            QuestSystem.NotifySkillUsed();
+            Debug.Log(armedSkill.skillName + " usado sobre " + target.gameObject.name + ". AP: " + playerUnit.currentAP);
+            armedSkill = null;
+    }
+
 
     int CalculatePassiveBonus()
     {

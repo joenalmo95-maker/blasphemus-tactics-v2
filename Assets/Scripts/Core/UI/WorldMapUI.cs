@@ -45,12 +45,7 @@ public class WorldMapUI : MonoBehaviour
         foreach (WorldBootstrap.ZoneDef z in WorldBootstrap.Zones)
         {
             if (z.center.x >= 0 && z.center.x < W && z.center.y >= 0 && z.center.y < H)
-            {
-                // 5.3: zonas de jefe en ROJO en minimapa y mapa completo
-                px[z.center.y * W + z.center.x] = ObjectiveSystem.HasBoss(z)
-                    ? new Color(0.95f, 0.15f, 0.15f)
-                    : new Color(0.70f, 0.30f, 0.90f);
-            }
+                px[z.center.y * W + z.center.x] = new Color(0.70f, 0.30f, 0.90f);
         }
 
         mapTex.SetPixels(px);

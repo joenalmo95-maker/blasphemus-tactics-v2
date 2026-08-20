@@ -241,7 +241,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 669588797}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f287dba59252444eb5914a9a60deb9e, type: 3}
+  m_Script: {fileID: 11500000, guid: c8793f508cb512c468e1107bbf2b66c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InputController
 --- !u!114 &669588800
@@ -253,7 +253,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 669588797}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6ba50f5cc6be6e64bad96d2fa38d031f, type: 3}
+  m_Script: {fileID: 11500000, guid: 3a3ef36e68923fc48900b977a7554fcb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
   gridWidth: 10
@@ -282,7 +282,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 669588797}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c6d9a627216174c49833cbb5a61633a6, type: 3}
+  m_Script: {fileID: 11500000, guid: 7563dc9b27220034c899544d6943e733, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TurnManager
   currentState: 0
@@ -295,11 +295,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 669588797}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b3a1cba1f1cfc084e990f074e447230e, type: 3}
+  m_Script: {fileID: 11500000, guid: 6167ff6aecacdcf488f9ff061b9617f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatController
-  basicAttack: {fileID: 11400000, guid: 7b98058f97cc187449724bfadd8a92cd, type: 2}
-  rangedAttack: {fileID: 11400000, guid: 50b0de6957435e748b1f3672b918f637, type: 2}
 --- !u!114 &669588804
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -309,13 +307,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 669588797}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 246ab4fb7f918294f972a59876dbf509, type: 3}
+  m_Script: {fileID: 11500000, guid: 14c846675236a8d4fa57eadcb6c23d48, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bootstrap
-  availableClasses:
-  - {fileID: 11400000, guid: cbc92553655b8274798989452fff954c, type: 2}
-  - {fileID: 11400000, guid: 56022bb516103424faff227149e6da92, type: 2}
-  - {fileID: 11400000, guid: 428183bfc0f07f04292dc516847dd62e, type: 2}
+  availableClasses: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

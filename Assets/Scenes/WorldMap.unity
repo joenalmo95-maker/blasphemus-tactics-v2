@@ -237,13 +237,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 2114123911}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 10c1a431773863a49bc3ee507aecdf09, type: 3}
+  m_Script: {fileID: 11500000, guid: 0526ccf72ddee1c419a6f3e2046a3fc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WorldBootstrap
-  availableClasses:
-  - {fileID: 11400000, guid: cbc92553655b8274798989452fff954c, type: 2}
-  - {fileID: 11400000, guid: 56022bb516103424faff227149e6da92, type: 2}
-  - {fileID: 11400000, guid: 428183bfc0f07f04292dc516847dd62e, type: 2}
 --- !u!4 &2114123913
 Transform:
   m_ObjectHideFlags: 0

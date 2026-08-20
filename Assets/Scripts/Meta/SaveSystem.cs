@@ -104,10 +104,7 @@ public class SaveData
     public System.Collections.Generic.List<ItemData> equipped = new System.Collections.Generic.List<ItemData>();
     public System.Collections.Generic.List<ConsumableData> consumables = new System.Collections.Generic.List<ConsumableData>();
     
-    // Campos para WarehouseSystem
-    public System.Collections.Generic.List<ItemData> warehouse = new System.Collections.Generic.List<ItemData>();
-    
-    // Campos para LoadoutSystem
+        // Campos para LoadoutSystem
     public System.Collections.Generic.List<string> learnedSkills;
     public System.Collections.Generic.List<string> activeSkills;
     public string ultimateSkill = "";

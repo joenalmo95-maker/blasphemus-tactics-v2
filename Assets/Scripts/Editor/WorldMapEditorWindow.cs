@@ -5,71 +5,38 @@ using System.Text;
 
 public class WorldMapEditorWindow : EditorWindow
 {
-    // Debe coincidir con WorldBootstrap.WorldWidth/WorldHeight
-    private const int W = 60;
-    private const int H = 40;
-    private const float CELL = 12f;
-
+    // 0.1: Actualizado a 120x80
+    private const int W = 120;
+    private const int H = 80;
+    private const float CELL = 6f; // Reducido para que quepa en pantalla
     private readonly char[,] grid = new char[W, H];
-    private int tool = 1; // 0 caminable (borrador), 1 roca, 2 agua, 3 ruinas
+    private int tool = 1; // 0 caminable, 1 roca, 2 agua, 3 ruinas, 4 bloqueado
     private Vector2 scroll;
     private bool painting;
 
-    static readonly char[] ToolChars = { '.', 'R', 'W', 'U' };
-    static readonly string[] ToolNames = { "Borrador", "Roca", "Agua", "Ruinas" };
+    static readonly char[] ToolChars = { '.', '#', '~', 'R', 'X' };
+    static readonly string[] ToolNames = { "Pasto", "Roca", "Agua", "Ruinas", "Bloqueado" };
+    static readonly Color[] ToolColors = {
+        new Color(0.3f, 0.6f, 0.3f),
+        new Color(0.5f, 0.5f, 0.5f),
+        new Color(0.2f, 0.4f, 0.8f),
+        new Color(0.6f, 0.4f, 0.3f),
+        new Color(0.2f, 0.2f, 0.2f)
+    };
 
     [MenuItem("Tools/World Map Editor")]
     static void Open()
     {
-        var win = GetWindow<WorldMapEditorWindow>("World Map Editor");
-        win.minSize = new Vector2(900, 700);
-        win.Load();
+        GetWindow<WorldMapEditorWindow>("World Map Editor");
     }
 
-    void OnEnable() { Load(); }
-
-    string FilePath => Path.Combine(Application.dataPath, "Resources/WorldMapData.txt");
-
-    void Load()
+    void OnEnable()
     {
-        for (int x = 0; x < W; x++)
-            for (int y = 0; y < H; y++)
-                grid[x, y] = '.';
-
-        if (!File.Exists(FilePath)) return;
-
-        string[] lines = File.ReadAllLines(FilePath);
-        for (int i = 0; i < lines.Length; i++)
-        {
-            int y = H - 1 - i; // fila 0 del archivo = borde superior (y máximo)
-            if (y < 0) break;
-            string line = lines[i].TrimEnd('\r');
-            for (int x = 0; x < W && x < line.Length; x++)
-            {
-                char c = line[x];
-                grid[x, y] = (c == 'R' || c == 'W' || c == 'U') ? c : '.';
-            }
-        }
-    }
-
-    void Save()
-    {
-        Directory.CreateDirectory(Path.Combine(Application.dataPath, "Resources"));
-        StringBuilder sb = new StringBuilder();
-        for (int y = H - 1; y >= 0; y--)
-        {
-            for (int x = 0; x < W; x++) sb.Append(grid[x, y]);
-            sb.AppendLine();
-        }
-        File.WriteAllText(FilePath, sb.ToString());
-        AssetDatabase.Refresh();
-        Debug.Log("[WorldMapEditor] WorldMapData.txt guardado en Assets/Resources.");
+        Load();
     }
 
     void OnGUI()
     {
-        GUILayout.Label("Editor de Mapa Mundial (60x40) — pinte con clic/arrastre", EditorStyles.boldLabel);
-
         GUILayout.BeginHorizontal(EditorStyles.toolbar);
         for (int i = 0; i < ToolNames.Length; i++)
         {
@@ -79,53 +46,102 @@ public class WorldMapEditorWindow : EditorWindow
         GUILayout.FlexibleSpace();
         if (GUILayout.Button("Guardar", EditorStyles.toolbarButton, GUILayout.Width(90))) Save();
         if (GUILayout.Button("Recargar", EditorStyles.toolbarButton, GUILayout.Width(90))) Load();
-        if (GUILayout.Button("Limpiar", EditorStyles.toolbarButton, GUILayout.Width(90)))
+        if (GUILayout.Button("Limpiar Región I", EditorStyles.toolbarButton, GUILayout.Width(120)))
         {
-            for (int x = 0; x < W; x++) for (int y = 0; y < H; y++) grid[x, y] = '.';
+            for (int x = 0; x < 60; x++)
+                for (int y = 0; y < 40; y++)
+                    grid[x, y] = '.';
+        }
+        if (GUILayout.Button("Bloquear Todo", EditorStyles.toolbarButton, GUILayout.Width(100)))
+        {
+            for (int x = 0; x < W; x++)
+                for (int y = 0; y < H; y++)
+                    grid[x, y] = 'X';
         }
         GUILayout.EndHorizontal();
 
-        GUILayout.Label("Leyenda: gris=Roca, azul=Agua, marrón=Ruinas. El juego carga este mapa al iniciar WorldMap.", EditorStyles.miniLabel);
-
         scroll = GUILayout.BeginScrollView(scroll);
-        Rect area = GUILayoutUtility.GetRect(W * CELL, H * CELL, GUILayout.ExpandWidth(false));
-        EditorGUI.DrawRect(area, new Color(0.12f, 0.12f, 0.12f));
+        Rect area = GUILayoutUtility.GetRect(W * CELL, H * CELL);
 
-        for (int y = 0; y < H; y++)
+        Event e = Event.current;
+        if (e.type == EventType.MouseDown || (e.type == EventType.MouseDrag && e.button == 0))
+            painting = true;
+        if (e.type == EventType.MouseUp)
+            painting = false;
+
+        if (painting && area.Contains(e.mousePosition))
         {
-            for (int x = 0; x < W; x++)
+            int gx = Mathf.FloorToInt((e.mousePosition.x - area.x) / CELL);
+            int gy = H - 1 - Mathf.FloorToInt((e.mousePosition.y - area.y) / CELL);
+            if (gx >= 0 && gx < W && gy >= 0 && gy < H)
             {
+                grid[gx, gy] = ToolChars[tool];
+                Repaint();
+            }
+        }
+
+        for (int x = 0; x < W; x++)
+        {
+            for (int y = 0; y < H; y++)
+            {
+                Rect r = new Rect(area.x + x * CELL, area.y + (H - 1 - y) * CELL, CELL, CELL);
                 char c = grid[x, y];
-                if (c == '.') continue;
-                Color col = c == 'R' ? new Color(0.55f, 0.55f, 0.6f)
-                          : c == 'W' ? new Color(0.15f, 0.4f, 0.8f)
-                          : new Color(0.55f, 0.42f, 0.28f);
-                EditorGUI.DrawRect(CellRect(area, x, y), col);
+                Color col = Color.black;
+                switch (c)
+                {
+                    case '.': col = new Color(0.3f, 0.6f, 0.3f); break;
+                    case '#': col = new Color(0.5f, 0.5f, 0.5f); break;
+                    case '~': col = new Color(0.2f, 0.4f, 0.8f); break;
+                    case 'R': col = new Color(0.6f, 0.4f, 0.3f); break;
+                    case 'T': col = new Color(0.1f, 0.4f, 0.1f); break;
+                    case 'B': col = new Color(0.6f, 0.5f, 0.3f); break;
+                    case 'P': col = new Color(0.2f, 0.8f, 0.2f); break;
+                    case 'X': col = new Color(0.2f, 0.2f, 0.2f); break;
+                }
+                EditorGUI.DrawRect(r, col);
             }
         }
 
-        if (area.Contains(Event.current.mousePosition))
-        {
-            if (Event.current.type == EventType.MouseDown && Event.current.button == 0) painting = true;
-            if (Event.current.type == EventType.MouseUp) painting = false;
-
-            if (painting && (Event.current.type == EventType.MouseDrag || Event.current.type == EventType.MouseDown))
-            {
-                int cx = Mathf.Clamp((int)((Event.current.mousePosition.x - area.x) / CELL), 0, W - 1);
-                int cy = Mathf.Clamp((int)((area.y + area.height - Event.current.mousePosition.y) / CELL), 0, H - 1);
-                grid[cx, cy] = ToolChars[tool];
-                Event.current.Use();
-            }
-        }
-
-        if (Event.current.type == EventType.MouseUp) painting = false;
         GUILayout.EndScrollView();
-
-        Repaint();
     }
 
-    Rect CellRect(Rect area, int x, int y)
+    void Save()
     {
-        return new Rect(area.x + x * CELL, area.y + area.height - (y + 1) * CELL, CELL - 1, CELL - 1);
+        string path = Path.Combine(Application.dataPath, "Resources", "WorldMapData.txt");
+        StringBuilder sb = new StringBuilder();
+        for (int y = H - 1; y >= 0; y--)
+        {
+            for (int x = 0; x < W; x++)
+                sb.Append(grid[x, y]);
+            if (y > 0) sb.AppendLine();
+        }
+        File.WriteAllText(path, sb.ToString());
+        Debug.Log("[WorldMapEditor] Guardado: " + path);
+        AssetDatabase.Refresh();
+    }
+
+    void Load()
+    {
+        string path = Path.Combine(Application.dataPath, "Resources", "WorldMapData.txt");
+        if (!File.Exists(path))
+        {
+            for (int x = 0; x < W; x++)
+                for (int y = 0; y < H; y++)
+                    grid[x, y] = 'X';
+            return;
+        }
+
+        string[] lines = File.ReadAllLines(path);
+        if (lines.Length != H || lines[0].Length != W)
+        {
+            Debug.LogWarning("[WorldMapEditor] Archivo con tamaño incorrecto. Se cargará parcialmente.");
+        }
+
+        for (int y = 0; y < H && y < lines.Length; y++)
+        {
+            string line = lines[lines.Length - 1 - y];
+            for (int x = 0; x < W && x < line.Length; x++)
+                grid[x, y] = line[x];
+        }
     }
 }

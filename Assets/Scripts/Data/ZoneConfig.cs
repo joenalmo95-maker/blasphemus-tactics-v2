@@ -31,19 +31,18 @@ public static class ZoneConfigLoader
                     z.name = zc.name;
                     z.center = new Vector2Int(zc.x, zc.y);
                     z.tier = ParseTier(zc.tier, EnemyTier.Basico);
-                    z.dungeon = new List<WaveDef>();
-
+                    z.dungeon = new List<WorldBootstrap.WaveDef>();
                     if (zc.waves != null)
                     {
                         foreach (WaveConfig wc in zc.waves)
                         {
-                            WaveDef wd = new WaveDef();
-                            wd.spawns = new List<SpawnDef>();
+                            WorldBootstrap.WaveDef wd = new WorldBootstrap.WaveDef();
+                            wd.spawns = new List<WorldBootstrap.SpawnDef>();
                             if (wc.spawns != null)
                             {
                                 foreach (SpawnConfig sc in wc.spawns)
                                 {
-                                    wd.spawns.Add(new SpawnDef
+                                    wd.spawns.Add(new WorldBootstrap.SpawnDef
                                     {
                                         archetype = sc.archetype,
                                         tier = ParseTier(sc.tier, z.tier),
@@ -63,11 +62,13 @@ public static class ZoneConfigLoader
         return list;
     }
 
-    static EnemyTier ParseTier(string s, EnemyTier def)
+    static EnemyTier ParseTier(string s, EnemyTier fallback)
     {
-        EnemyTier t;
-        if (!string.IsNullOrEmpty(s) && System.Enum.TryParse(s, true, out t)) return t;
-        return def;
+        if (string.IsNullOrEmpty(s)) return fallback;
+        if (s.ToLower().Contains("jefe") || s.ToLower().Contains("boss")) return EnemyTier.Jefe;
+        if (s.ToLower().Contains("elite")) return EnemyTier.Elite;
+        if (s.ToLower().Contains("medio")) return EnemyTier.Medio;
+        return EnemyTier.Basico;
     }
 
     static List<WorldBootstrap.ZoneDef> DefaultZones()
@@ -78,16 +79,16 @@ public static class ZoneConfigLoader
             name = "Cripta de los Penitentes",
             center = new Vector2Int(10, 8),
             tier = EnemyTier.Basico,
-            dungeon = new List<WaveDef>
+            dungeon = new List<WorldBootstrap.WaveDef>
             {
-                new WaveDef { spawns = new List<SpawnDef> { S("penitent", EnemyTier.Basico, 7, 4) } }
+                new WorldBootstrap.WaveDef { spawns = new List<WorldBootstrap.SpawnDef> { S("penitent", EnemyTier.Basico, 7, 4) } }
             }
         });
         return d;
     }
 
-    static SpawnDef S(string archetype, EnemyTier tier, int x, int y)
+    static WorldBootstrap.SpawnDef S(string archetype, EnemyTier tier, int x, int y)
     {
-        return new SpawnDef { archetype = archetype, tier = tier, cell = new Vector2Int(x, y) };
+        return new WorldBootstrap.SpawnDef { archetype = archetype, tier = tier, cell = new Vector2Int(x, y) };
     }
 }
