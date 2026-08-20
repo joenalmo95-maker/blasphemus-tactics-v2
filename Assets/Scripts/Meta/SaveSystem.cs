@@ -3,6 +3,7 @@ using System.IO;
 
 public static class SaveSystem
 {
+    public static bool HasLoadedThisSession = false;  // ← AGREGAR ESTA LÍNEA
     static string Path => System.IO.Path.Combine(Application.persistentDataPath, "save.json");
 
     public static void Save()
@@ -33,6 +34,8 @@ public static class SaveSystem
 
     public static void Load()
     {
+        if (HasLoadedThisSession) return;  // ← AGREGAR ESTA LÍNEA AL INICIO
+        
         if (!File.Exists(Path))
         {
             Debug.Log("[SaveSystem] No hay save. Creando nuevo.");
@@ -72,6 +75,8 @@ public static class SaveSystem
         }
 
         Debug.Log("[SaveSystem] Cargado: " + data.playerName + " nivel " + data.level);
+        HasLoadedThisSession = true;  // ← AGREGAR ESTA LÍNEA AL FINAL
+
     }
 
     public static bool HasSave()

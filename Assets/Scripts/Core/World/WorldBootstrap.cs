@@ -101,6 +101,10 @@ public class WorldBootstrap : MonoBehaviour
         BuildWorld();
         SpawnPlayer();
         BuildUI();
+        if (!SaveSystem.HasLoadedThisSession && SaveSystem.HasSave())
+        {
+            SaveSystem.Load();
+        }
     }
 
     void EnsureWorldMapExists()
@@ -320,5 +324,9 @@ public class WorldBootstrap : MonoBehaviour
             new GameObject("ActionBarUI").AddComponent<ActionBarUI>();
         if (Object.FindAnyObjectByType<WorldMapUI>() == null)
             new GameObject("WorldMapUI").AddComponent<WorldMapUI>();
+        
+        // FIX: Agregar InventoryUI para que funcione en el mundo
+        if (Object.FindAnyObjectByType<InventoryUI>() == null)
+            new GameObject("InventoryUI").AddComponent<InventoryUI>();
     }
 }
