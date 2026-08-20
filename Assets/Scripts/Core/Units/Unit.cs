@@ -227,4 +227,15 @@ public class Unit : MonoBehaviour
             spriteRenderer.color = current;
         }
     }
+
+    // 0.3: Método estático para verificar si hay una unidad en una celda
+    public static Unit At(Vector2Int cell)
+    {
+        Unit[] all = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        foreach (Unit u in all)
+        {
+            if (u.currentGridPos == cell) return u;
+        }
+        return null;
+    }
 }

@@ -195,4 +195,35 @@ public class InventorySystem : MonoBehaviour
             }
         }
     }
+
+    // 0.3: Método Serialize para SaveSystem
+    public InventorySaveData Serialize()
+    {
+        InventorySaveData data = new InventorySaveData();
+        data.items = items;
+        data.consumables = consumables;
+        data.equippedWeapon = GetEquipped(ItemSlot.Weapon);
+        data.equippedChest = GetEquipped(ItemSlot.Chest);
+        data.equippedLegs = GetEquipped(ItemSlot.Legs);
+        data.equippedHelm = GetEquipped(ItemSlot.Helm);
+        data.equippedGloves = GetEquipped(ItemSlot.Gloves);
+        return data;
+    }
+
+    // 0.3: Método Deserialize para SaveSystem
+    public void Deserialize(InventorySaveData data)
+    {
+        if (data == null) return;
+        items = data.items != null ? data.items : new List<ItemData>();
+        consumables = data.consumables != null ? data.consumables : new List<ConsumableData>();
+        equipped.Clear();
+        if (data.equippedWeapon != null) equipped[ItemSlot.Weapon] = data.equippedWeapon;
+        if (data.equippedChest != null) equipped[ItemSlot.Chest] = data.equippedChest;
+        if (data.equippedLegs != null) equipped[ItemSlot.Legs] = data.equippedLegs;
+        if (data.equippedHelm != null) equipped[ItemSlot.Helm] = data.equippedHelm;
+        if (data.equippedGloves != null) equipped[ItemSlot.Gloves] = data.equippedGloves;
+        ApplyToUnit();
+    }
+
 }
+  

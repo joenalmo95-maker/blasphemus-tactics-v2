@@ -286,7 +286,11 @@ public class TrainerUI : MonoBehaviour
         t.font = GetFont();
         t.fontSize = 13;
         t.alignment = TextAnchor.MiddleLeft;
-        t.color = ItemGenerator.RarityColor(meta.rarity);
+        Rarity rar = Rarity.Common;
+        if (meta.rarity == "Rare") rar = Rarity.Rare;
+        else if (meta.rarity == "Epic") rar = Rarity.Epic;
+        else if (meta.rarity == "Legendary") rar = Rarity.Legendary;
+        t.color = ItemGenerator.RarityColor(rar);
 
         float bx = 250;
         if (!LoadoutSystem.IsLearned(id))

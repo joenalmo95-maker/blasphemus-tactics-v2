@@ -9,9 +9,10 @@ public class CharacterCreationUI : MonoBehaviour
     public bool showContinue = false;
     public System.Action onFinished;
 
-    private GameObject canvasObj;
+    private GameObject root;
+    private int selectedClassIndex = 0;
 
-    public void Build()
+    void Awake()
     {
         if (FindAnyObjectByType<EventSystem>() == null)
         {
@@ -19,105 +20,95 @@ public class CharacterCreationUI : MonoBehaviour
             es.AddComponent<EventSystem>();
             es.AddComponent<StandaloneInputModule>();
         }
+    }
 
-        canvasObj = new GameObject("CreationCanvas");
-        Canvas canvas = canvasObj.AddComponent<Canvas>();
+    void Update()
+    {
+        if (root != null && root.activeSelf && Input.GetKeyDown(KeyCode.Escape))
+        {
+            Close();
+        }
+    }
+
+    public void Build()
+    {
+        if (root != null) Destroy(root);
+
+        root = new GameObject("CharacterCreationCanvas");
+        Canvas canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 100;
-        canvasObj.AddComponent<GraphicRaycaster>();
+        canvas.sortingOrder = 99;
+        root.AddComponent<GraphicRaycaster>();
 
-        GameObject panel = new GameObject("Background");
-        panel.transform.SetParent(canvasObj.transform, false);
-        RectTransform prt = panel.AddComponent<RectTransform>();
-        prt.anchorMin = Vector2.zero;
-        prt.anchorMax = Vector2.one;
-        prt.offsetMin = Vector2.zero;
-        prt.offsetMax = Vector2.zero;
-        Image pimg = panel.AddComponent<Image>();
-        pimg.sprite = SpriteFactory.Square();
-        pimg.color = new Color(0.02f, 0.02f, 0.03f, 0.92f);
+        GameObject bg = new GameObject("Background");
+        bg.transform.SetParent(root.transform, false);
+        RectTransform brt = bg.AddComponent<RectTransform>();
+        brt.anchorMin = Vector2.zero;
+        brt.anchorMax = Vector2.one;
+        brt.offsetMin = Vector2.zero;
+        brt.offsetMax = Vector2.zero;
+        Image bimg = bg.AddComponent<Image>();
+        bimg.sprite = SpriteFactory.Square();
+        bimg.color = new Color(0.02f, 0.02f, 0.03f, 0.95f);
 
-        CreateText(canvasObj.transform, "ELIGE TU CLASE", 200, 32);
+        MakeText(root.transform, "LA LITURGIA DEL CIELO", 0, 200, 32, Color.white);
+        MakeText(root.transform, "VALERIUS — Inquisidor del Bastión de San Veritas", 0, 150, 20, Color.yellow);
+        MakeText(root.transform, "Un único protagonista. Tu espada. Tu fe. Tu verdad.", 0, 100, 16, new Color(0.8f, 0.8f, 0.8f));
 
-        float y = 120;
+        MakeButton(root.transform, "COMENZAR CRUZADA", 0, -50, 400, 60, Color.green, () =>
+        {
+            if (CharacterData.Instance != null)
+            {
+                if (CharacterData.Instance.classData == null)
+                {
+                    CharacterData.Instance.classData = ScriptableObject.CreateInstance<ClassData>();
+                    CharacterData.Instance.classData.className = "Inquisidor";
+                    CharacterData.Instance.classData.role = ClassRole.DPS;
+                }
+            }
+            Close();
+            if (onFinished != null) onFinished();
+        });
 
         if (showContinue)
         {
-            CreateButton(canvasObj.transform, "CONTINUAR PARTIDA", y, Color.green, () => OnContinue());
-            y -= 50;
-            CreateText(canvasObj.transform, "— o nueva partida —", y, 14);
-            y -= 40;
-        }
-        else
-        {
-            y = 60;
+            MakeButton(root.transform, "CONTINUAR PARTIDA", 0, -130, 400, 60, Color.cyan, () =>
+            {
+                SaveSystem.Load();
+                Close();
+                if (onFinished != null) onFinished();
+            });
         }
 
-        foreach (ClassData cd in availableClasses)
-        {
-            ClassData captured = cd;
-            CreateButton(canvasObj.transform, cd.className + " (" + RoleLabel(cd.role) + ")", y, Color.white,
-                () => OnClassSelected(captured));
-            y -= 60;
-        }
-
-        CreateText(canvasObj.transform, "El destino del Renacido depende de tu elección.", -200, 16);
+        MakeText(root.transform, "v0.3 — Valle de la Luz Eterna (Región I)", 0, -250, 12, new Color(0.5f, 0.5f, 0.5f));
     }
 
-    string RoleLabel(ClassRole role)
+    void Close()
     {
-        switch (role)
-        {
-            case ClassRole.Tank: return "Tanque";
-            case ClassRole.Healer: return "Sanador";
-            default: return "DPS";
-        }
+        if (root != null) Destroy(root);
+        root = null;
     }
 
-    void OnContinue()
+    void MakeText(Transform parent, string content, float x, float y, int size, Color color)
     {
-        SaveData data = SaveSystem.Load();
-        if (data == null) return;
-
-        Debug.Log("[Creation] Continuando partida guardada: " + data.className + " Nv " + data.level);
-
-        if (CharacterData.Instance != null)
-        {
-            CharacterData.Instance.LoadFrom(data, availableClasses);
-        }
-
-        if (InventorySystem.Instance != null)
-        {
-            InventorySystem.Instance.LoadFrom(data);
-        }
-
-        FinishCreation();
+        GameObject go = new GameObject("Text");
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(x, y);
+        rt.sizeDelta = new Vector2(900, 40);
+        Text t = go.AddComponent<Text>();
+        t.text = content;
+        t.font = GetFont();
+        t.fontSize = size;
+        t.alignment = TextAnchor.MiddleCenter;
+        t.color = color;
+        t.horizontalOverflow = HorizontalWrapMode.Wrap;
+        t.verticalOverflow = VerticalWrapMode.Overflow;
     }
 
-    void OnClassSelected(ClassData cd)
-    {
-        Debug.Log("[Creation] Clase elegida: " + cd.className);
-        if (CharacterData.Instance != null) CharacterData.Instance.SetClass(cd);
-        FinishCreation();
-    }
-
-    void FinishCreation()
-    {
-        if (onFinished != null)
-        {
-            onFinished();
-        }
-        else
-        {
-            if (Bootstrap.Instance != null) Bootstrap.Instance.SpawnPlayer();
-            if (TurnManager.Instance != null) TurnManager.Instance.BeginGame();
-        }
-
-        Destroy(canvasObj);
-        Destroy(this);
-    }
-
-    void CreateButton(Transform parent, string label, float yOffset, Color textColor,
+    void MakeButton(Transform parent, string label, float x, float y, float w, float h, Color textColor,
         UnityEngine.Events.UnityAction onClick)
     {
         GameObject go = new GameObject("Btn");
@@ -125,15 +116,13 @@ public class CharacterCreationUI : MonoBehaviour
         RectTransform rt = go.AddComponent<RectTransform>();
         rt.anchorMin = new Vector2(0.5f, 0.5f);
         rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(0, yOffset);
-        rt.sizeDelta = new Vector2(380, 44);
-
+        rt.anchoredPosition = new Vector2(x, y);
+        rt.sizeDelta = new Vector2(w, h);
         Image img = go.AddComponent<Image>();
         img.sprite = SpriteFactory.Square();
         img.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
-
         Button btn = go.AddComponent<Button>();
-
+        btn.onClick.AddListener(onClick);
         GameObject txtObj = new GameObject("Label");
         txtObj.transform.SetParent(go.transform, false);
         RectTransform trt = txtObj.AddComponent<RectTransform>();
@@ -141,36 +130,15 @@ public class CharacterCreationUI : MonoBehaviour
         trt.anchorMax = Vector2.one;
         trt.offsetMin = Vector2.zero;
         trt.offsetMax = Vector2.zero;
-
         Text t = txtObj.AddComponent<Text>();
         t.text = label;
         t.font = GetFont();
         t.fontSize = 18;
         t.alignment = TextAnchor.MiddleCenter;
         t.color = textColor;
-
-        btn.onClick.AddListener(onClick);
     }
 
-    void CreateText(Transform parent, string content, float yOffset, int size)
-    {
-        GameObject go = new GameObject("Text");
-        go.transform.SetParent(parent, false);
-        RectTransform rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.5f, 0.5f);
-        rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(0, yOffset);
-        rt.sizeDelta = new Vector2(700, 40);
-
-        Text t = go.AddComponent<Text>();
-        t.text = content;
-        t.font = GetFont();
-        t.fontSize = size;
-        t.alignment = TextAnchor.MiddleCenter;
-        t.color = Color.white;
-    }
-
-    Font GetFont()
+    static Font GetFont()
     {
         Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");

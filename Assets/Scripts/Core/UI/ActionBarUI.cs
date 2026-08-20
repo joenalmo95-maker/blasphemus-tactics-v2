@@ -216,7 +216,11 @@ public class ActionBarUI : MonoBehaviour
             SkillMeta meta = id != "" ? SkillPool.Meta(id) : null;
             if (sk == null || meta == null) { HideTip(); return; }
 
-            titleColor = ItemGenerator.RarityColor(meta.rarity);
+            Rarity rar = Rarity.Common;
+            if (meta.rarity == "Rare") rar = Rarity.Rare;
+            else if (meta.rarity == "Epic") rar = Rarity.Epic;
+            else if (meta.rarity == "Legendary") rar = Rarity.Legendary;
+            // usar rar en lugar de meta.rarity
             title = sk.skillName + "  [" + meta.rarity + "]";
             desc = meta.type + " · " + meta.affinity + (string.IsNullOrEmpty(meta.tag) ? "" : " · " + meta.tag) + "\n" + sk.description;
             sb.AppendLine("Coste: " + sk.actionPointCost + " AP · Rango: " + sk.range);

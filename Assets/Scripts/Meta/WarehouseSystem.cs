@@ -37,4 +37,19 @@ public class WarehouseSystem : MonoBehaviour
         WarehouseData d = JsonUtility.FromJson<WarehouseData>(File.ReadAllText(SavePath));
         if (d != null && d.items != null) stored = d.items;
     }
+
+    // 0.3: Método Serialize para SaveSystem
+    public WarehouseSaveData Serialize()
+    {
+        WarehouseSaveData data = new WarehouseSaveData();
+        data.stored = stored;
+        return data;
+    }
+
+    // 0.3: Método Deserialize para SaveSystem
+    public void Deserialize(WarehouseSaveData data)
+    {
+        if (data == null) return;
+        stored = data.stored != null ? data.stored : new List<ItemData>();
+    }
 }

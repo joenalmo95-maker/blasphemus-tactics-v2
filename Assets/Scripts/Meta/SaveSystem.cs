@@ -94,32 +94,35 @@ public class SaveData
 {
     public int version = 6;
     public string playerName = "Valerius";
+    public string className = "Inquisidor";
     public int level = 1;
     public int xp = 0;
     public int gold = 0;
+    
+    // Campos para InventorySystem
+    public System.Collections.Generic.List<ItemData> items = new System.Collections.Generic.List<ItemData>();
+    public System.Collections.Generic.List<ItemData> equipped = new System.Collections.Generic.List<ItemData>();
+    public System.Collections.Generic.List<ConsumableData> consumables = new System.Collections.Generic.List<ConsumableData>();
+    
+    // Campos para WarehouseSystem
+    public System.Collections.Generic.List<ItemData> warehouse = new System.Collections.Generic.List<ItemData>();
+    
+    // Campos para LoadoutSystem
     public System.Collections.Generic.List<string> learnedSkills;
     public System.Collections.Generic.List<string> activeSkills;
     public string ultimateSkill = "";
     public System.Collections.Generic.List<string> passiveSkills;
+    
+    // Campos para SkillTrainer
+    public TrainingSnapshot training;
+    
+    // Campos para QuestSystem
+    public System.Collections.Generic.List<QuestSaveEntry> activeQuests;
+    public long lastDailyReset;
+    public long lastWeeklyReset;
+    public int seasonPhase;
+    
+    // Campos legacy (para compatibilidad)
     public InventorySaveData inventory;
-    public WarehouseSaveData warehouse;
-}
-
-// 0.3: Definiciones de InventorySaveData y WarehouseSaveData (faltaban en el archivo original)
-[System.Serializable]
-public class InventorySaveData
-{
-    public System.Collections.Generic.List<ItemData> items;
-    public System.Collections.Generic.List<ConsumableData> consumables;
-    public ItemData equippedWeapon;
-    public ItemData equippedChest;
-    public ItemData equippedLegs;
-    public ItemData equippedHelm;
-    public ItemData equippedGloves;
-}
-
-[System.Serializable]
-public class WarehouseSaveData
-{
-    public System.Collections.Generic.List<ItemData> stored;
+    public WarehouseSaveData warehouseData;
 }
