@@ -105,6 +105,13 @@ public class WorldBootstrap : MonoBehaviour
         {
             SaveSystem.Load();
         }
+
+        // Fase A: Poblar el mundo con spawns, cofres y marcadores de zona
+        if (Object.FindAnyObjectByType<WorldSpawnManager>() == null)
+            new GameObject("WorldSpawnManager").AddComponent<WorldSpawnManager>();
+        
+        if (Object.FindAnyObjectByType<WorldChestManager>() == null)
+            new GameObject("WorldChestManager").AddComponent<WorldChestManager>();
     }
 
     void EnsureWorldMapExists()

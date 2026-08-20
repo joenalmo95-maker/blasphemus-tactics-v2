@@ -29,13 +29,26 @@ public class WorldSpawnManager : MonoBehaviour
 
     private readonly List<SpawnDefW> defs = new List<SpawnDefW>
     {
-        new SpawnDefW { id = 1, archetype = "penitent",   tier = EnemyTier.Basico,     cell = new Vector2Int(6, 12) },
-        new SpawnDefW { id = 2, archetype = "penitent",   tier = EnemyTier.Basico,     cell = new Vector2Int(14, 6) },
-        new SpawnDefW { id = 3, archetype = "cherub",     tier = EnemyTier.Medio,      cell = new Vector2Int(24, 14) },
-        new SpawnDefW { id = 4, archetype = "inquisitor", tier = EnemyTier.Medio,      cell = new Vector2Int(26, 26) },
-        new SpawnDefW { id = 5, archetype = "capitan",    tier = EnemyTier.Elite,      cell = new Vector2Int(44, 20) },
-        new SpawnDefW { id = 6, archetype = "cherub",     tier = EnemyTier.Elite,      cell = new Vector2Int(52, 12) },
-        new SpawnDefW { id = 7, archetype = "capitan",    tier = EnemyTier.EliteFuerte,cell = new Vector2Int(46, 34) }
+        // Campos de Penitencia (cerca del Bastión, fáciles)
+        new SpawnDefW { id = 1, archetype = "penitent",   tier = EnemyTier.Basico,     cell = new Vector2Int(8, 35) },
+        new SpawnDefW { id = 2, archetype = "penitent",   tier = EnemyTier.Basico,     cell = new Vector2Int(12, 32) },
+        new SpawnDefW { id = 3, archetype = "flagelante", tier = EnemyTier.Basico,     cell = new Vector2Int(15, 30) },
+        
+        // Camino de los Peregrinos (zona media)
+        new SpawnDefW { id = 4, archetype = "cherub",     tier = EnemyTier.Medio,      cell = new Vector2Int(25, 25) },
+        new SpawnDefW { id = 5, archetype = "censor",     tier = EnemyTier.Medio,      cell = new Vector2Int(30, 20) },
+        new SpawnDefW { id = 6, archetype = "ceniza",     tier = EnemyTier.Medio,      cell = new Vector2Int(35, 18) },
+        new SpawnDefW { id = 7, archetype = "incensario", tier = EnemyTier.Medio,      cell = new Vector2Int(28, 22) },
+        
+        // Bosque de los Cirios (zona peligrosa)
+        new SpawnDefW { id = 8, archetype = "heraldo",    tier = EnemyTier.Elite,      cell = new Vector2Int(18, 25) },
+        new SpawnDefW { id = 9, archetype = "automata",   tier = EnemyTier.Elite,      cell = new Vector2Int(22, 28) },
+        new SpawnDefW { id = 10, archetype = "inquisitor",tier = EnemyTier.Elite,      cell = new Vector2Int(20, 30) },
+        
+        // Canteras de Aurelia (zona élite)
+        new SpawnDefW { id = 11, archetype = "capitan",   tier = EnemyTier.EliteFuerte,cell = new Vector2Int(45, 8) },
+        new SpawnDefW { id = 12, archetype = "automata",  tier = EnemyTier.EliteFuerte,cell = new Vector2Int(50, 10) },
+        new SpawnDefW { id = 13, archetype = "heraldo",   tier = EnemyTier.EliteFuerte,cell = new Vector2Int(48, 6) }
     };
 
     private readonly List<ActiveEnemy> active = new List<ActiveEnemy>();
