@@ -138,21 +138,21 @@ public class InventorySystem : MonoBehaviour
     {
         if (index < 0 || index >= items.Count) return;
         ItemData item = items[index];
-
         if (CharacterData.Instance != null && CharacterData.Instance.classData != null
             && item.requiredClass != "" && item.requiredClass != CharacterData.Instance.classData.className)
         {
             Debug.Log("Tu clase no puede equipar " + item.itemName);
             return;
         }
-
         items.RemoveAt(index);
+        // FIX: Si ya hay algo equipado en ese slot, devolverlo al inventario
         if (equipped.ContainsKey(item.slot))
         {
             items.Add(equipped[item.slot]);
         }
+        // FIX CRÍTICO: Agregar el nuevo item al diccionario equipped
         equipped[item.slot] = item;
-        Debug.Log("Equipado: " + item.itemName);
+        Debug.Log("Equipado: " + item.itemName + " en slot " + item.slot);
         ApplyToUnit();
     }
 
