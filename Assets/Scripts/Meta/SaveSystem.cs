@@ -104,3 +104,22 @@ public class SaveData
     public InventorySaveData inventory;
     public WarehouseSaveData warehouse;
 }
+
+// 0.3: Definiciones de InventorySaveData y WarehouseSaveData (faltaban en el archivo original)
+[System.Serializable]
+public class InventorySaveData
+{
+    public System.Collections.Generic.List<ItemData> items;
+    public System.Collections.Generic.List<ConsumableData> consumables;
+    public ItemData equippedWeapon;
+    public ItemData equippedChest;
+    public ItemData equippedLegs;
+    public ItemData equippedHelm;
+    public ItemData equippedGloves;
+}
+
+[System.Serializable]
+public class WarehouseSaveData
+{
+    public System.Collections.Generic.List<ItemData> stored;
+}

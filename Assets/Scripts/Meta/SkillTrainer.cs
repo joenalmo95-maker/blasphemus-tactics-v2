@@ -18,7 +18,6 @@ public static class SkillTrainer
     }
 
     private static Data _data;
-
     static string SavePath { get { return Path.Combine(Application.persistentDataPath, "skilltraining.json"); } }
 
     static Data D
@@ -37,7 +36,6 @@ public static class SkillTrainer
             _data = JsonUtility.FromJson<Data>(File.ReadAllText(SavePath));
             if (_data != null) return;
         }
-
         // Primera ejecución: conserva aprendidas las skills que el nivel ya desbloqueó
         _data = new Data();
         int lvl = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
@@ -108,7 +106,6 @@ public static class SkillTrainer
         int lvl = CharacterData.Instance != null ? CharacterData.Instance.level : 0;
         if (lvl < SkillCatalog.Get(Role(), slot).unlockLevel) return false;
         if (CharacterData.Instance == null || CharacterData.Instance.gold < LearnCost(slot)) return false;
-
         CharacterData.Instance.gold -= LearnCost(slot);
         switch (slot)
         {
@@ -124,7 +121,6 @@ public static class SkillTrainer
     {
         if (slot < 1 || slot > 4 || !IsLearned(slot) || TrainLevel(slot) >= MaxTrain) return false;
         if (CharacterData.Instance == null || CharacterData.Instance.gold < TrainCost(slot)) return false;
-
         CharacterData.Instance.gold -= TrainCost(slot);
         switch (slot)
         {
@@ -171,4 +167,17 @@ public static class SkillTrainer
         D.train4 = s.train4;
         Save();
     }
+}
+
+// 0.3: Definición de TrainingSnapshot (faltaba en el archivo original)
+[System.Serializable]
+public class TrainingSnapshot
+{
+    public bool learned2;
+    public bool learned3;
+    public bool learned4;
+    public int train1;
+    public int train2;
+    public int train3;
+    public int train4;
 }
