@@ -42,6 +42,9 @@ public class WorldBootstrap : MonoBehaviour
     // Lista de zonas (se carga desde ZoneConfigLoader)
     public static List<ZoneDef> Zones = new List<ZoneDef>();
 
+    // 0.2: Lista de regiones (se carga desde RegionConfigLoader)
+    public static List<RegionData> Regions = new List<RegionData>();
+
     void Awake()
     {
         // Guard anti-secuestro
@@ -87,6 +90,10 @@ public class WorldBootstrap : MonoBehaviour
         // Cargar zonas usando el loader correcto
         Zones = ZoneConfigLoader.Load();
         Debug.Log("[WorldBootstrap] Zonas cargadas: " + Zones.Count);
+
+        // 0.2: Cargar regiones
+        Regions = RegionConfigLoader.Load();
+        Debug.Log("[WorldBootstrap] Regiones cargadas: " + Regions.Count);
 
         // Cargar mapa (generar si no existe o es antiguo)
         EnsureWorldMapExists();

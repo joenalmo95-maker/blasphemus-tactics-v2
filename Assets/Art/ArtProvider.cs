@@ -353,4 +353,17 @@ public static class ArtProvider
             { 'b', new Color(0.45f, 0.30f, 0.15f) }
         };
     }
+
+// 0.2: Preparar carga de sprites por tileset (para futuras regiones)
+    public static Sprite GetTile(string tilesetKey, string spriteName)
+    {
+        string path = "Art/" + tilesetKey + "/" + spriteName;
+        Sprite s = Resources.Load<Sprite>(path);
+        if (s == null)
+        {
+            // Fallback al sprite procedural si no existe el tileset
+            return Get(spriteName);
+        }
+        return s;
+    }
 }

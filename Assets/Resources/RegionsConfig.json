@@ -1,0 +1,103 @@
+{
+  "regions": [
+    {
+      "id": "region_1",
+      "name": "Valle de la Luz Eterna",
+      "tier": 1,
+      "mapFile": "WorldMapData_Region1",
+      "tilesetKey": "tileset_valle",
+      "musicTrack": "music_valle",
+      "isActive": true,
+      "unlockCondition": "default",
+      "description": "Región inicial bañada por luz eterna. Aquí comienza tu cruzada."
+    },
+    {
+      "id": "region_2",
+      "name": "Ciudad de los Archivos",
+      "tier": 2,
+      "mapFile": "WorldMapData_Region2",
+      "tilesetKey": "tileset_archivos",
+      "musicTrack": "music_archivos",
+      "isActive": false,
+      "unlockCondition": "dlc_1",
+      "description": "Metrópolis construida alrededor de una biblioteca monumental."
+    },
+    {
+      "id": "region_3",
+      "name": "Imperio del Juicio",
+      "tier": 3,
+      "mapFile": "WorldMapData_Region3",
+      "tilesetKey": "tileset_juicio",
+      "musicTrack": "music_juicio",
+      "isActive": false,
+      "unlockCondition": "dlc_2",
+      "description": "Nación donde todo está regulado por la ley celestial."
+    },
+    {
+      "id": "region_4",
+      "name": "Reino de los Obedientes",
+      "tier": 4,
+      "mapFile": "WorldMapData_Region4",
+      "tilesetKey": "tileset_obedientes",
+      "musicTrack": "music_obedientes",
+      "isActive": false,
+      "unlockCondition": "dlc_3",
+      "description": "Sociedad donde nadie se rebela. La gente ha aprendido a no pensar."
+    },
+    {
+      "id": "region_5",
+      "name": "Santuario de los Milagros",
+      "tier": 5,
+      "mapFile": "WorldMapData_Region5",
+      "tilesetKey": "tileset_milagros",
+      "musicTrack": "music_milagros",
+      "isActive": false,
+      "unlockCondition": "dlc_4",
+      "description": "Ciudad donde aparentemente nadie sufre. Los milagros son reales."
+    },
+    {
+      "id": "region_6",
+      "name": "Frontera Celestial",
+      "tier": 6,
+      "mapFile": "WorldMapData_Region6",
+      "tilesetKey": "tileset_frontera",
+      "musicTrack": "music_frontera",
+      "isActive": false,
+      "unlockCondition": "dlc_5",
+      "description": "Región militarizada. La guerra contra el cielo se libra aquí."
+    },
+    {
+      "id": "region_7",
+      "name": "Nueve Reinos",
+      "tier": 7,
+      "mapFile": "WorldMapData_Region7",
+      "tilesetKey": "tileset_reinos",
+      "musicTrack": "music_reinos",
+      "isActive": false,
+      "unlockCondition": "dlc_6",
+      "description": "Nueve culturas diferentes controladas por una misma estructura celestial."
+    },
+    {
+      "id": "region_8",
+      "name": "Campo Celestial",
+      "tier": 8,
+      "mapFile": "WorldMapData_Region8",
+      "tilesetKey": "tileset_campo",
+      "musicTrack": "music_campo",
+      "isActive": false,
+      "unlockCondition": "dlc_7",
+      "description": "Zona parcialmente separada del mundo físico. El ejército celestial."
+    },
+    {
+      "id": "region_9",
+      "name": "Tierra Santa",
+      "tier": 9,
+      "mapFile": "WorldMapData_Region9",
+      "tilesetKey": "tileset_santa",
+      "musicTrack": "music_santa",
+      "isActive": false,
+      "unlockCondition": "dlc_8",
+      "description": "La región más hermosa del juego. Y precisamente por eso, la más inquietante."
+    }
+  ]
+}
