@@ -211,7 +211,6 @@ public class EnemyAI : MonoBehaviour
         if (behavior == EnemyBehavior.SelfDamage)
         {
             selfUnit.currentHealth -= 5;
-            selfUnit.UpdateHealthBar();
             finalDamage += 15;
             Debug.Log(unitName + " se flagela (-5 HP) y ataca con +15 daño!");
             if (selfUnit.currentHealth <= 0)
@@ -270,7 +269,6 @@ public class EnemyAI : MonoBehaviour
         {
             int healAmount = Mathf.Min(10, maxWound);
             wounded.currentHealth += healAmount;
-            wounded.UpdateHealthBar();
             Debug.Log(unitName + " cura " + healAmount + " HP a " + wounded.unitName + ".");
             yield return new WaitForSeconds(0.4f);
         }
@@ -289,7 +287,6 @@ public class EnemyAI : MonoBehaviour
             {
                 int dmg = u.isEnemy ? 10 : 20; // menos daño a aliados
                 u.currentHealth -= dmg;
-                u.UpdateHealthBar();
                 Debug.Log("Explosión afecta a " + u.unitName + " (-" + dmg + " HP).");
                 if (u.currentHealth <= 0 && !u.isEnemy)
                 {
