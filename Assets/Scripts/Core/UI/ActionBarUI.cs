@@ -216,7 +216,7 @@ public class ActionBarUI : MonoBehaviour
             SkillMeta meta = id != "" ? SkillPool.Meta(id) : null;
             if (sk == null || meta == null) { HideTip(); return; }
 
-            Rarity rar = Rarity.Common;
+            
             if (meta.rarity == "Rare") rar = Rarity.Rare;
             else if (meta.rarity == "Epic") rar = Rarity.Epic;
             else if (meta.rarity == "Legendary") rar = Rarity.Legendary;

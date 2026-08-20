@@ -193,12 +193,8 @@ public class TooltipUI : MonoBehaviour
     public void ShowItemTooltip(ItemData item, ItemData equipped)
     {
         if (item == null) return;
-
-        Rarity rar = Rarity.Common;
-        if (item.rarity == "Rare") rar = Rarity.Rare;
-        else if (item.rarity == "Epic") rar = Rarity.Epic;
-        else if (item.rarity == "Legendary") rar = Rarity.Legendary;
-        titleText.color = ItemGenerator.RarityColor(rar);
+        // 0.3 FIX: item.rarity YA es enum Rarity, usarlo directamente
+        titleText.color = ItemGenerator.RarityColor(item.rarity);
         titleText.text = item.itemName;
 
         string desc = RarityLabel(item.rarity) + " · " + SlotLabel(item.slot);
@@ -238,7 +234,12 @@ public class TooltipUI : MonoBehaviour
         SkillMeta meta = SkillPool.Meta(id);
         if (sk == null || meta == null) return;
 
-        titleText.color = ItemGenerator.RarityColor(meta.rarity);
+        // 0.3 FIX: meta.rarity es string, convertir a enum Rarity
+        Rarity metaRar = Rarity.Common;
+        if (meta.rarity == "Rare") metaRar = Rarity.Rare;
+        else if (meta.rarity == "Epic") metaRar = Rarity.Epic;
+        else if (meta.rarity == "Legendary") metaRar = Rarity.Legendary;
+        titleText.color = ItemGenerator.RarityColor(metaRar);
         titleText.text = sk.skillName + "  [" + meta.rarity + "]";
 
         string desc = meta.type + " · " + meta.affinity;

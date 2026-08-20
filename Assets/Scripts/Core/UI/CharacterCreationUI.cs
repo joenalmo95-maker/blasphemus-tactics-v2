@@ -10,8 +10,7 @@ public class CharacterCreationUI : MonoBehaviour
     public System.Action onFinished;
 
     private GameObject root;
-    private int selectedClassIndex = 0;
-
+    
     void Awake()
     {
         if (FindAnyObjectByType<EventSystem>() == null)
