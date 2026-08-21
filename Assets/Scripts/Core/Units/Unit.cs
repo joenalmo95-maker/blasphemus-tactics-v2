@@ -207,6 +207,31 @@ public class Unit : MonoBehaviour
             CombatFeedback.SpawnText(transform.position, "MAX", Color.gray);
         }
     }
+    // Daño que no proviene de un ataque directo (autoflagelación, explosiones)
+    // con flujo de muerte COMPLETO: loot, misiones, notificación de turno
+    public void TakeRawDamage(int amount, string source)
+    {
+        if (currentHealth <= 0) return;
+        currentHealth -= amount;
+        Debug.Log(gameObject.name + " recibe " + amount + " de daño (" + source + "). HP: " + currentHealth);
+        CombatFeedback.SpawnText(transform.position, "-" + amount, Color.red);
+        StartCoroutine(Flash());
+
+        if (currentHealth <= 0)
+        {
+            Debug.Log(gameObject.name + " ha sido derrotado por " + source + ".");
+            bool wasEnemy = isEnemy;
+            if (onDeath != null) onDeath.Invoke();
+            if (wasEnemy)
+            {
+                EnemyAI ai = GetComponent<EnemyAI>();
+                LootSystem.DropFrom(this, ai != null ? ai.tier : EnemyTier.Basico);
+                QuestSystem.NotifyEnemyKilled(isBoss, isElite);
+            }
+            Destroy(gameObject);
+            if (TurnManager.Instance != null) TurnManager.Instance.NotifyUnitDeath(wasEnemy);
+        }
+    }
 
     // 1.1-E: actualización de mirada y cálculo de flanking
     public void UpdateFacing(Vector2 dir)

@@ -210,13 +210,12 @@ public class EnemyAI : MonoBehaviour
         // === SELF DAMAGE: Flagelante se auto-hiere ===
         if (behavior == EnemyBehavior.SelfDamage)
         {
-            selfUnit.currentHealth -= 5;
             finalDamage += 15;
             Debug.Log(unitName + " se flagela (-5 HP) y ataca con +15 daño!");
-            if (selfUnit.currentHealth <= 0)
+            selfUnit.TakeRawDamage(5, "autoflagelación");
+            if (selfUnit == null || selfUnit.currentHealth <= 0)
             {
                 Debug.Log(unitName + " muere por su propio castigo.");
-                Destroy(selfUnit.gameObject);
                 return;
             }
         }
@@ -286,12 +285,7 @@ public class EnemyAI : MonoBehaviour
             if (d <= 1)
             {
                 int dmg = u.isEnemy ? 10 : 20; // menos daño a aliados
-                u.currentHealth -= dmg;
-                Debug.Log("Explosión afecta a " + u.name + " (-" + dmg + " HP).");
-                if (u.currentHealth <= 0 && !u.isEnemy)
-                {
-                    Debug.Log("¡El jugador fue derribado por la explosión!");
-                }
+                u.TakeRawDamage(dmg, "explosión de ceniza");
             }
         }
     }
