@@ -223,8 +223,13 @@ public class TrainerUI : MonoBehaviour
     void MakePoolRow(Transform parent, string id, SkillMeta meta)
     {
         SkillData sk = SkillPool.Get(id);
-        int level = CharacterData.Instance != null ? CharacterData.Instance.level : 1;
-        bool levelLocked = meta.unlockLevel > level;
+        
+        // Fix NullReferenceException: si sk es null, usar meta.name como fallback
+        if (sk == null)
+        {
+            Debug.LogWarning("[TrainerUI] SkillData null para id: " + id + ". Saltando fila.");
+            return;
+        }
 
         GameObject row = new GameObject("Row_" + id);
         row.transform.SetParent(parent, false);

@@ -206,4 +206,20 @@ public static class LoadoutSystem
         }
         return unlocked;
     }
+
+    // Reset para NUEVA PARTIDA - solo mantiene golpe_basico
+    public static void ResetToStarter()
+    {
+        learned.Clear();
+        activeIds = new string[] { "golpe_basico", "", "", "" };
+        ultimateId = "";
+        passiveIds = new string[] { "", "", "" };
+        
+        // Aprende el starter
+        if (!learned.Contains("golpe_basico"))
+            learned.Add("golpe_basico");
+        
+        EnsureInitialized();
+        Debug.Log("[Loadout] Reset completo. Solo golpe_basico disponible.");
+    }
 }

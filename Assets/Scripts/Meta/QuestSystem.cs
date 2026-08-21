@@ -444,4 +444,15 @@ public static class QuestSystem
         ResetChecks();
         EnsureEvent();
     }
+    // Reset para NUEVA PARTIDA
+    public static void ResetForNewGame()
+    {
+        actives.Clear();
+        lastDaily = 0;
+        lastWeekly = 0;
+        eventCooldownUntil = 0;
+        seasonPhase = 0;
+        initialized = false;
+        Debug.Log("[QuestSystem] Reset completo para nueva partida.");
+    }
 }

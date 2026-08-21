@@ -88,7 +88,7 @@ public class MainMenuBootstrap : MonoBehaviour
 
         // Botón CONTINUAR (solo si hay save)
         Color continueColor = hasSave ? new Color(0.3f, 0.9f, 0.4f) : new Color(0.4f, 0.4f, 0.4f);
-        CreateButton(panel.transform, "▶ CONTINUAR", 0, 60, 350, 60, continueColor, () =>
+        CreateButton(panel.transform, "CONTINUAR", 0, 60, 350, 60, continueColor, () =>
         {
             if (SaveSystem.HasSave())
             {
@@ -98,8 +98,11 @@ public class MainMenuBootstrap : MonoBehaviour
         }, hasSave);
 
         // Botón NUEVA PARTIDA
-        CreateButton(panel.transform, "✚ NUEVA PARTIDA", 0, -10, 350, 60, new Color(0.3f, 0.7f, 0.9f), () =>
+        CreateButton(panel.transform, "NUEVA PARTIDA", 0, -10, 350, 60, new Color(0.3f, 0.7f, 0.9f), () =>
         {
+            // Reset completo de TODOS los managers en memoria
+            GameReset.ResetAll();
+            
             if (SaveSystem.HasSave())
             {
                 Debug.Log("[MainMenu] Eliminando save anterior para nueva partida...");
@@ -109,7 +112,7 @@ public class MainMenuBootstrap : MonoBehaviour
         });
 
         // Botón SALIR
-        CreateButton(panel.transform, "✕ SALIR", 0, -80, 350, 60, new Color(0.9f, 0.3f, 0.3f), () =>
+        CreateButton(panel.transform, "SALIR", 0, -80, 350, 60, new Color(0.9f, 0.3f, 0.3f), () =>
         {
             Application.Quit();
         });

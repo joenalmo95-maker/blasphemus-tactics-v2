@@ -224,6 +224,12 @@ public class InventorySystem : MonoBehaviour
         if (data.equippedGloves != null) equipped[ItemSlot.Gloves] = data.equippedGloves;
         ApplyToUnit();
     }
+    // Reset para NUEVA PARTIDA - quita todo el equipamiento
+    public void UnequipAll()
+    {
+        equipped.Clear();
+        Debug.Log("[InventorySystem] Todo el equipamiento ha sido removido.");
+    }
 
 }
   
