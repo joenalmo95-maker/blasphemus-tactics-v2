@@ -192,6 +192,11 @@ public static class LoadoutSystem
         {
             SkillMeta meta = SkillPool.Meta(id);
             if (meta == null) continue;
+            
+            // Solo auto-desbloquear skills de progresión por nivel (no las del Entrenador)
+            if (meta.origin == "Entrenador") continue;
+            if (meta.cost > 0) continue;
+            
             if (meta.unlockLevel <= level && !learned.Contains(id))
             {
                 learned.Add(id);

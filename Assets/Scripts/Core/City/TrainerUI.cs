@@ -254,9 +254,12 @@ public class TrainerUI : MonoBehaviour
         t.alignment = TextAnchor.MiddleLeft;
         
         Rarity rar = Rarity.Common;
-        if (meta.rarity == "Rare") rar = Rarity.Rare;
-        else if (meta.rarity == "Epic") rar = Rarity.Epic;
-        else if (meta.rarity == "Legendary") rar = Rarity.Legendary;
+        if (!string.IsNullOrEmpty(meta.rarity))
+        {
+            if (meta.rarity == "Rare") rar = Rarity.Rare;
+            else if (meta.rarity == "Epic") rar = Rarity.Epic;
+            else if (meta.rarity == "Legendary") rar = Rarity.Legendary;
+        }
         t.color = levelLocked ? Color.gray : ItemGenerator.RarityColor(rar);
 
         float bx = 270;
