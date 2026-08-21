@@ -184,4 +184,21 @@ public static class LoadoutSystem
         initialized = true;
         RepairLoadout();
     }
+    // 0.6: Desbloqueo automático de skills al subir de nivel
+    public static List<string> AutoUnlockForLevel(int level)
+    {
+        List<string> unlocked = new List<string>();
+        foreach (string id in SkillPool.AllIds())
+        {
+            SkillMeta meta = SkillPool.Meta(id);
+            if (meta == null) continue;
+            if (meta.unlockLevel <= level && !learned.Contains(id))
+            {
+                learned.Add(id);
+                unlocked.Add(id);
+                Debug.Log("[Loadout] Auto-desbloqueada por nivel " + level + ": " + meta.name);
+            }
+        }
+        return unlocked;
+    }
 }

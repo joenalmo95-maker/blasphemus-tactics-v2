@@ -98,7 +98,15 @@ public class CharacterData : MonoBehaviour
 
     void OnLevelUp()
     {
-        Debug.Log("[CharacterData] ¡Subiste al nivel " + level + "!");
+        Debug.Log("[CharacterData] ┬íSubiste al nivel " + level + "!");
+        
+        // 0.6: Desbloqueo automático de skills por nivel
+        List<string> unlocked = LoadoutSystem.AutoUnlockForLevel(level);
+        if (unlocked.Count > 0)
+        {
+            Debug.Log("[CharacterData] Skills desbloqueadas en nivel " + level + ": " + string.Join(", ", unlocked));
+            CombatFeedback.SpawnText(transform.position, "+" + unlocked.Count + " SKILLS!", new Color(0.3f, 0.9f, 1f));
+        }
     }
 
     public void AddGold(int amount)
