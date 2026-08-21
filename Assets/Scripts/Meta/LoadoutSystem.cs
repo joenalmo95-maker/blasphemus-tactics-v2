@@ -211,15 +211,20 @@ public static class LoadoutSystem
     public static void ResetToStarter()
     {
         learned.Clear();
-        activeIds = new string[] { "golpe_basico", "", "", "" };
-        ultimateId = "";
-        passiveIds = new string[] { "", "", "" };
         
+        // active y passives son readonly - asignar elemento por elemento
+        for (int i = 0; i < 4; i++) active[i] = "";
+        active[0] = "golpe_basico";
+        
+        ultimate = "";
+        
+        for (int i = 0; i < 3; i++) passives[i] = "";
+
         // Aprende el starter
         if (!learned.Contains("golpe_basico"))
             learned.Add("golpe_basico");
-        
-        EnsureInitialized();
+
+        initialized = true;
         Debug.Log("[Loadout] Reset completo. Solo golpe_basico disponible.");
     }
 }
