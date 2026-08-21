@@ -222,16 +222,16 @@ public class TrainerUI : MonoBehaviour
 
     void MakePoolRow(Transform parent, string id, SkillMeta meta)
     {
+        // Protección contra null en meta
+        if (meta == null)
+        {
+            Debug.LogWarning("[TrainerUI] Meta null para id: " + id + ". Saltando fila.");
+            return;
+        }
+
         SkillData sk = SkillPool.Get(id);
         int level = CharacterData.Instance != null ? CharacterData.Instance.level : 1;
         bool levelLocked = meta.unlockLevel > level;
-        
-        // Fix NullReferenceException: si sk es null, usar meta.name como fallback
-        if (sk == null)
-        {
-            Debug.LogWarning("[TrainerUI] SkillData null para id: " + id + ". Saltando fila.");
-            return;
-        }
 
         GameObject row = new GameObject("Row_" + id);
         row.transform.SetParent(parent, false);
@@ -250,16 +250,21 @@ public class TrainerUI : MonoBehaviour
         trt.anchoredPosition = new Vector2(6, 0);
         trt.sizeDelta = new Vector2(260, 30);
         Text t = txtObj.AddComponent<Text>();
+
+        // Protección contra null en sk
+        string skillName = (sk != null && !string.IsNullOrEmpty(sk.skillName)) ? sk.skillName : meta.name;
+        string nameText = skillName;
         
-        string nameText = sk.skillName;
-        if (levelLocked) nameText += "  [Nv." + meta.unlockLevel + "]";
-        else if (!LoadoutSystem.IsLearned(id) && meta.cost > 0) nameText += "  · " + meta.cost + " oro";
-        
+        if (levelLocked) 
+            nameText += "  [Nv." + meta.unlockLevel + "]";
+        else if (!LoadoutSystem.IsLearned(id) && meta.cost > 0) 
+            nameText += "  · " + meta.cost + " oro";
+
         t.text = nameText;
         t.font = GetFont();
         t.fontSize = 12;
         t.alignment = TextAnchor.MiddleLeft;
-        
+
         Rarity rar = Rarity.Common;
         if (!string.IsNullOrEmpty(meta.rarity))
         {
@@ -301,7 +306,7 @@ public class TrainerUI : MonoBehaviour
                 if (meta.cost > 0 && CharacterData.Instance.gold < meta.cost) { Debug.Log("Oro insuficiente."); return; }
                 if (meta.cost > 0) CharacterData.Instance.gold -= meta.cost;
                 LoadoutSystem.Learn(id);
-                Debug.Log("Skill aprendida: " + sk.skillName);
+                Debug.Log("Skill aprendida: " + skillName);
                 Rebuild();
             });
             bx += 105;
