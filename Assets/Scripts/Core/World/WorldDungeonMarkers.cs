@@ -91,26 +91,49 @@ public class WorldDungeonMarkers : MonoBehaviour
 
     void EnterDungeon(WorldBootstrap.ZoneDef zone)
     {
-        Debug.Log("[DungeonMarkers] Entrando a: " + zone.name);
-        GameFlow.pendingIsWorld = false;
-        
-        // Convertir List<WorldBootstrap.WaveDef> a List<WaveDef> (clase global de GameFlow)
-        List<WaveDef> convertedWaves = new List<WaveDef>();
-        foreach (WorldBootstrap.WaveDef wbWave in zone.dungeon)
+        // Validar límite diario ANTES de mostrar la tarjeta
+        if (!DungeonDaily.CanEnter())
         {
-            WaveDef globalWave = new WaveDef();
-            foreach (WorldBootstrap.SpawnDef wbSpawn in wbWave.spawns)
+            Debug.Log("[DungeonMarkers] Límite diario alcanzado (" + DungeonDaily.MaxPerDay + " mazmorras).");
+            // Mostrar feedback visual temporal
+            if (promptText != null)
             {
-                globalWave.spawns.Add(new SpawnDef
-                {
-                    archetype = wbSpawn.archetype,
-                    tier = wbSpawn.tier,
-                    cell = wbSpawn.cell
-                });
+                promptText.text = "LÍMITE DIARIO ALCANZADO (" + DungeonDaily.MaxPerDay + "/5). Vuelve mañana.";
             }
-            convertedWaves.Add(globalWave);
+            return;
         }
-        
-        GameFlow.EnterCombat(zone.tier, convertedWaves);
+
+        // Capturar la zona para el callback
+        WorldBootstrap.ZoneDef capturedZone = zone;
+
+        // Mostrar la tarjeta de información con callback de confirmación
+        DungeonCardUI.Show(zone, () =>
+        {
+            // Este callback se ejecuta solo si el jugador presiona "ENTRAR" en la tarjeta
+            Debug.Log("[DungeonMarkers] Entrada confirmada a: " + capturedZone.name);
+            
+            // Consumir la entrada diaria
+            DungeonDaily.Consume();
+            
+            // Convertir List<WorldBootstrap.WaveDef> a List<WaveDef> (clase global de GameFlow)
+            List<WaveDef> convertedWaves = new List<WaveDef>();
+            foreach (WorldBootstrap.WaveDef wbWave in capturedZone.dungeon)
+            {
+                WaveDef globalWave = new WaveDef();
+                foreach (WorldBootstrap.SpawnDef wbSpawn in wbWave.spawns)
+                {
+                    globalWave.spawns.Add(new SpawnDef
+                    {
+                        archetype = wbSpawn.archetype,
+                        tier = wbSpawn.tier,
+                        cell = wbSpawn.cell
+                    });
+                }
+                convertedWaves.Add(globalWave);
+            }
+            
+            GameFlow.pendingIsWorld = false;
+            GameFlow.EnterCombat(capturedZone.tier, convertedWaves);
+        });
     }
 }
