@@ -38,6 +38,31 @@ public class CombatController : MonoBehaviour
     void Start()
     {
         playerUnit = GetPlayer();
+        DetectAndShowBossBar();
+    }
+    
+    void DetectAndShowBossBar()
+    {
+        Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+        foreach (Unit u in units)
+        {
+            if (u.isEnemy && u.isBoss)
+            {
+                string bossName = u.gameObject.name;
+                string subtitle = GetBossSubtitle(u);
+                BossHealthBarUI.Show(u, bossName, subtitle);
+                Debug.Log("[CombatController] Boss detectado: " + bossName);
+                break;
+            }
+        }
+    }
+    
+    string GetBossSubtitle(Unit boss)
+    {
+        string name = boss.gameObject.name;
+        if (name.Contains("Ángel") || name.Contains("Angel")) return "El Guardián de la Luz Eterna";
+        if (name.Contains("Capitán") || name.Contains("Capitan")) return "El Templario Caído";
+        return "Enemigo Legendario";
     }
 
     Unit GetPlayer()

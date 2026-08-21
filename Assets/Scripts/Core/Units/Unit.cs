@@ -167,14 +167,19 @@ public class Unit : MonoBehaviour
             Debug.Log(gameObject.name + " ha sido derrotado.");
             bool wasEnemy = isEnemy;
             
-            // Fase A: disparar hook de muerte ANTES de destruir (para Penitente de la Ceniza)
+            // Fase A: disparar hook de muerte ANTES de destruir (Penitente de la Ceniza explota aquí)
             if (onDeath != null) onDeath.Invoke();
+            
+            // Paso 0.5: cerrar barra épica de boss al morir
+            if (isBoss && BossHealthBarUI.Instance != null)
+            {
+                BossHealthBarUI.Hide();
+            }
             
             if (wasEnemy)
             {
                 EnemyAI ai = GetComponent<EnemyAI>();
                 LootSystem.DropFrom(this, ai != null ? ai.tier : EnemyTier.Basico);
-                // 2.1: progreso de misiones
                 QuestSystem.NotifyEnemyKilled(isBoss, isElite);
             }
             Destroy(gameObject);
