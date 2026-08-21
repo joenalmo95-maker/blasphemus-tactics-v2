@@ -179,6 +179,9 @@ public class InventorySystem : MonoBehaviour
     {
         if (CharacterData.Instance == null) return;
         StatBlock total = CharacterData.Instance.GetTotalStats();
+        
+        // Fix: Cap de AP máximo (base 3 + máximo 3 de items = 6 razonable)
+        total.apMove = Mathf.Clamp(total.apMove, 1, 6);
 
         Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
         foreach (Unit u in units)
@@ -217,12 +220,28 @@ public class InventorySystem : MonoBehaviour
         items = data.items != null ? data.items : new List<ItemData>();
         consumables = data.consumables != null ? data.consumables : new List<ConsumableData>();
         equipped.Clear();
-        if (data.equippedWeapon != null) equipped[ItemSlot.Weapon] = data.equippedWeapon;
-        if (data.equippedChest != null) equipped[ItemSlot.Chest] = data.equippedChest;
-        if (data.equippedLegs != null) equipped[ItemSlot.Legs] = data.equippedLegs;
-        if (data.equippedHelm != null) equipped[ItemSlot.Helm] = data.equippedHelm;
-        if (data.equippedGloves != null) equipped[ItemSlot.Gloves] = data.equippedGloves;
+        
+        // Fix: Filtrar items dummy/corruptos (nombre "Objeto" o slot incorrecto)
+        if (IsValidItem(data.equippedWeapon)) equipped[ItemSlot.Weapon] = data.equippedWeapon;
+        if (IsValidItem(data.equippedChest))  equipped[ItemSlot.Chest]  = data.equippedChest;
+        if (IsValidItem(data.equippedLegs))   equipped[ItemSlot.Legs]   = data.equippedLegs;
+        if (IsValidItem(data.equippedHelm))   equipped[ItemSlot.Helm]   = data.equippedHelm;
+        if (IsValidItem(data.equippedGloves)) equipped[ItemSlot.Gloves] = data.equippedGloves;
+        
+        // Limpiar items dummy del inventario normal también
+        items.RemoveAll(i => !IsValidItem(i));
+        
         ApplyToUnit();
+    }
+    
+    // Validar que un item no sea dummy/corrupto
+    bool IsValidItem(ItemData item)
+    {
+        if (item == null) return false;
+        if (string.IsNullOrEmpty(item.itemName)) return false;
+        if (item.itemName == "Objeto") return false;
+        if (item.stats == null) return false;
+        return true;
     }
     // Reset para NUEVA PARTIDA - quita todo el equipamiento
     public void UnequipAll()

@@ -45,6 +45,15 @@ public class CharacterData : MonoBehaviour
             classData.role = ClassRole.DPS;
             classData.artKey = "inquisitor";
         }
+        
+        // Fix: Limpieza diferida de items corruptos (se ejecuta después de que InventorySystem cargue)
+        StartCoroutine(DelayedClean());
+    }
+    
+    System.Collections.IEnumerator DelayedClean()
+    {
+        yield return new WaitForSeconds(0.5f);
+        CleanCorruptedSave();
     }
 
     // 0.3: Stats derivados (usa stats base de Valerius + crecimiento)
@@ -119,5 +128,30 @@ public class CharacterData : MonoBehaviour
         if (gold < amount) return false;
         gold -= amount;
         return true;
+    }
+    // Fix: Limpieza de items dummy corruptos del save antiguo
+    public static void CleanCorruptedSave()
+    {
+        if (InventorySystem.Instance == null) return;
+        
+        bool cleaned = false;
+        
+        // Revisar items equipados
+        foreach (ItemSlot slot in System.Enum.GetValues(typeof(ItemSlot)))
+        {
+            ItemData item = InventorySystem.Instance.GetEquipped(slot);
+            if (item != null && (item.itemName == "Objeto" || string.IsNullOrEmpty(item.itemName)))
+            {
+                InventorySystem.Instance.Unequip(slot);
+                cleaned = true;
+                Debug.Log("[CharacterData] Item dummy removido del slot: " + slot);
+            }
+        }
+        
+        if (cleaned)
+        {
+            InventorySystem.Instance.ApplyToUnit();
+            Debug.Log("[CharacterData] Save limpiado de items corruptos.");
+        }
     }
 }
