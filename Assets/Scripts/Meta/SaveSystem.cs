@@ -16,7 +16,7 @@ public static class SaveSystem
         data.gold = CharacterData.Instance != null ? CharacterData.Instance.gold : 0;
 
         LoadoutSystem.SnapshotToSave(data);
-
+        QuestSystem.SnapshotToSave(data);
         if (InventorySystem.Instance != null)
         {
             data.inventory = InventorySystem.Instance.Serialize();
@@ -63,7 +63,7 @@ public static class SaveSystem
         CharacterData.Instance.gold = data.gold;
 
         LoadoutSystem.ApplyFromSave(data);
-
+        QuestSystem.ApplyFromSave(data);
         if (InventorySystem.Instance != null && data.inventory != null)
         {
             InventorySystem.Instance.Deserialize(data.inventory);

@@ -166,15 +166,64 @@ public class WorldSpawnManager : MonoBehaviour
         DefeatedAt[e.def.id] = Time.realtimeSinceStartup;
         if (OnWorldEnemyDefeated != null) OnWorldEnemyDefeated(e.def);
 
+        // 0.7-D.1: Combate dinámico 1-4 enemigos MIXTOS según tier
+        int enemyCount = Random.Range(1, 5); // 1 a 4
+        string[] pool = GetArchetypePool(e.def.tier);
+        Vector2Int[] positions = GetSpawnPositions(enemyCount);
+
+        List<SpawnDef> spawns = new List<SpawnDef>();
+        for (int i = 0; i < enemyCount; i++)
+        {
+            string archetype = pool[Random.Range(0, pool.Length)];
+            spawns.Add(new SpawnDef
+            {
+                archetype = archetype,
+                tier = e.def.tier,
+                cell = positions[i]
+            });
+        }
+
         List<WaveDef> dungeon = new List<WaveDef>
         {
-            new WaveDef { spawns = new List<SpawnDef>
-            {
-                new SpawnDef { archetype = e.def.archetype, tier = e.def.tier, cell = new Vector2Int(7, 4) }
-            } }
+            new WaveDef { spawns = spawns }
         };
+
+        Debug.Log("[WorldSpawn] Combate: " + enemyCount + " enemigos mixtos (tier " + e.def.tier + ")");
 
         GameFlow.pendingIsWorld = true;
         GameFlow.EnterCombat(e.def.tier, dungeon);
+    }
+
+    // 0.7-D.1: Pools de arquetipos por tier (mixto, no predecible)
+    string[] GetArchetypePool(EnemyTier tier)
+    {
+        switch (tier)
+        {
+            case EnemyTier.Basico:
+                return new[] { "penitent", "flagelante", "cherub", "ceniza" };
+            case EnemyTier.Medio:
+                return new[] { "inquisitor", "censor", "heraldo", "incensario", "cherub" };
+            case EnemyTier.Elite:
+                return new[] { "heraldo", "automata", "inquisitor", "capitan" };
+            case EnemyTier.EliteFuerte:
+                return new[] { "capitan", "automata", "heraldo" };
+            case EnemyTier.Jefe:
+                return new[] { "angel" };
+            default:
+                return new[] { "penitent" };
+        }
+    }
+
+    // 0.7-D.1: Posiciones distribuidas según cantidad de enemigos
+    Vector2Int[] GetSpawnPositions(int count)
+    {
+        switch (count)
+        {
+            case 1: return new[] { new Vector2Int(7, 4) };
+            case 2: return new[] { new Vector2Int(6, 4), new Vector2Int(8, 4) };
+            case 3: return new[] { new Vector2Int(6, 4), new Vector2Int(7, 4), new Vector2Int(8, 4) };
+            case 4: return new[] { new Vector2Int(5, 4), new Vector2Int(6, 4), new Vector2Int(7, 4), new Vector2Int(8, 4) };
+            default: return new[] { new Vector2Int(7, 4) };
+        }
     }
 }

@@ -4,6 +4,30 @@ using UnityEngine.EventSystems;
 
 public static class UIFactory
 {
+    private static Font _cachedFont = null;
+    
+    public static Font GetFont()
+    {
+        if (_cachedFont != null) return _cachedFont;
+        
+        _cachedFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (_cachedFont == null) _cachedFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        if (_cachedFont == null) _cachedFont = Resources.GetBuiltinResource<Font>("LiberationSans.ttf");
+        if (_cachedFont == null) _cachedFont = Resources.GetBuiltinResource<Font>("arial.ttf");
+        if (_cachedFont == null) _cachedFont = Resources.GetBuiltinResource<Font>("NotoSans-Regular.ttf");
+        
+        if (_cachedFont == null)
+        {
+            _cachedFont = Font.CreateDynamicFontFromOSFont("Arial", 12);
+            if (_cachedFont == null) _cachedFont = Font.CreateDynamicFontFromOSFont("Liberation Sans", 12);
+            if (_cachedFont == null) _cachedFont = Font.CreateDynamicFontFromOSFont("Segoe UI", 12);
+            if (_cachedFont == null) _cachedFont = Font.CreateDynamicFontFromOSFont("Verdana", 12);
+            Debug.LogWarning("[UIFactory] Usando fuente dinámica del SO como fallback final.");
+        }
+        
+        return _cachedFont;
+    }
+
     public static GameObject CreateCanvas(string name, int sortOrder = 50)
     {
         // Regla de trabajo: Asegurar EventSystem
@@ -63,9 +87,7 @@ public static class UIFactory
 
         Text t = go.AddComponent<Text>();
         t.text = content;
-        Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        t.font = f;
+        t.font = GetFont();
         t.fontSize = fontSize;
         t.alignment = align;
         t.color = color ?? Color.white;

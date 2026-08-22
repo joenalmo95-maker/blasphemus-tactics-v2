@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 public class BossHealthBarUI : MonoBehaviour
@@ -135,9 +135,7 @@ public class BossHealthBarUI : MonoBehaviour
     
     Font GetFont()
     {
-        Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        return f;
+        return UIFactory.GetFont();
     }
     
     void OnDestroy()

@@ -15,8 +15,7 @@ public static class CombatFeedback
         tm.anchor = TextAnchor.MiddleCenter;
         tm.color = color;
 
-        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        Font font = UIFactory.GetFont();
         if (font != null)
         {
             tm.font = font;

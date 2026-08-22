@@ -7,6 +7,7 @@ public class InventoryUI : MonoBehaviour
 {
     public static bool IsOpen { get; private set; }
     private GameObject root;
+    private int espadonTierIndex = 0; // 0.7-C: ciclo de tiers para prueba con tecla K
 
     void Update()
     {
@@ -17,6 +18,18 @@ public class InventoryUI : MonoBehaviour
             {
                 ClassData cd = CharacterData.Instance != null ? CharacterData.Instance.classData : null;
                 InventorySystem.Instance.AddItem(ItemGenerator.Generate(cd));
+                if (IsOpen) Rebuild();
+            }
+        }
+        // 0.7-C: tecla K genera espadón del siguiente tier (ciclo Common -> Reliquia)
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            if (InventorySystem.Instance != null)
+            {
+                Rarity[] tiers = { Rarity.Common, Rarity.Rare, Rarity.Epic, Rarity.Legendary, Rarity.Reliquia };
+                ItemData esp = ItemGenerator.GenerateEspadon(tiers[espadonTierIndex]);
+                InventorySystem.Instance.AddItem(esp);
+                espadonTierIndex = (espadonTierIndex + 1) % tiers.Length;
                 if (IsOpen) Rebuild();
             }
         }

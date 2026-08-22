@@ -112,6 +112,12 @@ public class WorldBootstrap : MonoBehaviour
         
         if (Object.FindAnyObjectByType<WorldChestManager>() == null)
             new GameObject("WorldChestManager").AddComponent<WorldChestManager>();
+
+        if (Object.FindAnyObjectByType<WorldEncounterManager>() == null)
+            new GameObject("WorldEncounterManager").AddComponent<WorldEncounterManager>();
+
+        if (Object.FindAnyObjectByType<WorldDungeonMarkers>() == null)
+            new GameObject("WorldDungeonMarkers").AddComponent<WorldDungeonMarkers>();
     }
 
     void EnsureWorldMapExists()
