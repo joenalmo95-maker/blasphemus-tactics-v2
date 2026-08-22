@@ -33,6 +33,15 @@ public class InventoryUI : MonoBehaviour
                 if (IsOpen) Rebuild();
             }
         }
+        // 0.7-E.3: tecla O genera botas (TESTING - se puede quitar después)
+        if (Input.GetKeyDown(KeyCode.O))
+        {
+            if (InventorySystem.Instance != null)
+            {
+                InventorySystem.Instance.AddItem(ItemGenerator.GenerateBoots(EnemyTier.Medio));
+                if (IsOpen) Rebuild();
+            }
+        }
         if (Input.GetKeyDown(KeyCode.F5))
         {
             SaveSystem.Save();
@@ -175,6 +184,7 @@ public class InventoryUI : MonoBehaviour
             case ItemSlot.Chest: return "Peto";
             case ItemSlot.Legs: return "Pantalón";
             case ItemSlot.Helm: return "Casco";
+            case ItemSlot.Boots: return "Botas";
             default: return "Guantes";
         }
     }

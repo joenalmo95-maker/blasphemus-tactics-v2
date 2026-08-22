@@ -281,4 +281,33 @@ public static class ItemGenerator
             default: return ItemSlot.Gloves;
         }
     }
+
+    // 0.7-E.3: Botas (slot libre, NO cuentan para el set)
+    public static ItemData GenerateBoots(EnemyTier tier)
+    {
+        ItemData item = new ItemData();
+        item.slot = ItemSlot.Boots;
+        item.setId = SetType.Ninguno;
+        item.setPiece = SetPieceType.Ninguna;
+        item.armorType = ArmorType.Ninguna;
+        item.requiredClass = "";
+        item.rarity = (tier == EnemyTier.Jefe || tier == EnemyTier.EliteFuerte) ? Rarity.Epic
+                      : tier == EnemyTier.Elite ? Rarity.Rare : Rarity.Common;
+        item.itemName = "Botas " + quality[Random.Range(0, quality.Length)];
+        item.stats = StatBlock.Zero();
+
+        int t = (int)tier;
+        item.stats.evasion += 2 + t / 2;
+        item.stats.maxHP += 4 + t * 2;
+
+        // 0.7-E.3: 8% de probabilidad de 2% robo de vida (loot raro)
+        if (Random.Range(0, 100) < 8)
+        {
+            item.stats.lifesteal += 2;
+            if (item.rarity < Rarity.Epic) item.rarity = Rarity.Epic;
+        }
+
+        Debug.Log("[ItemGenerator] Botas: " + item.itemName + (item.stats.lifesteal > 0 ? " [ROBO DE VIDA]" : ""));
+        return item;
+    }
 }

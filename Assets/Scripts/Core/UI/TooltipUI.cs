@@ -382,6 +382,7 @@ public class TooltipUI : MonoBehaviour
             case ItemSlot.Chest: return "Peto";
             case ItemSlot.Legs: return "Pantalón";
             case ItemSlot.Helm: return "Casco";
+            case ItemSlot.Boots: return "Botas";
             default: return "Guantes";
         }
     }

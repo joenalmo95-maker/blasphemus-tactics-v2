@@ -10,6 +10,7 @@ public class InventorySaveData
     public ItemData equippedLegs;
     public ItemData equippedHelm;
     public ItemData equippedGloves;
+    public ItemData equippedBoots;
 }
 
 [System.Serializable]

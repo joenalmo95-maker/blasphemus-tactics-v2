@@ -13,7 +13,7 @@ public class ItemData
     public StatBlock stats = new StatBlock();
 }
 
-public enum ItemSlot { Weapon, Chest, Legs, Helm, Gloves }
+public enum ItemSlot { Weapon, Chest, Legs, Helm, Gloves, Boots }
 public enum Rarity { Common, Rare, Epic, Legendary, Reliquia }
 public enum ArmorType { Ninguna, Placas, Cuero, Ropa }
 // 0.7-E: sets de armadura (3 sets, 4 piezas cada uno)

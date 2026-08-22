@@ -210,6 +210,7 @@ public class InventorySystem : MonoBehaviour
         data.equippedLegs = GetEquipped(ItemSlot.Legs);
         data.equippedHelm = GetEquipped(ItemSlot.Helm);
         data.equippedGloves = GetEquipped(ItemSlot.Gloves);
+        data.equippedBoots = GetEquipped(ItemSlot.Boots);
         return data;
     }
 
@@ -227,6 +228,7 @@ public class InventorySystem : MonoBehaviour
         if (IsValidItem(data.equippedLegs))   equipped[ItemSlot.Legs]   = data.equippedLegs;
         if (IsValidItem(data.equippedHelm))   equipped[ItemSlot.Helm]   = data.equippedHelm;
         if (IsValidItem(data.equippedGloves)) equipped[ItemSlot.Gloves] = data.equippedGloves;
+        if (IsValidItem(data.equippedBoots)) equipped[ItemSlot.Boots] = data.equippedBoots;
         
         // Limpiar items dummy del inventario normal también
         items.RemoveAll(i => !IsValidItem(i));
