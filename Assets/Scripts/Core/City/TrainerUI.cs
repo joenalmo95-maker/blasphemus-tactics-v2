@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
@@ -35,6 +35,18 @@ public class TrainerUI : MonoBehaviour
         root = null;
     }
 
+    Font SafeFont()
+    {
+        return UIFactory.GetFont();
+    }
+
+    void SetFontSafe(Text t, int size)
+    {
+        Font f = SafeFont();
+        if (f != null) t.font = f;
+        t.fontSize = size;
+    }
+
     void Rebuild()
     {
         if (root != null) Destroy(root);
@@ -69,7 +81,6 @@ public class TrainerUI : MonoBehaviour
         int gold = CharacterData.Instance != null ? CharacterData.Instance.gold : 0;
         int level = CharacterData.Instance != null ? CharacterData.Instance.level : 1;
 
-        // 0.6: UI unificada - Pool Universal de Valerius
         MakeText(root.transform, "ENTRENADOR DE VALERIUS  (ESC cerrar)", 0, 260, 20, Color.white);
         MakeText(root.transform, "Oro: " + gold + "   Nivel: " + level, 0, 230, 15, Color.yellow);
         MakeText(root.transform, "Las skills se desbloquean por nivel o se compran aquí", 0, 205, 12, Color.gray);
@@ -81,10 +92,7 @@ public class TrainerUI : MonoBehaviour
         MakeButton(root.transform, "Pasivas", 100, 175, 100, 28, filter == SkillType.Pasiva ? Color.green : Color.gray,
             () => { filter = SkillType.Pasiva; Rebuild(); });
 
-        // Sección Loadout (arriba a la izquierda)
         BuildLoadoutSection();
-
-        // Sección Pool de Skills (derecha, scrollable)
         BuildPoolScroll();
 
         MakeButton(root.transform, "CERRAR", 0, -270, 200, 40, Color.red, () => Close());
@@ -99,14 +107,14 @@ public class TrainerUI : MonoBehaviour
         {
             int s = i;
             string id = LoadoutSystem.ActiveId(i);
-            string name = id == "" ? "(vacío)" : SkillPool.Get(id).skillName;
+            string name = id == "" ? "(vacío)" : (SkillPool.Get(id) != null ? SkillPool.Get(id).skillName : id);
             MakeLoadoutRow("Activa " + (i + 1) + ": " + name, Color.white, id, -280, ly,
                 () => { LoadoutSystem.AssignActive(s, ""); Rebuild(); });
             ly -= 30;
         }
 
         string ultId = LoadoutSystem.UltimateId();
-        string ultName = ultId == "" ? "(vacío)" : SkillPool.Get(ultId).skillName;
+        string ultName = ultId == "" ? "(vacío)" : (SkillPool.Get(ultId) != null ? SkillPool.Get(ultId).skillName : ultId);
         MakeLoadoutRow("Ultimate: " + ultName, Color.magenta, ultId, -280, ly,
             () => { LoadoutSystem.AssignUltimate(""); Rebuild(); });
         ly -= 30;
@@ -115,7 +123,7 @@ public class TrainerUI : MonoBehaviour
         {
             int s = i;
             string id = LoadoutSystem.PassiveId(i);
-            string name = id == "" ? "(vacío)" : SkillPool.Get(id).skillName;
+            string name = id == "" ? "(vacío)" : (SkillPool.Get(id) != null ? SkillPool.Get(id).skillName : id);
             MakeLoadoutRow("Pasiva " + (i + 1) + ": " + name, Color.cyan, id, -280, ly,
                 () => { LoadoutSystem.AssignPassive(s, ""); Rebuild(); });
             ly -= 30;
@@ -141,8 +149,7 @@ public class TrainerUI : MonoBehaviour
         trt.offsetMax = Vector2.zero;
         Text t = txtObj.AddComponent<Text>();
         t.text = label;
-        t.font = GetFont();
-        t.fontSize = 13;
+        SetFontSafe(t, 13);
         t.alignment = TextAnchor.MiddleLeft;
         t.color = color;
 
@@ -171,13 +178,12 @@ public class TrainerUI : MonoBehaviour
             blrt.offsetMax = Vector2.zero;
             Text bt = bl.AddComponent<Text>();
             bt.text = "Vaciar";
-            bt.font = GetFont();
-            bt.fontSize = 11;
+            SetFontSafe(bt, 11);
             bt.alignment = TextAnchor.MiddleCenter;
             bt.color = Color.gray;
-        }
 
-        if (!string.IsNullOrEmpty(id)) AddSkillTooltipTrigger(row, id);
+            AddSkillTooltipTrigger(row, id);
+        }
     }
 
     void BuildPoolScroll()
@@ -215,6 +221,7 @@ public class TrainerUI : MonoBehaviour
         foreach (string id in SkillPool.AllIds())
         {
             SkillMeta meta = SkillPool.Meta(id);
+            if (meta == null) continue;
             if (meta.type != filter) continue;
             MakePoolRow(crt.transform, id, meta);
         }
@@ -222,12 +229,7 @@ public class TrainerUI : MonoBehaviour
 
     void MakePoolRow(Transform parent, string id, SkillMeta meta)
     {
-        // Protección contra null en meta
-        if (meta == null)
-        {
-            Debug.LogWarning("[TrainerUI] Meta null para id: " + id + ". Saltando fila.");
-            return;
-        }
+        if (meta == null) return;
 
         SkillData sk = SkillPool.Get(id);
         int level = CharacterData.Instance != null ? CharacterData.Instance.level : 1;
@@ -240,7 +242,6 @@ public class TrainerUI : MonoBehaviour
         LayoutElement le = row.AddComponent<LayoutElement>();
         le.preferredHeight = 34;
 
-        // Nombre + rareza + nivel requerido
         GameObject txtObj = new GameObject("Name");
         txtObj.transform.SetParent(row.transform, false);
         RectTransform trt = txtObj.AddComponent<RectTransform>();
@@ -251,18 +252,13 @@ public class TrainerUI : MonoBehaviour
         trt.sizeDelta = new Vector2(260, 30);
         Text t = txtObj.AddComponent<Text>();
 
-        // Protección contra null en sk
         string skillName = (sk != null && !string.IsNullOrEmpty(sk.skillName)) ? sk.skillName : meta.name;
         string nameText = skillName;
-        
-        if (levelLocked) 
-            nameText += "  [Nv." + meta.unlockLevel + "]";
-        else if (!LoadoutSystem.IsLearned(id) && meta.cost > 0) 
-            nameText += "  · " + meta.cost + " oro";
+        if (levelLocked) nameText += "  [Nv." + meta.unlockLevel + "]";
+        else if (!LoadoutSystem.IsLearned(id) && meta.cost > 0) nameText += "  · " + meta.cost + " oro";
 
         t.text = nameText;
-        t.font = GetFont();
-        t.fontSize = 12;
+        SetFontSafe(t, 12);
         t.alignment = TextAnchor.MiddleLeft;
 
         Rarity rar = Rarity.Common;
@@ -278,7 +274,6 @@ public class TrainerUI : MonoBehaviour
 
         if (levelLocked)
         {
-            // Skill bloqueada por nivel - mostrar indicador
             GameObject lockObj = new GameObject("Lock");
             lockObj.transform.SetParent(row.transform, false);
             RectTransform lrt = lockObj.AddComponent<RectTransform>();
@@ -290,16 +285,24 @@ public class TrainerUI : MonoBehaviour
             Image lockImg = lockObj.AddComponent<Image>();
             lockImg.sprite = SpriteFactory.Square();
             lockImg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
-            Text lockText = lockObj.AddComponent<Text>();
+
+            // FIX: Text en HIJO separado (Unity no permite Image+Text en el mismo GameObject)
+            GameObject lockTxtObj = new GameObject("Label");
+            lockTxtObj.transform.SetParent(lockObj.transform, false);
+            RectTransform ltrt = lockTxtObj.AddComponent<RectTransform>();
+            ltrt.anchorMin = Vector2.zero;
+            ltrt.anchorMax = Vector2.one;
+            ltrt.offsetMin = Vector2.zero;
+            ltrt.offsetMax = Vector2.zero;
+            Text lockText = lockTxtObj.AddComponent<Text>();
             lockText.text = "Requiere Nv. " + meta.unlockLevel;
-            lockText.font = GetFont();
-            lockText.fontSize = 11;
+            SetFontSafe(lockText, 11);
             lockText.alignment = TextAnchor.MiddleCenter;
             lockText.color = Color.gray;
         }
+
         else if (!LoadoutSystem.IsLearned(id))
         {
-            // Skill no aprendida - botón APRENDER
             RowButton(row.transform, "APRENDER", bx, 100, Color.cyan, () =>
             {
                 if (CharacterData.Instance == null) return;
@@ -382,8 +385,7 @@ public class TrainerUI : MonoBehaviour
         trt.offsetMax = Vector2.zero;
         Text t = txtObj.AddComponent<Text>();
         t.text = label;
-        t.font = GetFont();
-        t.fontSize = 11;
+        SetFontSafe(t, 11);
         t.alignment = TextAnchor.MiddleCenter;
         t.color = color;
         btn.onClick.AddListener(onClick);
@@ -413,8 +415,7 @@ public class TrainerUI : MonoBehaviour
         trt.offsetMax = Vector2.zero;
         Text t = txtObj.AddComponent<Text>();
         t.text = label;
-        t.font = GetFont();
-        t.fontSize = 13;
+        SetFontSafe(t, 13);
         t.alignment = TextAnchor.MiddleCenter;
         t.color = textColor;
         btn.onClick.AddListener(onClick);
@@ -431,16 +432,8 @@ public class TrainerUI : MonoBehaviour
         rt.sizeDelta = new Vector2(900, 40);
         Text t = go.AddComponent<Text>();
         t.text = content;
-        t.font = GetFont();
-        t.fontSize = size;
+        SetFontSafe(t, size);
         t.alignment = TextAnchor.MiddleCenter;
         t.color = color;
-    }
-
-    Font GetFont()
-    {
-        Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        return f;
     }
 }
