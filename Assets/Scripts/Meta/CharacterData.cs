@@ -21,7 +21,7 @@ public class CharacterData : MonoBehaviour
     public int baseCritChance = 5;
     public int baseEvasion = 0;
     public int baseAP = 3;
-    public int baseAttack = 80;
+    public int baseAccuracy = 80;
     public int baseHealingPower = 0;
     public int baseLifesteal = 0;
     public int baseThreatMult = 1;
@@ -66,7 +66,7 @@ public class CharacterData : MonoBehaviour
         s.critChance = baseCritChance;
         s.evasion = baseEvasion;
         s.apMove = baseAP;
-        s.attack = baseAttack;
+        s.accuracy = baseAccuracy;
         s.healingPower = baseHealingPower;
         s.lifesteal = baseLifesteal;
         s.threatMult = baseThreatMult;

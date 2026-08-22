@@ -58,7 +58,7 @@ public static class GameReset
                 u.buffDefense = 0;
                 u.buffCrit = 0;
                 u.buffTurns = 0;
-                u.debuffAttack = 0;
+                u.debuffAccuracy = 0;
                 u.debuffTurns = 0;
                 u.pendingApPenalty = 0;
                 

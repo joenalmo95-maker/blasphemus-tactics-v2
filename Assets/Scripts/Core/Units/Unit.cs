@@ -24,7 +24,7 @@ public class Unit : MonoBehaviour
     public int buffCrit = 0;
     public int buffTurns = 0;
 
-    public int debuffAttack = 0;
+    public int debuffAccuracy = 0;
     public int debuffTurns = 0;
 
     public int pendingApPenalty = 0;
@@ -105,9 +105,9 @@ public class Unit : MonoBehaviour
         }
     }
 
-    public void ApplyDebuff(int attackReduction, int turns)
+    public void ApplyDebuff(int accuracyReduction, int turns)
     {
-        debuffAttack += attackReduction;
+        debuffAccuracy += accuracyReduction;
         debuffTurns = Mathf.Max(debuffTurns, turns);
         Debug.Log(gameObject.name + " sufre MALDICIÓN: -" + attackReduction + " precisión por " + turns + " turnos.");
         CombatFeedback.SpawnText(transform.position, "MALDICIÓN", Color.magenta);
@@ -128,7 +128,7 @@ public class Unit : MonoBehaviour
 
     public bool ReceiveAttack(Unit attacker, int rawDamage, int bonusCrit = 0, float skillThreat = 1f)
     {
-        int atk = attacker != null ? attacker.stats.attack - attacker.debuffAttack : 70;
+        int atk = attacker != null ? attacker.stats.accuracy - attacker.debuffAccuracy : 70;
         int crit = (attacker != null ? attacker.stats.critChance + attacker.buffCrit : 5) + bonusCrit;
         int lifesteal = attacker != null ? attacker.stats.lifesteal : 0;
         float threatMult = attacker != null ? attacker.stats.threatMult : 1f;

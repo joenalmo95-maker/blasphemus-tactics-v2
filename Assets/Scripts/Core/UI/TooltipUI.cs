@@ -167,7 +167,7 @@ public class TooltipUI : MonoBehaviour
             sb.AppendLine("Daño: " + (unit.stats.damage + unit.buffDamage));
             sb.AppendLine("Defensa: " + (unit.stats.defense + unit.buffDefense));
             sb.AppendLine("Crítico: " + (unit.stats.critChance + unit.buffCrit) + "%");
-            sb.Append("Precisión: " + (unit.stats.attack - unit.debuffAttack) + "%");
+            sb.Append("Precisión: " + (unit.stats.accuracy - unit.debuffAccuracy) + "%");
         }
 
         if (unit.buffTurns > 0 || unit.debuffTurns > 0)
@@ -215,7 +215,7 @@ public class TooltipUI : MonoBehaviour
         AppendStat(sb, "HP máx", item.stats.maxHP, cmp ? equipped.stats.maxHP : 0, "", cmp);
         AppendStat(sb, "Defensa", item.stats.defense, cmp ? equipped.stats.defense : 0, "", cmp);
         AppendStat(sb, "Daño", item.stats.damage, cmp ? equipped.stats.damage : 0, "", cmp);
-        AppendStat(sb, "Precisión", item.stats.attack, cmp ? equipped.stats.attack : 0, "", cmp);
+        AppendStat(sb, "Precisión", item.stats.accuracy, cmp ? equipped.stats.accuracy : 0, "", cmp);
         AppendStat(sb, "Crítico", item.stats.critChance + 0, cmp ? equipped.stats.critChance : 0, "%", cmp);
         AppendStat(sb, "Evasión", item.stats.evasion, cmp ? equipped.stats.evasion : 0, "%", cmp);
         AppendStat(sb, "AP", item.stats.apMove, cmp ? equipped.stats.apMove : 0, "", cmp);

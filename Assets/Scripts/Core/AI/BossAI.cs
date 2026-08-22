@@ -16,7 +16,7 @@ public class BossAI : MonoBehaviour
     void Awake()
     {
         selfUnit = GetComponent<Unit>();
-        selfUnit.stats.attack = 80;
+        selfUnit.stats.accuracy = 80;
         selfUnit.stats.evasion = 10;
         selfUnit.stats.defense = 2;
         selfUnit.stats.critChance = 10;

@@ -233,7 +233,7 @@ public class HUDUI : MonoBehaviour
         }
         if (playerUnit.debuffTurns > 0)
         {
-            sig += "D" + playerUnit.debuffAttack + "." + playerUnit.debuffTurns;
+            sig += "D" + playerUnit.debuffAccuracy + "." + playerUnit.debuffTurns;
         }
         if (sig == lastStatusSig) return;
         lastStatusSig = sig;
@@ -353,9 +353,7 @@ public class HUDUI : MonoBehaviour
 
     Font GetTrackerFont()
     {
-        Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        return f;
+        return UIFactory.GetFont();
     }
 
     void UpdateBossBar()

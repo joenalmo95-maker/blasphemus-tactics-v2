@@ -4,7 +4,7 @@ public class StatBlock
     public int maxHP = 10;
     public int defense = 0;
     public int damage = 3;
-    public int attack = 70;
+    public int accuracy = 70;
     public int critChance = 5;
     public int evasion = 5;
     public int apMove = 3;
@@ -18,7 +18,7 @@ public class StatBlock
         s.maxHP = 0;
         s.defense = 0;
         s.damage = 0;
-        s.attack = 0;
+        s.accuracy = 0;
         s.critChance = 0;
         s.evasion = 0;
         s.apMove = 0;
@@ -38,7 +38,7 @@ public class StatBlock
         maxHP += other.maxHP;
         defense += other.defense;
         damage += other.damage;
-        attack += other.attack;
+        accuracy += other.accuracy;
         critChance += other.critChance;
         evasion += other.evasion;
         apMove += other.apMove;

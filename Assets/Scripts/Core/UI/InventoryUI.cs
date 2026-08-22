@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
@@ -149,7 +149,7 @@ public class InventoryUI : MonoBehaviour
         string hpText = player != null ? player.currentHealth + "/" + player.maxHealth : stats.maxHP + "/" + stats.maxHP;
         string apText = player != null ? player.currentAP + "/" + player.maxAP : stats.apMove + "/" + stats.apMove;
         string statsText = "HP: " + hpText + "  DEF: " + stats.defense + "  DAÑO: " + stats.damage +
-                           "  ATQ: " + stats.attack + "  CRIT: " + stats.critChance + "%  EVA: " + stats.evasion +
+                           "  PREC: " + stats.accuracy + "  CRIT: " + stats.critChance + "%  EVA: " + stats.evasion +
                            "%  AP: " + apText + "  CUR: " + stats.healingPower + "%  ROBO: " + stats.lifesteal + "%";
         MakeText(root.transform, statsText, 0, -220, 18); 
     }
@@ -217,8 +217,6 @@ public class InventoryUI : MonoBehaviour
 
     Font GetFont()
     {
-        Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        return f;
+        return UIFactory.GetFont();
     }
 }

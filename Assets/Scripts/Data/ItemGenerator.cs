@@ -81,7 +81,7 @@ public static class ItemGenerator
         pool.Add(() => item.stats.maxHP += Random.Range(2, 6));
         pool.Add(() => item.stats.defense += Random.Range(1, 4));
         pool.Add(() => item.stats.damage += Random.Range(1, 4));
-        pool.Add(() => item.stats.attack += Random.Range(2, 6));
+        pool.Add(() => item.stats.accuracy += Random.Range(2, 6));
         pool.Add(() => item.stats.critChance += Random.Range(1, 6));
         pool.Add(() => item.stats.apMove += 1);
 

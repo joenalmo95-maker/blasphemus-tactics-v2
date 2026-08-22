@@ -25,7 +25,7 @@ public class EnemyAI : MonoBehaviour
         selfUnit = GetComponent<Unit>();
         if (selfUnit != null)
         {
-            selfUnit.stats.attack = 70;
+            selfUnit.stats.accuracy = 70;
             selfUnit.stats.evasion = 5;
             selfUnit.stats.defense = 1 + baseDefense; // ← aplica defensa del arquetipo
             selfUnit.stats.critChance = 5;
