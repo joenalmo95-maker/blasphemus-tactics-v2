@@ -27,7 +27,6 @@ public class InputController : MonoBehaviour
 
     void Update()
     {
-        if (InventoryUI.IsOpen || ShopUI.IsOpen) return;
         if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn()) return;
         if (playerUnit == null) playerUnit = GetPlayer();
 
@@ -55,6 +54,7 @@ public class InputController : MonoBehaviour
         {
             if (TurnManager.Instance != null)
             {
+                Debug.Log("[InputController] E presionada. Estado: " + TurnManager.Instance.currentState);
                 TurnManager.Instance.EndPlayerTurn();
             }
         }
