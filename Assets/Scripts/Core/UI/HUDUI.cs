@@ -251,7 +251,7 @@ public class HUDUI : MonoBehaviour
         }
         if (playerUnit.debuffTurns > 0)
         {
-            activeDebuffIcons.Add(CreateStatusIcon(debuffContainer, "-" + playerUnit.debuffAttack + " PREC", Color.magenta, playerUnit.debuffTurns));
+            activeDebuffIcons.Add(CreateStatusIcon(debuffContainer, "-" + playerUnit.debuffAccuracy + " PREC", Color.magenta, playerUnit.debuffTurns));
         }
     }
 

@@ -120,7 +120,7 @@ public class Unit : MonoBehaviour
             debuffTurns--;
             if (debuffTurns == 0)
             {
-                debuffAttack = 0;
+                debuffAccuracy = 0;
                 Debug.Log("La maldición se disipa.");
             }
         }
