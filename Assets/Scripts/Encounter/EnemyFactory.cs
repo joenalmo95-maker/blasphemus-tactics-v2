@@ -33,6 +33,7 @@ public static class EnemyFactory
         {
             // === ARQUETIPOS BASE (existentes) === — 0.7: rebalance daño/HP
             case "boss":
+            case "angel":  // FIX 0.7-D.2b: alias para el Ángel (usado en ZonesConfig.json)
                 baseHp = 350; baseDamage = 30; art = "angel";
                 name = "Ángel de la Vigilia"; scale = 1.6f;
                 tint = new Color(1f, 0.95f, 0.6f);
@@ -120,6 +121,16 @@ public static class EnemyFactory
             ai.canCharge = canCharge;
             ai.applyCurse = applyCurse;
             ai.unitName = name;
+        }
+
+        // 0.7-D.2b: Marcar flags de boss/elite según tier y arquetipo
+        if (tier == EnemyTier.Jefe || archetype == "boss" || archetype == "angel")
+        {
+            unit.isBoss = true;
+        }
+        else if (tier == EnemyTier.Elite || tier == EnemyTier.EliteFuerte)
+        {
+            unit.isElite = true;
         }
 
         return unit;
