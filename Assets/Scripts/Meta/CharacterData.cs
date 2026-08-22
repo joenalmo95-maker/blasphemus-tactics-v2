@@ -81,6 +81,17 @@ public class CharacterData : MonoBehaviour
             s.Add(InventorySystem.Instance.GetEquippedStats());
         }
         s.damage += Progression.PlayerDamageBonus(level);
+
+        // 0.7-E: bonuses de set completo (4/4)
+        if (SetBonusSystem.HasFullSet(SetType.Rojo))
+            s.damage = Mathf.RoundToInt(s.damage * 1.15f);
+        if (SetBonusSystem.HasFullSet(SetType.Amarillo))
+            s.critChance += 25;
+        if (SetBonusSystem.HasFullSet(SetType.Verde))
+        {
+            s.maxHP += 50;
+            s.healOnHit += 2;
+        }
         return s;
     }
 

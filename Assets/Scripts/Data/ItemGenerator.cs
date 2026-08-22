@@ -5,6 +5,24 @@ public static class ItemGenerator
 {
     private static string[] quality = { "del Penitente", "del Inquisidor", "del Templario", "del Halo Roto" };
 
+    // 0.7-C: Jerarquía de espadones por tier (nombre + daño base + rareza)
+    public struct EspadonTier
+    {
+        public string nombre;
+        public int dañoMin;
+        public int dañoMax;
+        public Rarity rareza;
+    }
+
+    public static readonly EspadonTier[] Espadones = new EspadonTier[]
+    {
+        new EspadonTier { nombre = "Espadón del Penitente",  dañoMin = 3,  dañoMax = 5,  rareza = Rarity.Common },
+        new EspadonTier { nombre = "Espadón del Inquisidor", dañoMin = 6,  dañoMax = 10, rareza = Rarity.Rare },
+        new EspadonTier { nombre = "Espadón del Halo Roto",  dañoMin = 12, dañoMax = 18, rareza = Rarity.Epic },
+        new EspadonTier { nombre = "Espadón de la Vigilia",  dañoMin = 20, dañoMax = 30, rareza = Rarity.Legendary },
+        new EspadonTier { nombre = "Espadón del Milagro",    dañoMin = 35, dañoMax = 50, rareza = Rarity.Reliquia }
+    };
+
     public static ItemData Generate(ClassData classData)
     {
         return GenerateWithRarity(classData, RollRarityBasic());
@@ -110,6 +128,7 @@ public static class ItemGenerator
             case Rarity.Rare: return Color.cyan;
             case Rarity.Epic: return Color.magenta;
             case Rarity.Legendary: return Color.yellow;
+            case Rarity.Reliquia: return new Color(1f, 0.4f, 0.1f); // naranja ardiente
             default: return Color.white;
         }
     }
@@ -120,6 +139,7 @@ public static class ItemGenerator
             case Rarity.Rare: return 10;
             case Rarity.Epic: return 20;
             case Rarity.Legendary: return 40;
+            case Rarity.Reliquia: return 100;
             default: return 5;
         }
     }
@@ -131,7 +151,9 @@ public static class ItemGenerator
             case Rarity.Common: return 15;
             case Rarity.Rare: return 30;
             case Rarity.Epic: return 60;
-            default: return 120;
+            case Rarity.Legendary: return 120;
+            case Rarity.Reliquia: return 500;
+            default: return 15;
         }
     }
 
@@ -165,11 +187,98 @@ public static class ItemGenerator
         return baseN + " de " + t;
     }
 
+    // 0.7-E.2: sin clases — toda armadura es equipable; ArmorType queda como sabor visual
     public static bool CanEquipClass(ItemData item, ClassData cd)
     {
-        if (item == null || cd == null) return false;
-        if (item.armorType != ArmorType.Ninguna) return item.armorType == ArmorFor(cd);
-        if (!string.IsNullOrEmpty(item.requiredClass)) return item.requiredClass == cd.className;
+        if (item == null) return false;
         return true;
+    }
+
+    // 0.7-C: Generador de espadón específico por tier
+    public static ItemData GenerateEspadon(Rarity tierDeseado)
+    {
+        EspadonTier tier = Espadones[0]; // fallback Common
+        foreach (EspadonTier t in Espadones)
+        {
+            if (t.rareza == tierDeseado) { tier = t; break; }
+        }
+
+        ItemData item = new ItemData();
+        item.slot = ItemSlot.Weapon;
+        item.rarity = tier.rareza;
+        item.requiredClass = "";
+        item.armorType = ArmorType.Ninguna;
+        item.itemName = tier.nombre;
+        item.stats = StatBlock.Zero();
+
+        // Daño base escalado por tier
+        int dmgBase = Random.Range(tier.dañoMin, tier.dañoMax + 1);
+        item.stats.damage = dmgBase;
+
+        // Precisión base mejora con rareza (65-77)
+        item.stats.accuracy = 65 + (int)tier.rareza * 3;
+
+        // Affixes aleatorios (1 por nivel de rareza, mínimo 1)
+        int affixes = 1 + (int)tier.rareza;
+        List<System.Action> pool = BuildPool(null, item);
+        for (int i = 0; i < affixes && pool.Count > 0; i++)
+        {
+            int idx = Random.Range(0, pool.Count);
+            pool[idx]();
+            pool.RemoveAt(idx);
+        }
+
+        Debug.Log("[ItemGenerator] Espadón generado: " + item.itemName + " | Daño base: " + dmgBase + " | Rareza: " + tier.rareza);
+        return item;
+    }
+
+    // 0.7-E: generador de pieza de set específica
+    public static ItemData GenerateSetPiece(SetType set, SetPieceType piece, EnemyTier tier)
+    {
+        ItemData item = new ItemData();
+        item.slot = PieceToSlot(piece);
+        item.setId = set;
+        item.setPiece = piece;
+        item.armorType = ArmorType.Ninguna;
+        item.requiredClass = "";
+        item.rarity = (tier == EnemyTier.Jefe || tier == EnemyTier.EliteFuerte) ? Rarity.Epic
+                      : tier == EnemyTier.Elite ? Rarity.Rare : Rarity.Common;
+        item.itemName = SetBonusSystem.PieceName(piece) + " " + SetBonusSystem.SetSuffix(set);
+        item.stats = StatBlock.Zero();
+
+        int t = (int)tier;
+        switch (piece)
+        {
+            case SetPieceType.Casco:
+                item.stats.defense += 1 + t / 2;
+                item.stats.critChance += 2;
+                break;
+            case SetPieceType.Peto:
+                item.stats.maxHP += 10 + t * 5;
+                item.stats.defense += 1 + t / 2;
+                break;
+            case SetPieceType.Pantalon:
+                item.stats.evasion += 2 + t / 2;
+                item.stats.maxHP += 5 + t * 3;
+                break;
+            case SetPieceType.Guantes:
+                item.stats.damage += 2 + t;
+                item.stats.critChance += 2 + t / 2;
+                break;
+        }
+
+        Debug.Log("[ItemGenerator] Pieza de set: " + item.itemName + " [" + item.rarity + "]");
+        return item;
+    }
+
+    static ItemSlot PieceToSlot(SetPieceType p)
+    {
+        switch (p)
+        {
+            case SetPieceType.Casco: return ItemSlot.Helm;
+            case SetPieceType.Peto: return ItemSlot.Chest;
+            case SetPieceType.Pantalon: return ItemSlot.Legs;
+            default: return ItemSlot.Gloves;
+        }
     }
 }

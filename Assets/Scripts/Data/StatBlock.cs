@@ -10,6 +10,7 @@ public class StatBlock
     public int apMove = 3;
     public int healingPower = 0;
     public int lifesteal = 0;
+    public int healOnHit = 0; // 0.7-E: curación plana por golpe (Set Verde)
     public float threatMult = 1f;
 
     public static StatBlock Zero()
@@ -24,6 +25,7 @@ public class StatBlock
         s.apMove = 0;
         s.healingPower = 0;
         s.lifesteal = 0;
+        s.healOnHit = 0;
         s.threatMult = 0f;
         return s;
     }
@@ -44,6 +46,7 @@ public class StatBlock
         apMove += other.apMove;
         healingPower += other.healingPower;
         lifesteal += other.lifesteal;
+        healOnHit += other.healOnHit;
         threatMult += other.threatMult;
     }
 }

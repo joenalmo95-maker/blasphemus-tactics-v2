@@ -131,6 +131,7 @@ public class Unit : MonoBehaviour
         int atk = attacker != null ? attacker.stats.accuracy - attacker.debuffAccuracy : 70;
         int crit = (attacker != null ? attacker.stats.critChance + attacker.buffCrit : 5) + bonusCrit;
         int lifesteal = attacker != null ? attacker.stats.lifesteal : 0;
+        int healOnHit = attacker != null ? attacker.stats.healOnHit : 0;
         float threatMult = attacker != null ? attacker.stats.threatMult : 1f;
 
         int hitChance = Mathf.Clamp(atk - stats.evasion, 5, 95);
@@ -160,6 +161,8 @@ public class Unit : MonoBehaviour
                 int heal = Mathf.Max(1, Mathf.RoundToInt(final * lifesteal / 100f));
                 attacker.Heal(heal);
             }
+            // 0.7-E: curación plana por golpe (Set Verde)
+            if (healOnHit > 0) attacker.Heal(healOnHit);
         }
 
         if (currentHealth <= 0)
