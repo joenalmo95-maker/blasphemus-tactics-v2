@@ -25,6 +25,9 @@ public class WorldBootstrap : MonoBehaviour
         public Vector2Int center;
         public EnemyTier tier;
         public List<WaveDef> dungeon;
+        // 0.7-E.4: metadata de set de armadura que dropea esta DNG
+        public SetType setId = SetType.Ninguno;
+        public SetPieceType setPiece = SetPieceType.Ninguna;
     }
 
     public class WaveDef

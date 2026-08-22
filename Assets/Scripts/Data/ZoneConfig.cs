@@ -8,7 +8,16 @@ public class SpawnConfig { public string archetype; public string tier; public i
 public class WaveConfig { public SpawnConfig[] spawns; }
 
 [System.Serializable]
-public class ZoneConfig { public string name; public string tier; public int x; public int y; public WaveConfig[] waves; }
+public class ZoneConfig {
+    public string name;
+    public string tier;
+    public int x;
+    public int y;
+    public WaveConfig[] waves;
+    // 0.7-E.4: metadata de set (rojo/amarillo/verde + casco/peto/pantalon/guantes)
+    public string setId = "";
+    public string setPiece = "";
+}
 
 [System.Serializable]
 public class ZonesConfigFile { public ZoneConfig[] zones; }
@@ -31,6 +40,8 @@ public static class ZoneConfigLoader
                     z.name = zc.name;
                     z.center = new Vector2Int(zc.x, zc.y);
                     z.tier = ParseTier(zc.tier, EnemyTier.Basico);
+                    z.setId = ParseSetType(zc.setId);
+                    z.setPiece = ParseSetPiece(zc.setPiece);
                     z.dungeon = new List<WorldBootstrap.WaveDef>();
                     if (zc.waves != null)
                     {
@@ -90,5 +101,28 @@ public static class ZoneConfigLoader
     static WorldBootstrap.SpawnDef S(string archetype, EnemyTier tier, int x, int y)
     {
         return new WorldBootstrap.SpawnDef { archetype = archetype, tier = tier, cell = new Vector2Int(x, y) };
+    }
+
+    // 0.7-E.4: parsers de set
+    static SetType ParseSetType(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return SetType.Ninguno;
+        string lower = s.ToLower();
+        if (lower.Contains("rojo") || lower.Contains("judgment") || lower.Contains("juicio")) return SetType.Rojo;
+        if (lower.Contains("amarillo") || lower.Contains("halo")) return SetType.Amarillo;
+        if (lower.Contains("verde") || lower.Contains("plegaria")) return SetType.Verde;
+        if (lower.Contains("aleatorio") || lower.Contains("random")) return SetType.Ninguno; // se resuelve al dropear
+        return SetType.Ninguno;
+    }
+
+    static SetPieceType ParseSetPiece(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return SetPieceType.Ninguna;
+        string lower = s.ToLower();
+        if (lower.Contains("casco") || lower.Contains("helm")) return SetPieceType.Casco;
+        if (lower.Contains("peto") || lower.Contains("chest")) return SetPieceType.Peto;
+        if (lower.Contains("pantalon") || lower.Contains("legs")) return SetPieceType.Pantalon;
+        if (lower.Contains("guantes") || lower.Contains("gloves")) return SetPieceType.Guantes;
+        return SetPieceType.Ninguna;
     }
 }
