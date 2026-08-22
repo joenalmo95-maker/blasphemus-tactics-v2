@@ -11,5 +11,5 @@ public class ItemData
 }
 
 public enum ItemSlot { Weapon, Chest, Legs, Helm, Gloves }
-public enum Rarity { Common, Rare, Epic, Legendary }
+public enum Rarity { Common, Rare, Epic, Legendary, Reliquia }
 public enum ArmorType { Ninguna, Placas, Cuero, Ropa }

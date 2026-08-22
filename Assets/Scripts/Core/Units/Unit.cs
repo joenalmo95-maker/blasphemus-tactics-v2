@@ -109,7 +109,7 @@ public class Unit : MonoBehaviour
     {
         debuffAccuracy += accuracyReduction;
         debuffTurns = Mathf.Max(debuffTurns, turns);
-        Debug.Log(gameObject.name + " sufre MALDICIÓN: -" + attackReduction + " precisión por " + turns + " turnos.");
+        Debug.Log(gameObject.name + " sufre MALDICIÓN: -" + accuracyReduction + " precisión por " + turns + " turnos.");
         CombatFeedback.SpawnText(transform.position, "MALDICIÓN", Color.magenta);
     }
 

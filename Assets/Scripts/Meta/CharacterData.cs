@@ -14,9 +14,9 @@ public class CharacterData : MonoBehaviour
     // 0.3: ClassData por defecto (Inquisidor = DPS)
     public ClassData classData;
 
-    // Stats base de Valerius (nivel 1)
+    // Stats base de Valerius (nivel 1) — 0.7: rebalance daño
     public int baseHP = 250;
-    public int baseDamage = 30;
+    public int baseDamage = 18;
     public int baseDefense = 0;
     public int baseCritChance = 5;
     public int baseEvasion = 0;
@@ -26,9 +26,9 @@ public class CharacterData : MonoBehaviour
     public int baseLifesteal = 0;
     public int baseThreatMult = 1;
 
-    // Crecimiento por nivel
+    // Crecimiento por nivel — 0.7: crecimiento más lento
     public int hpPerLevel = 20;
-    public int damagePerLevel = 3;
+    public int damagePerLevel = 2;
     public int defensePerLevel = 1;
 
     void Awake()
@@ -86,7 +86,8 @@ public class CharacterData : MonoBehaviour
 
     public int XpToNextLevel()
     {
-        return Mathf.RoundToInt(12 * Mathf.Pow(1.22f, level));
+        // 0.7: XP requerida multiplicada x2.5 para que nivel 20 tome 20-30h de juego
+        return Mathf.RoundToInt(30 * Mathf.Pow(1.22f, level));
     }
 
     public void GainXP(int amount)
