@@ -241,29 +241,31 @@ public static class ItemGenerator
         item.setPiece = piece;
         item.armorType = ArmorType.Ninguna;
         item.requiredClass = "";
-        item.rarity = (tier == EnemyTier.Jefe || tier == EnemyTier.EliteFuerte) ? Rarity.Epic
-                      : tier == EnemyTier.Elite ? Rarity.Rare : Rarity.Common;
+        // 0.7-E.4b2-fix: las piezas de set son el mejor equipo del juego → siempre Reliquia
+        item.rarity = Rarity.Reliquia;
         item.itemName = SetBonusSystem.PieceName(piece) + " " + SetBonusSystem.SetSuffix(set);
         item.stats = StatBlock.Zero();
 
+        // 0.7-E.4b2: stats mejoradas (piezas de set superiores al loot genérico)
         int t = (int)tier;
         switch (piece)
         {
             case SetPieceType.Casco:
-                item.stats.defense += 1 + t / 2;
-                item.stats.critChance += 2;
+                item.stats.defense += 3 + t / 2;
+                item.stats.critChance += 3;
+                item.stats.accuracy += 2;
                 break;
             case SetPieceType.Peto:
-                item.stats.maxHP += 10 + t * 5;
-                item.stats.defense += 1 + t / 2;
+                item.stats.maxHP += 25 + t * 5;
+                item.stats.defense += 3 + t / 2;
                 break;
             case SetPieceType.Pantalon:
-                item.stats.evasion += 2 + t / 2;
-                item.stats.maxHP += 5 + t * 3;
+                item.stats.evasion += 4 + t / 2;
+                item.stats.maxHP += 15 + t * 3;
                 break;
             case SetPieceType.Guantes:
-                item.stats.damage += 2 + t;
-                item.stats.critChance += 2 + t / 2;
+                item.stats.damage += 5 + t;
+                item.stats.critChance += 4 + t / 2;
                 break;
         }
 
@@ -291,8 +293,8 @@ public static class ItemGenerator
         item.setPiece = SetPieceType.Ninguna;
         item.armorType = ArmorType.Ninguna;
         item.requiredClass = "";
-        item.rarity = (tier == EnemyTier.Jefe || tier == EnemyTier.EliteFuerte) ? Rarity.Epic
-                      : tier == EnemyTier.Elite ? Rarity.Rare : Rarity.Common;
+        // 0.7-E.4b2-fix: las piezas de set son el mejor equipo del juego → siempre Reliquia
+        item.rarity = Rarity.Reliquia;
         item.itemName = "Botas " + quality[Random.Range(0, quality.Length)];
         item.stats = StatBlock.Zero();
 
