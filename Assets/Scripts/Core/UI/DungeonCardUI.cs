@@ -91,8 +91,23 @@ public class DungeonCardUI : MonoBehaviour
         }
 
         MakeText(root.transform, sb.ToString(), 0, 40, 14, Color.white, new Vector2(700, 220));
-        MakeText(root.transform, "Recompensas estimadas: Oro " + gmin + "-" + gmax + " · EXP " + totalXp, 0, -110, 15, Color.cyan);
-        MakeText(root.transform, "ESC cancela sin consumir entrada", 0, -140, 12, Color.gray);
+        MakeText(root.transform, "Recompensas estimadas: Oro " + gmin + "-" + gmax + " ┬À EXP " + totalXp, 0, -110, 15, Color.cyan);
+
+        // 0.7-E.4b2: mostrar pieza de set que dropea y pity actual
+        string setInfo = "";
+        if (zone.setPiece != SetPieceType.Ninguna)
+        {
+            string pityKey = "SetPity_" + zone.name;
+            int pity = PlayerPrefs.GetInt(pityKey, 0);
+            bool isFixed = zone.setId != SetType.Ninguno;
+            string setName = isFixed ? SetBonusSystem.SetName(zone.setId) : "aleatorio";
+            string pieceName = SetBonusSystem.PieceName(zone.setPiece);
+            setInfo = "Dropea: " + pieceName + " (" + setName + ") - Pity " + pity + "/80";
+        }
+        if (!string.IsNullOrEmpty(setInfo))
+        MakeText(root.transform, setInfo, 0, -140, 14, new Color(1f, 0.85f, 0.3f));
+        float escY = string.IsNullOrEmpty(setInfo) ? -140 : -170;
+        MakeText(root.transform, "ESC cancela sin consumir entrada", 0, escY, 12, Color.gray);
 
         MakeButton(root.transform, "ENTRAR", -110, -200, 200, 44, Color.green, () =>
         {

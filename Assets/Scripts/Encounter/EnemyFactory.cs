@@ -34,9 +34,15 @@ public static class EnemyFactory
             // === ARQUETIPOS BASE (existentes) === — 0.7: rebalance daño/HP
             case "boss":
             case "angel":  // FIX 0.7-D.2b: alias para el Ángel (usado en ZonesConfig.json)
-                baseHp = 350; baseDamage = 30; art = "angel";
+                baseHp = 500; baseDamage = 30; art = "angel";
                 name = "Ángel de la Vigilia"; scale = 1.6f;
                 tint = new Color(1f, 0.95f, 0.6f);
+                break;
+            // 0.7-F.1d: Capitán del Boss Mundial (HP 1200, gate de set Reliquia completo)
+            case "capitan_mundial":
+                baseHp = 1200; baseDamage = 30; baseDefense = 20;
+                art = "capitan"; name = "Capitán de la Cruzada"; scale = 1.7f;
+                tint = new Color(1f, 0.85f, 0.3f); // Dorado
                 break;
             case "cherub":
                 baseHp = 50; baseDamage = 16; art = "cherub";
@@ -104,7 +110,14 @@ public static class EnemyFactory
 
         Unit unit = Unit.Create(name, cell, true, tint, scale, hp, 3, art);
 
-        if (archetype == "boss")
+        if (archetype == "capitan_mundial")
+        {
+            // 0.7-F.1d: el Capitán usa IA propia con mecánicas
+            CaptainBossAI ai = unit.gameObject.AddComponent<CaptainBossAI>();
+            ai.attackDamage = baseDamage + dmgBonus + Progression.EnemyDamageBonus(playerLevel);
+            ai.tier = tier;
+        }
+        else if (archetype == "boss" || archetype == "angel")
         {
             BossAI ai = unit.gameObject.AddComponent<BossAI>();
             ai.attackDamage = baseDamage + dmgBonus + Progression.EnemyDamageBonus(playerLevel);

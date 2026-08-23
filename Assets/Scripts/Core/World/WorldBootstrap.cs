@@ -121,6 +121,10 @@ public class WorldBootstrap : MonoBehaviour
 
         if (Object.FindAnyObjectByType<WorldDungeonMarkers>() == null)
             new GameObject("WorldDungeonMarkers").AddComponent<WorldDungeonMarkers>();
+
+        // 0.7-F.1c: Sistema de Boss Mundial (ciclo 7 días)
+        if (Object.FindAnyObjectByType<WorldBossSystem>() == null)
+            new GameObject("WorldBossSystem").AddComponent<WorldBossSystem>();
     }
 
     void EnsureWorldMapExists()

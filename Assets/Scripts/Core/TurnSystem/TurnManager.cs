@@ -96,8 +96,12 @@ public class TurnManager : MonoBehaviour
             
             BossAI boss = enemy.GetComponent<BossAI>();
             EnemyAI ai = enemy.GetComponent<EnemyAI>();
-            
-            if (boss != null)
+            CaptainBossAI captain = enemy.GetComponent<CaptainBossAI>();
+            if (captain != null)
+            {
+                yield return captain.ExecuteTurn();
+            }
+            else if (boss != null)
             {
                 yield return boss.ExecuteTurn();
             }

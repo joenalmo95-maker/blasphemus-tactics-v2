@@ -197,10 +197,16 @@ public class TooltipUI : MonoBehaviour
         titleText.color = ItemGenerator.RarityColor(item.rarity);
         titleText.text = item.itemName;
 
-        string desc = RarityLabel(item.rarity) + " · " + SlotLabel(item.slot);
-        if (item.armorType != ArmorType.Ninguna)
+        string desc = RarityLabel(item.rarity) + " . " + SlotLabel(item.slot);
+        if (item.armorType != ArmorType.Ninguna) desc += " . " + item.armorType;
+        // 0.7-E.4b2: mostrar set al que pertenece
+        if (item.setId != SetType.Ninguno)
         {
-            desc += " · " + item.armorType;
+            int count = SetBonusSystem.CountPieces(item.setId);
+            string setColorHex = ColorUtility.ToHtmlStringRGB(SetBonusSystem.SetColor(item.setId));
+            desc += "\n<color=#" + setColorHex + ">" + SetBonusSystem.SetName(item.setId) + " (" + count + "/4)</color>";
+        }
+        {
             ClassData cdTip = CharacterData.Instance != null ? CharacterData.Instance.classData : null;
             desc += ItemGenerator.CanEquipClass(item, cdTip)
                 ? " <color=#00ff00>(usable)</color>"
@@ -208,6 +214,9 @@ public class TooltipUI : MonoBehaviour
         }
         if (!string.IsNullOrEmpty(item.requiredClass)) desc += "\nClase: " + item.requiredClass;
         if (equipped != null) desc += "\n<color=#aaaaaa>Reemplaza: " + equipped.itemName + "</color>";
+        // 0.7-E.4b2: bonus de set completo (4/4)
+        if (item.setId != SetType.Ninguno)
+            desc += "\n<color=#ffcc66>" + SetBonusSystem.BonusDescription(item.setId) + "</color>";
         descriptionText.text = desc;
 
         bool cmp = equipped != null;

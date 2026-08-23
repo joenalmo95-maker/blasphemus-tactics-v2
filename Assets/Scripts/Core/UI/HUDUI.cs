@@ -358,19 +358,31 @@ public class HUDUI : MonoBehaviour
 
     void UpdateBossBar()
     {
-        Unit bossOrElite = null;
-        Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
-        foreach (Unit u in units)
+        // 0.2-fix: Priorizar el enemigo seleccionado por el jugador
+        Unit target = InputController.SelectedEnemy;
+
+        // Fallback: si no hay selección válida, buscar cualquier jefe/élite vivo
+        if (target == null || !target.isEnemy || target.currentHealth <= 0)
         {
-            if (u.isEnemy && (u.isBoss || u.isElite || u.maxHealth >= 50)) { bossOrElite = u; break; }
+            Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
+            foreach (Unit u in units)
+            {
+                if (u.isEnemy && (u.isBoss || u.isElite || u.maxHealth >= 50) && u.currentHealth > 0)
+                {
+                    target = u;
+                    break;
+                }
+            }
         }
-        if (bossOrElite != null)
+
+        // Mostrar u ocultar la barra según el target válido
+        if (target != null && target.isEnemy && target.currentHealth > 0)
         {
             if (!bossBarRoot.activeSelf) bossBarRoot.SetActive(true);
-            if (bossNameText != null) bossNameText.text = (bossOrElite.isBoss ? "JEFE: " : "ELITE: ") + bossOrElite.gameObject.name;
-            float ratio = Mathf.Clamp01((float)bossOrElite.currentHealth / bossOrElite.maxHealth);
+            if (bossNameText != null) bossNameText.text = (target.isBoss ? "JEFE: " : "ELITE: ") + target.gameObject.name;
+            float ratio = Mathf.Clamp01((float)target.currentHealth / target.maxHealth);
             if (bossHpFill != null) bossHpFill.anchorMax = new Vector2(ratio, 1f);
-            if (bossHpText != null) bossHpText.text = bossOrElite.currentHealth + " / " + bossOrElite.maxHealth;
+            if (bossHpText != null) bossHpText.text = target.currentHealth + " / " + target.maxHealth;
         }
         else if (bossBarRoot != null && bossBarRoot.activeSelf)
         {

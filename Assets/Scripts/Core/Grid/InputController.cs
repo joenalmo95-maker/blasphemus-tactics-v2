@@ -8,6 +8,9 @@ public class InputController : MonoBehaviour
     private Tile currentHovered;
     private Tile selected;
     private Unit playerUnit;
+    
+    // 0.2-fix: Enemigo seleccionado para la UI de barras de vida
+    public static Unit SelectedEnemy { get; private set; }
 
     void Start()
     {
@@ -48,6 +51,9 @@ public class InputController : MonoBehaviour
             if (selected != null && selected != hit) selected.Highlight(false);
             selected = hit;
             selected.Highlight(true);
+            
+            // 0.2-fix: Registrar el enemigo en la casilla clickeada para la UI
+            SelectedEnemy = Pathfinding.UnitAt(cell);
         }
 
         if (Input.GetKeyDown(KeyCode.E))
