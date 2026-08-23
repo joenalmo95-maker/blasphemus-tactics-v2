@@ -312,4 +312,30 @@ public static class ItemGenerator
         Debug.Log("[ItemGenerator] Botas: " + item.itemName + (item.stats.lifesteal > 0 ? " [ROBO DE VIDA]" : ""));
         return item;
     }
+
+    // 0.7-F.1b: Botas del Capitán (Reliquia exclusiva del Boss Mundial)
+    public static ItemData GenerateBossBoots()
+    {
+        ItemData item = new ItemData();
+        item.slot = ItemSlot.Boots;
+        item.setId = SetType.Ninguno;
+        item.setPiece = SetPieceType.Ninguna;
+        item.armorType = ArmorType.Ninguna;
+        item.requiredClass = "";
+        item.rarity = Rarity.Reliquia;
+        item.itemName = "Botas del Capitán Caído";
+        item.stats = StatBlock.Zero();
+
+        // Stats Reliquia endgame
+        item.stats.defense += 8;
+        item.stats.maxHP += 40;
+        item.stats.evasion += 6;
+        item.stats.damage += 8;
+        item.stats.critChance += 8;
+        item.stats.lifesteal += 2;
+        item.stats.worldSpeed += 30; // +30% velocidad en el mundo
+
+        Debug.Log("[ItemGenerator] ★ BOTAS DEL BOSS: " + item.itemName + " [Reliquia +30% worldSpeed]");
+        return item;
+    }
 }

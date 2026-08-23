@@ -33,6 +33,15 @@ public class InventoryUI : MonoBehaviour
                 if (IsOpen) Rebuild();
             }
         }
+        // 0.7-F.1b: tecla B genera Botas del Boss (TESTING)
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            if (InventorySystem.Instance != null)
+            {
+                InventorySystem.Instance.AddItem(ItemGenerator.GenerateBossBoots());
+                if (IsOpen) Rebuild();
+            }
+        }
         // 0.7-E.4b2: tecla P genera pieza de set aleatoria (TESTING)
         if (Input.GetKeyDown(KeyCode.P))
         {
