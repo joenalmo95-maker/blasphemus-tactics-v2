@@ -34,9 +34,17 @@ public class WorldPlayerController : MonoBehaviour
         float y = Input.GetAxisRaw("Vertical");
         Vector3 dir = new Vector3(x, y, 0).normalized;
 
+        // 0.7-F.1a: aplicar bonus de velocidad de mundo (solo aquí, no afecta combate)
+        float finalSpeed = speed;
+        if (CharacterData.Instance != null)
+        {
+            int bonus = CharacterData.Instance.GetTotalStats().worldSpeed;
+            if (bonus > 0) finalSpeed = speed * (1f + bonus / 100f);
+        }
+
         if (dir != Vector3.zero)
         {
-            Vector3 newPos = transform.position + dir * speed * Time.deltaTime;
+            Vector3 newPos = transform.position + dir * finalSpeed * Time.deltaTime;
             Vector2Int targetCell = new Vector2Int(Mathf.RoundToInt(newPos.x), Mathf.RoundToInt(newPos.y));
             if (TerrainMap.IsWalkable(targetCell))
                 transform.position = newPos;

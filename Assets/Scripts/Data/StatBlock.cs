@@ -11,6 +11,7 @@ public class StatBlock
     public int healingPower = 0;
     public int lifesteal = 0;
     public int healOnHit = 0; // 0.7-E: curación plana por golpe (Set Verde)
+    public int worldSpeed = 0; // 0.7-F.1a: bonus de velocidad en el mundo (% sobre speed base)
     public float threatMult = 1f;
 
     public static StatBlock Zero()
@@ -26,6 +27,7 @@ public class StatBlock
         s.healingPower = 0;
         s.lifesteal = 0;
         s.healOnHit = 0;
+        s.worldSpeed = 0;
         s.threatMult = 0f;
         return s;
     }
@@ -47,6 +49,7 @@ public class StatBlock
         healingPower += other.healingPower;
         lifesteal += other.lifesteal;
         healOnHit += other.healOnHit;
+        worldSpeed += other.worldSpeed;
         threatMult += other.threatMult;
     }
 }
