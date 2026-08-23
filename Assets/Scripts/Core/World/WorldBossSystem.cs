@@ -32,44 +32,66 @@ public class WorldBossSystem : MonoBehaviour
 
     void TrySpawnBoss()
     {
-        // Si ya hay un boss activo en esta sesión, no spawnear otro
+        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // 1. Verificar si hay un boss activo y si ha expirado (24 horas)
         if (PlayerPrefs.GetInt("WorldBossActive", 0) == 1)
         {
-            Debug.Log("[WorldBoss] Boss ya activo en esta sesión.");
-            return;
+            long spawnTime = long.Parse(PlayerPrefs.GetString("BossSpawnTime", "0"));
+            if (spawnTime > 0 && (currentTime - spawnTime) >= 24 * 3600)
+            {
+                Debug.Log("[WorldBoss] El Capitán ha expirado (24h sin ser derrotado). Desapareciendo...");
+                PlayerPrefs.SetInt("WorldBossActive", 0);
+                PlayerPrefs.DeleteKey("BossSpawnTime");
+                PlayerPrefs.DeleteKey("BossSpawnX");
+                PlayerPrefs.DeleteKey("BossSpawnY");
+                PlayerPrefs.Save();
+                if (bossMarker != null) Destroy(bossMarker);
+                isBossActive = false;
+            }
+            else
+            {
+                Debug.Log("[WorldBoss] Boss activo y vigente. Restaurando marcador en el mapa...");
+                // FIX: Restaurar la posición guardada y reconstruir el marcador visual
+                int savedX = PlayerPrefs.GetInt("BossSpawnX", -1);
+                int savedY = PlayerPrefs.GetInt("BossSpawnY", -1);
+                if (savedX != -1 && savedY != -1)
+                {
+                    bossPosition = new Vector2Int(savedX, savedY);
+                    isBossActive = true;
+                    RebuildBossMarker(bossPosition);
+                }
+                return; // Ya está activo y restaurado visualmente
+            }
         }
 
-        // Verificar si ha pasado tiempo suficiente desde el último kill
+        // 2. Verificar si ha pasado tiempo suficiente desde el último kill para un nuevo spawn
         long lastKillTime = long.Parse(PlayerPrefs.GetString("LastBossKillTime", "0"));
-        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         long secondsSinceLastKill = currentTime - lastKillTime;
 
-        // Primer boss: 24h tras crear partida
         if (lastKillTime == 0)
         {
-            if (secondsSinceLastKill < SPAWN_DELAY_HOURS * 3600)
+            if (secondsSinceLastKill < 24 * 3600)
             {
-                Debug.Log("[WorldBoss] Primer boss aparecerá en " + ((SPAWN_DELAY_HOURS * 3600 - secondsSinceLastKill) / 3600) + " horas.");
+                Debug.Log("[WorldBoss] Primer boss aparecerá en " + ((24 * 3600 - secondsSinceLastKill) / 3600) + " horas.");
                 return;
             }
         }
         else
         {
-            // Siguiente boss: 7 días tras derrotar
-            if (secondsSinceLastKill < RESPAWN_DAYS * 24 * 3600)
+            if (secondsSinceLastKill < 7 * 24 * 3600)
             {
-                Debug.Log("[WorldBoss] Próximo boss en " + ((RESPAWN_DAYS * 24 * 3600 - secondsSinceLastKill) / 3600) + " horas.");
+                Debug.Log("[WorldBoss] Próximo boss en " + ((7 * 24 * 3600 - secondsSinceLastKill) / 3600) + " horas.");
                 return;
             }
         }
 
-        // Spawnear el boss
-        SpawnBoss();
+        // 3. Spawnear el boss
+        SpawnBoss(currentTime);
     }
 
-    void SpawnBoss()
+    void SpawnBoss(long currentTime)
     {
-        // Encontrar celda caminable lejos del jugador
         Vector2Int playerPos = WorldBootstrap.LastKnownPosition;
         Vector2Int spawnCell = Vector2Int.zero;
         bool found = false;
@@ -81,9 +103,7 @@ public class WorldBossSystem : MonoBehaviour
             Vector2Int candidate = new Vector2Int(x, y);
 
             if (!TerrainMap.IsWalkable(candidate)) continue;
-
-            float dist = Vector2Int.Distance(candidate, playerPos);
-            if (dist < MIN_DISTANCE_FROM_PLAYER) continue;
+            if (Vector2Int.Distance(candidate, playerPos) < 20) continue;
 
             spawnCell = candidate;
             found = true;
@@ -99,11 +119,22 @@ public class WorldBossSystem : MonoBehaviour
         bossPosition = spawnCell;
         isBossActive = true;
         PlayerPrefs.SetInt("WorldBossActive", 1);
+        PlayerPrefs.SetString("BossSpawnTime", currentTime.ToString());
+        PlayerPrefs.SetInt("BossSpawnX", spawnCell.x); // ← FIX: Guardar X
+        PlayerPrefs.SetInt("BossSpawnY", spawnCell.y); // ← FIX: Guardar Y
         PlayerPrefs.Save();
 
-        // Crear marcador visual (dorado)
+        RebuildBossMarker(spawnCell);
+        Debug.Log("[WorldBoss] ★ Capitán spawneado en (" + spawnCell.x + ", " + spawnCell.y + ")");
+    }
+
+    // ← FIX: Nuevo método para reconstruir el marcador visual (se usa al spawnear Y al recargar el mundo)
+    void RebuildBossMarker(Vector2Int pos)
+    {
+        if (bossMarker != null) Destroy(bossMarker);
+        
         bossMarker = new GameObject("BossMarker_Capitan");
-        bossMarker.transform.position = new Vector3(spawnCell.x, spawnCell.y, 0);
+        bossMarker.transform.position = new Vector3(pos.x, pos.y, 0);
 
         SpriteRenderer sr = bossMarker.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteFactory.Square();
@@ -111,7 +142,6 @@ public class WorldBossSystem : MonoBehaviour
         sr.sortingOrder = 1;
         bossMarker.transform.localScale = new Vector3(1.6f, 1.6f, 1f);
 
-        // Borde negro
         GameObject border = new GameObject("Border");
         border.transform.SetParent(bossMarker.transform);
         border.transform.localPosition = Vector3.zero;
@@ -120,10 +150,20 @@ public class WorldBossSystem : MonoBehaviour
         brdSr.color = Color.black;
         brdSr.sortingOrder = 0;
         border.transform.localScale = new Vector3(1.8f, 1.8f, 1f);
-
-        Debug.Log("[WorldBoss] ★ Capitán spawneado en (" + spawnCell.x + ", " + spawnCell.y + ")");
     }
 
+    // Llamado desde TurnManager al ganar el combate del boss
+    public static void OnBossDefeated()
+    {
+        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        PlayerPrefs.SetString("LastBossKillTime", currentTime.ToString());
+        PlayerPrefs.SetInt("WorldBossActive", 0);
+        PlayerPrefs.DeleteKey("BossSpawnTime");
+        PlayerPrefs.DeleteKey("BossSpawnX"); // ← FIX: Limpiar X
+        PlayerPrefs.DeleteKey("BossSpawnY"); // ← FIX: Limpiar Y
+        PlayerPrefs.Save();
+        Debug.Log("[WorldBoss] ★ Capitán derrotado. Próximo boss en 7 días.");
+    }
     void Update()
     {
         // Tecla F10: forzar spawn (testing)
@@ -159,8 +199,9 @@ public class WorldBossSystem : MonoBehaviour
         isBossActive = false;
         PlayerPrefs.SetInt("WorldBossActive", 0);
 
-        // Forzar spawn inmediato
-        SpawnBoss();
+        // Forzar spawn inmediato (FIX: pasar el tiempo actual)
+        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        SpawnBoss(currentTime);
     }
 
     void StartBossFight()
@@ -185,15 +226,5 @@ public class WorldBossSystem : MonoBehaviour
 
         GameFlow.pendingIsWorld = false;
         GameFlow.EnterCombat(EnemyTier.Jefe, waves);
-    }
-
-    // Llamado desde TurnManager al ganar el combate del boss
-    public static void OnBossDefeated()
-    {
-        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        PlayerPrefs.SetString("LastBossKillTime", currentTime.ToString());
-        PlayerPrefs.SetInt("WorldBossActive", 0);
-        PlayerPrefs.Save();
-        Debug.Log("[WorldBoss] ★ Capitán derrotado. Próximo boss en 7 días.");
     }
 }
