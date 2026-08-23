@@ -126,4 +126,73 @@ public static class LootSystem
             default: return 60;
         }
     }
+
+    // 0.7-E.4: drop de pieza de set al ganar DNG + pity gacha (80 runs)
+    public static void OnDungeonVictory(WorldBootstrap.ZoneDef zone)
+    {
+        if (zone == null) return;
+        if (zone.setPiece == SetPieceType.Ninguna) return;
+
+        string pityKey = "SetPity_" + zone.name;
+        int pity = PlayerPrefs.GetInt(pityKey, 0);
+
+        // Probabilidades gacha extremo: 3% fija, 1% aleatoria
+        bool isFixed = zone.setId != SetType.Ninguno;
+        float baseProb = isFixed ? 0.03f : 0.01f;
+        int pityCap = 80;
+
+        // Forzar drop si se alcanzó el pity gacha
+        bool force = pity >= pityCap;
+        float totalProb = force ? 1f : baseProb;
+
+        bool dropMain = Random.Range(0f, 1f) < totalProb;
+        bool dropBonus = Random.Range(0f, 1f) < 0.03f; // 3% bonus aleatorio
+
+        if (dropMain)
+        {
+            SetType setId = zone.setId;
+            SetPieceType pieceId = zone.setPiece;
+
+            // Si es zona aleatoria (setId == Ninguno), elegir set al azar
+            if (setId == SetType.Ninguno)
+            {
+                SetType[] sets = { SetType.Rojo, SetType.Amarillo, SetType.Verde };
+                setId = sets[Random.Range(0, sets.Length)];
+            }
+
+            ItemData piece = ItemGenerator.GenerateSetPiece(setId, pieceId, zone.tier);
+            if (InventorySystem.Instance != null)
+            {
+                InventorySystem.Instance.AddItem(piece);
+                combatLog.Add("★ PIEZA DE SET: " + piece.itemName + " [" + piece.rarity + "]");
+                Debug.Log("[LootSystem] ★ PIEZA DE SET: " + piece.itemName);
+            }
+            // Resetear pity al conseguir pieza
+            PlayerPrefs.SetInt(pityKey, 0);
+        }
+        else
+        {
+            // Incrementar pity si no sale
+            PlayerPrefs.SetInt(pityKey, pity + 1);
+            Debug.Log("[LootSystem] Sin pieza de set. Pity: " + (pity + 1) + "/" + pityCap);
+        }
+
+        // Drop bonus aleatorio (3% prob de otra pieza de cualquier set)
+        if (dropBonus)
+        {
+            SetType[] sets = { SetType.Rojo, SetType.Amarillo, SetType.Verde };
+            SetPieceType[] pieces = { SetPieceType.Casco, SetPieceType.Peto, SetPieceType.Pantalon, SetPieceType.Guantes };
+            SetType randSet = sets[Random.Range(0, sets.Length)];
+            SetPieceType randPiece = pieces[Random.Range(0, pieces.Length)];
+            ItemData bonus = ItemGenerator.GenerateSetPiece(randSet, randPiece, zone.tier);
+            if (InventorySystem.Instance != null)
+            {
+                InventorySystem.Instance.AddItem(bonus);
+                combatLog.Add("✦ BONUS ALEATORIO: " + bonus.itemName);
+                Debug.Log("[LootSystem] ✦ BONUS: " + bonus.itemName);
+            }
+        }
+
+        PlayerPrefs.Save();
+    }
 }

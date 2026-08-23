@@ -21,6 +21,8 @@ public static class GameFlow
     public static EnemyTier pendingTier = EnemyTier.Basico;
     public static List<WaveDef> pendingDungeon = null;
     public static bool pendingIsWorld = false;
+    // 0.7-E.4: zona actual (para drops de set al ganar DNG)
+    public static WorldBootstrap.ZoneDef pendingZone = null;
 
     public const string MainMenuScene = "MainMenu";
     public const string WorldScene = "WorldMap";

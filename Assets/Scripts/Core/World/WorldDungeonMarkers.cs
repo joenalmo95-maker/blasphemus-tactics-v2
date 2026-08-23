@@ -111,10 +111,15 @@ public class WorldDungeonMarkers : MonoBehaviour
         {
             // Este callback se ejecuta solo si el jugador presiona "ENTRAR" en la tarjeta
             Debug.Log("[DungeonMarkers] Entrada confirmada a: " + capturedZone.name);
+            // 0.7-E.4: guardar la zona para el sistema de drops de set al ganar
+            GameFlow.pendingZone = capturedZone;
             
             // Consumir la entrada diaria
             DungeonDaily.Consume();
             
+            // 0.7-E.4: guardar la zona para el sistema de drops de set al ganar
+            GameFlow.pendingZone = capturedZone;
+
             // Convertir List<WorldBootstrap.WaveDef> a List<WaveDef> (clase global de GameFlow)
             List<WaveDef> convertedWaves = new List<WaveDef>();
             foreach (WorldBootstrap.WaveDef wbWave in capturedZone.dungeon)

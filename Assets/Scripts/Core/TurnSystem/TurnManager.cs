@@ -148,6 +148,9 @@ public class TurnManager : MonoBehaviour
                 Debug.Log("=== VICTORIA ===");
                 // 2.1: progreso de misiones (mazmorra completada)
                 QuestSystem.NotifyDungeonCompleted();
+                // 0.7-E.4: drop de pieza de set según zona completada
+                LootSystem.OnDungeonVictory(GameFlow.pendingZone);
+                GameFlow.pendingZone = null;
                 ShowGameOver(true);
             }
         }
