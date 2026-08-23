@@ -33,6 +33,19 @@ public class InventoryUI : MonoBehaviour
                 if (IsOpen) Rebuild();
             }
         }
+        // 0.7-E.4b2: tecla P genera pieza de set aleatoria (TESTING)
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            if (InventorySystem.Instance != null)
+            {
+                SetType[] sets = { SetType.Rojo, SetType.Amarillo, SetType.Verde };
+                SetPieceType[] pieces = { SetPieceType.Casco, SetPieceType.Peto, SetPieceType.Pantalon, SetPieceType.Guantes };
+                SetType rs = sets[Random.Range(0, sets.Length)];
+                SetPieceType rp = pieces[Random.Range(0, pieces.Length)];
+                InventorySystem.Instance.AddItem(ItemGenerator.GenerateSetPiece(rs, rp, EnemyTier.Elite));
+                if (IsOpen) Rebuild();
+            }
+        }
         // 0.7-E.3: tecla O genera botas (TESTING - se puede quitar después)
         if (Input.GetKeyDown(KeyCode.O))
         {
@@ -94,6 +107,7 @@ public class InventoryUI : MonoBehaviour
 
         MakeText(root.transform, "INVENTARIO Y EQUIPO  (I/C cerrar, L simular drop)", 0, 260, 20);
         MakeText(root.transform, "EQUIPADO (clic para desequipar)", -260, 190, 16);
+
 
         float ey = 150;
         foreach (ItemSlot slot in System.Enum.GetValues(typeof(ItemSlot)))
@@ -173,7 +187,19 @@ public class InventoryUI : MonoBehaviour
         string statsText = "HP: " + hpText + "  DEF: " + stats.defense + "  DAÑO: " + stats.damage +
                            "  PREC: " + stats.accuracy + "  CRIT: " + stats.critChance + "%  EVA: " + stats.evasion +
                            "%  AP: " + apText + "  CUR: " + stats.healingPower + "%  ROBO: " + stats.lifesteal + "%";
-        MakeText(root.transform, statsText, 0, -220, 18); 
+        MakeText(root.transform, statsText, 0, -120, 12);
+        
+        // 0.7-E.4b2: resumen de sets activos (debajo de estadísticas, nombres completos)
+        string setsInfo = "SETS ACTIVOS: ";
+        SetType[] allSets = { SetType.Rojo, SetType.Amarillo, SetType.Verde };
+        foreach (SetType st in allSets)
+        {
+            int c = SetBonusSystem.CountPieces(st);
+            string mark = c >= 4 ? " ★" : "";
+            string fullName = SetBonusSystem.SetName(st);
+            setsInfo += fullName + " " + c + "/4" + mark + "  ";
+        }
+        MakeText(root.transform, setsInfo, 0, -150, 12);
     }
 
     string SlotLabel(ItemSlot s)
