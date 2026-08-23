@@ -139,16 +139,15 @@ public class CaptainBossAI : MonoBehaviour
 
     void DoOndaGlobal()
     {
-        Debug.Log("[Capitán] ¡ONDA DE CHOQUE! 20 daño inevitable a todo el mapa.");
+        Debug.Log("[Capitán] ¡ONDA DE CHOQUE! 35 de daño a todo el mapa (mitigado por defensa).");
         CombatFeedback.SpawnText(selfUnit.transform.position, "¡ONDA GLOBAL!", Color.yellow);
         
-        // FIX: Declarar 'units' en el scope actual
         Unit[] units = FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
         
         foreach (Unit u in units)
         {
             if (u.isEnemy) continue;
-            u.ReceiveAttack(selfUnit, 20);
+            u.ReceiveAttack(selfUnit, 35); // ← FIX: Daño base subido a 35 para compensar la defensa del jugador
         }
     }
 
