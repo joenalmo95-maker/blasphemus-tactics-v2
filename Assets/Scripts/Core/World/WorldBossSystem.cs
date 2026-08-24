@@ -60,6 +60,10 @@ public class WorldBossSystem : MonoBehaviour
                     bossPosition = new Vector2Int(savedX, savedY);
                     isBossActive = true;
                     RebuildBossMarker(bossPosition);
+                    
+                    // 0.5-fix: Re-inyectar la misión del Capitán si no está en el tablón
+                    long savedTicks = long.Parse(PlayerPrefs.GetString("BossSpawnTicks", "0"));
+                    if (savedTicks > 0) QuestSystem.InjectWorldBossQuest(savedTicks);
                 }
                 return; // Ya está activo y restaurado visualmente
             }
@@ -120,9 +124,14 @@ public class WorldBossSystem : MonoBehaviour
         isBossActive = true;
         PlayerPrefs.SetInt("WorldBossActive", 1);
         PlayerPrefs.SetString("BossSpawnTime", currentTime.ToString());
-        PlayerPrefs.SetInt("BossSpawnX", spawnCell.x); // ← FIX: Guardar X
-        PlayerPrefs.SetInt("BossSpawnY", spawnCell.y); // ← FIX: Guardar Y
+        PlayerPrefs.SetInt("BossSpawnX", spawnCell.x);
+        PlayerPrefs.SetInt("BossSpawnY", spawnCell.y);
+        long spawnTicks = System.DateTime.UtcNow.Ticks;
+        PlayerPrefs.SetString("BossSpawnTicks", spawnTicks.ToString()); // ← FIX: Guardar ticks para misión
         PlayerPrefs.Save();
+
+        // 0.5-fix: Inyectar misión del Capitán en el tablón con 24h de tiempo
+        QuestSystem.InjectWorldBossQuest(spawnTicks);
 
         RebuildBossMarker(spawnCell);
         Debug.Log("[WorldBoss] ★ Capitán spawneado en (" + spawnCell.x + ", " + spawnCell.y + ")");
@@ -159,10 +168,14 @@ public class WorldBossSystem : MonoBehaviour
         PlayerPrefs.SetString("LastBossKillTime", currentTime.ToString());
         PlayerPrefs.SetInt("WorldBossActive", 0);
         PlayerPrefs.DeleteKey("BossSpawnTime");
-        PlayerPrefs.DeleteKey("BossSpawnX"); // ← FIX: Limpiar X
-        PlayerPrefs.DeleteKey("BossSpawnY"); // ← FIX: Limpiar Y
+        PlayerPrefs.DeleteKey("BossSpawnX");
+        PlayerPrefs.DeleteKey("BossSpawnY");
+        PlayerPrefs.DeleteKey("BossSpawnTicks");
         PlayerPrefs.Save();
-        Debug.Log("[WorldBoss] ★ Capitán derrotado. Próximo boss en 7 días.");
+        
+        // 0.5-fix: Completar la misión del Boss Mundial y dar recompensa
+        QuestSystem.Notify("world_boss_defeated");
+        Debug.Log("[WorldBoss] ★ Capitán derrotado. Misión completada (+2500 oro, +1000 XP). Próximo boss en 7 días.");
     }
     void Update()
     {

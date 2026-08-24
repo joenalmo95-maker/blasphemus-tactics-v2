@@ -91,6 +91,7 @@ public static class QuestSystem
         Add("e_luna", QuestType.Evento, "EVENTO Luna Roja: mata 30 enemigos", "enemy_killed", 30, 1000, 300);
         Add("e_festival", QuestType.Evento, "EVENTO Festival de Skills: ejecuta 40 skills", "skill_used", 40, 1000, 300);
         Add("e_caceria", QuestType.Evento, "EVENTO Cacería: derrota 2 jefes/élites", "boss_killed", 2, 1200, 350);
+        Add("e_worldboss", QuestType.Evento, "EVENTO: Derrota al Capitán antes de que desaparezca", "world_boss_defeated", 1, 2500, 1000);
     }
 
     public static QuestDef GetDef(string id)
@@ -454,5 +455,22 @@ public static class QuestSystem
         seasonPhase = 0;
         initialized = false;
         Debug.Log("[QuestSystem] Reset completo para nueva partida.");
+    }
+
+    // 0.5-fix: Inyectar misión del Boss Mundial cuando spawnea (24h para derrotarlo)
+    public static void InjectWorldBossQuest(long bossSpawnTicks)
+    {
+        EnsureInitialized();
+        // Si ya existe la misión del Capitán, no duplicar
+        foreach (QuestState q in actives) if (q.id == "e_worldboss") return;
+        
+        long expiry = bossSpawnTicks + 24 * HOUR_TICKS; // 24h desde el spawn
+        actives.Add(new QuestState 
+        { 
+            id = "e_worldboss", 
+            accepted = true, // aceptada automáticamente para el tracker J
+            expiry = expiry 
+        });
+        Debug.Log("[Quests] Misión del Capitán inyectada en el Tablón (24h).");
     }
 }
