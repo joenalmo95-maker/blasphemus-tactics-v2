@@ -14,13 +14,14 @@ public static class ItemGenerator
         public Rarity rareza;
     }
 
+    // 1.3: Curva de daño de espadones más progresiva (early game más suave, endgame más fuerte)
     public static readonly EspadonTier[] Espadones = new EspadonTier[]
     {
-        new EspadonTier { nombre = "Espadón del Penitente",  dañoMin = 3,  dañoMax = 5,  rareza = Rarity.Common },
-        new EspadonTier { nombre = "Espadón del Inquisidor", dañoMin = 6,  dañoMax = 10, rareza = Rarity.Rare },
-        new EspadonTier { nombre = "Espadón del Halo Roto",  dañoMin = 12, dañoMax = 18, rareza = Rarity.Epic },
-        new EspadonTier { nombre = "Espadón de la Vigilia",  dañoMin = 20, dañoMax = 30, rareza = Rarity.Legendary },
-        new EspadonTier { nombre = "Espadón del Milagro",    dañoMin = 35, dañoMax = 50, rareza = Rarity.Reliquia }
+        new EspadonTier { nombre = "Espadón del Penitente",  dañoMin = 2,  dañoMax = 4,  rareza = Rarity.Common },
+        new EspadonTier { nombre = "Espadón del Inquisidor", dañoMin = 5,  dañoMax = 8,  rareza = Rarity.Rare },
+        new EspadonTier { nombre = "Espadón del Halo Roto",  dañoMin = 10, dañoMax = 15, rareza = Rarity.Epic },
+        new EspadonTier { nombre = "Espadón de la Vigilia",  dañoMin = 18, dañoMax = 25, rareza = Rarity.Legendary },
+        new EspadonTier { nombre = "Espadón del Milagro",    dañoMin = 30, dañoMax = 45, rareza = Rarity.Reliquia }
     };
 
     public static ItemData Generate(ClassData classData)
@@ -30,20 +31,18 @@ public static class ItemGenerator
 
     public static ItemData GenerateWithRarity(ClassData classData, Rarity rarity)
     {
-        ItemSlot slot = (ItemSlot)Random.Range(0, 5);
+        // 1.1-fix: UNIFICACIÓN - GenerateWithRarity SOLO genera armaduras (Chest/Legs/Helm/Gloves)
+        // Los espadones se generan explícitamente con GenerateEspadon()
+        ItemSlot[] armorSlots = { ItemSlot.Chest, ItemSlot.Legs, ItemSlot.Helm, ItemSlot.Gloves };
+        ItemSlot slot = armorSlots[Random.Range(0, armorSlots.Length)];
 
         ItemData item = new ItemData();
         item.slot = slot;
         item.rarity = rarity;
-        item.requiredClass = classData != null ? classData.className : "";
+        item.requiredClass = "";
+        item.armorType = RollArmorType(classData);
         item.stats = StatBlock.Zero();
 
-        // 4.3: armaduras con tipo y ponderación de drops (70% tipo propio)
-        if (slot != ItemSlot.Weapon)
-        {
-            item.armorType = RollArmorType(classData);
-            item.requiredClass = "";
-        }
         string baseName = ArmorName(slot, item.armorType, classData);
         item.itemName = baseName + " " + quality[Random.Range(0, quality.Length)];
 
@@ -202,8 +201,9 @@ public static class ItemGenerator
         int dmgBase = Random.Range(tier.dañoMin, tier.dañoMax + 1);
         item.stats.damage = dmgBase;
 
-        // Precisión base mejora con rareza (65-77)
-        item.stats.accuracy = 65 + (int)tier.rareza * 3;
+        // 1.3: Precisión de arma reducida (10 base + 5 por rareza). 
+        // Sumado a los 80 base de Valerius, da un rango perfecto de 90-110 (cap 95% hit chance).
+        item.stats.accuracy = 10 + (int)tier.rareza * 5;
 
         // Affixes aleatorios (1 por nivel de rareza, mínimo 1)
         int affixes = 1 + (int)tier.rareza;
