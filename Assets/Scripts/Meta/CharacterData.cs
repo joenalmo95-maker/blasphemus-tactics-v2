@@ -82,6 +82,16 @@ public class CharacterData : MonoBehaviour
         }
         s.damage += Progression.PlayerDamageBonus(level);
 
+        // 1.5: Bonos de pasivas de endgame (Nivel 20+)
+        foreach (SkillData passive in LoadoutSystem.GetPassives())
+        {
+            if (passive != null && passive.skillName == "Voluntad de Hierro")
+            {
+                s.damage += 10;
+                s.critChance += 10;
+            }
+        }
+
         // 0.7-E: bonuses de set completo (4/4)
         if (SetBonusSystem.HasFullSet(SetType.Rojo))
             s.damage = Mathf.RoundToInt(s.damage * 1.15f);
@@ -142,18 +152,18 @@ public class CharacterData : MonoBehaviour
 
     public void GainXP(int amount)
     {
-        if (level >= 20) { xp = 0; return; }
+        if (level >= 30) { xp = 0; return; }
 
         xp += amount;
         int needed = XpToNextLevel();
-        while (xp >= needed && level < 20)
+        while (xp >= needed && level < 30)
         {
             xp -= needed;
             level++;
             OnLevelUp();
             needed = XpToNextLevel();
         }
-        if (level >= 20) xp = 0;
+        if (level >= 30) xp = 0;
     }
 
     void OnLevelUp()

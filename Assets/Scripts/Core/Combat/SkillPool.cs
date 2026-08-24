@@ -90,6 +90,16 @@ public static class SkillPool
         // Nivel 18 (Pasiva)
         l.Add(C("vampirismo", "Vampirismo", SkillType.Pasiva, "Universal", "Epic", "", "", "vampirismo", "Nivel 18", "10% de robo de vida.", 0, 0, 0, 0, 0, 400, 0, 0, 18));
 
+        // === 1.5: HABILIDADES DE ENDGAME (Nivel 20-30) ===
+        // Nivel 20 (Pasiva)
+        l.Add(C("voluntad_hierro", "Voluntad de Hierro", SkillType.Pasiva, "Universal", "Epic", "", "", "voluntad", "Nivel 20", "+10 Daño base y +10% Crítico.", 0, 0, 0, 0, 0, 0, 0, 0, 20));
+
+        // Nivel 25 (Activa)
+        l.Add(C("carga_sacrificial", "Carga Sacrificial", SkillType.Activa, "Universal", "Epic", "DAÑO + Desplazamiento", "0,0", "lunge", "Nivel 25", "Embiste 3 celdas e inflige 15 de daño.", 2, 15, 1, 2, 15, 0, 0, 0, 25));
+
+        // Nivel 30 (Ultimate)
+        l.Add(C("sentencia_halo", "Sentencia del Halo", SkillType.Ultimate, "Universal", "Legendary", "DAÑO EJECUCIÓN", "0,0", "execute", "Nivel 30", "Daño cuádruple si el objetivo está por debajo del 30% HP.", 3, 25, 2, 4, 50, 0, 0, 0, 30));
+
         // Skills del Entrenador (comprables con oro)
         l.Add(C("tiro_preciso", "Tiro Preciso", SkillType.Activa, "Universal", "Common", "Daño", "0,0", "", "Entrenador", "Ataque a distancia (rango 3).", 1, 3, 3, 0, 0, 150, 0, 0, 1));
         l.Add(C("impacto_pesado", "Impacto Pesado", SkillType.Activa, "Universal", "Rare", "Daño", "0,0", "", "Entrenador", "Golpe contundente con +50% daño.", 2, 5, 1, 0, 0, 300, 0, 0, 1));

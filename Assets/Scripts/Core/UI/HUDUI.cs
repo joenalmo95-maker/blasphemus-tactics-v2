@@ -46,29 +46,9 @@ public class HUDUI : MonoBehaviour
     {
         GameObject root = UIFactory.CreateCanvas("HUDCanvas", 50);
 
-        // --- BARRA DE JEFE / ÉLITE (superior centro) ---
-        RectTransform bossRootRt = UIFactory.CreatePanel(root.transform, "BossBarRoot",
-            new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0, -20), new Vector2(600, 60));
-        bossBarRoot = bossRootRt.gameObject;
-        bossNameText = UIFactory.CreateText(bossBarRoot.transform, "BossName", "", 24, TextAnchor.UpperCenter, Color.yellow,
-            new Vector2(0, 0.5f), new Vector2(1, 1f), new Vector2(0.5f, 1), Vector2.zero, Vector2.zero);
-        Stretch(bossNameText.rectTransform);
-        UIFactory.BarUI bossBar = UIFactory.CreateBar(bossBarRoot.transform, "BossHP",
-            new Vector2(0, 0), new Vector2(600, 25),
-            new Color(0.1f, 0.1f, 0.1f, 0.8f), new Color(0.8f, 0.1f, 0.1f));
-        RectTransform bossBgRt = bossBar.root.GetComponent<RectTransform>();
-        bossBgRt.anchorMin = new Vector2(0, 0);
-        bossBgRt.anchorMax = new Vector2(1, 0.4f);
-        bossBgRt.offsetMin = Vector2.zero;
-        bossBgRt.offsetMax = Vector2.zero;
-        bossHpFill = bossBar.fill;
-        bossHpFill.anchorMin = new Vector2(0, 0);
-        bossHpFill.anchorMax = new Vector2(1, 1);
-        bossHpFill.offsetMin = Vector2.zero;
-        bossHpFill.offsetMax = Vector2.zero;
-        bossHpText = bossBar.text;
-        bossBarRoot.SetActive(false);
+        // --- BARRA DE JEFE / ÉLITE ---
+        // ELIMINADO: BossHealthBarUI.cs ya maneja la barra épica de jefes
+        // Esto evita duplicación y que la UI tape el grid de combate
 
         // --- HUD DEL JUGADOR (inferior izquierda) ---
         RectTransform playerHud = UIFactory.CreatePanel(root.transform, "PlayerHUD",
@@ -173,26 +153,24 @@ public class HUDUI : MonoBehaviour
             if (goldText != null) goldText.text = "Oro: " + cd.gold;
             if (xpFill != null)
             {
-                float t = cd.level >= 20 ? 1f : Mathf.Clamp01((float)cd.xp / cd.XpToNextLevel());
+                float t = cd.level >= 30 ? 1f : Mathf.Clamp01((float)cd.xp / cd.XpToNextLevel());
                 float wpx = xpBarWidth * t;
                 if (cd.xp > 0 && wpx < 2) wpx = 2;
                 xpFill.sizeDelta = new Vector2(wpx, 16);
             }
-            if (xpText != null) xpText.text = cd.level >= 20 ? "Nv 20 (MAX)" : "XP " + cd.xp + "/" + cd.XpToNextLevel();
+            if (xpText != null) xpText.text = cd.level >= 30 ? "Nv 30 (MAX)" : "XP " + cd.xp + "/" + cd.XpToNextLevel();
             if (levelText != null) levelText.text = "Nv " + cd.level;
             SetPortrait();
         }
 
         if (objectiveText != null) objectiveText.text = ObjectiveSystem.Current();
 
-        // 2.2: toggle J del seguimiento de misiones aceptadas
         if (Input.GetKeyDown(KeyCode.J))
         {
             if (questTrackerRoot == null) OpenQuestTracker();
             else CloseQuestTracker();
         }
 
-        // DEBUG: F9 fuerza reset diario (misiones + mazmorras)
         if (Input.GetKeyDown(KeyCode.F9))
         {
             QuestSystem.DebugForceDailyReset();
@@ -215,26 +193,34 @@ public class HUDUI : MonoBehaviour
             float apRatio = Mathf.Clamp01((float)playerUnit.currentAP / playerUnit.maxAP);
             if (apBar.fill != null) apBar.fill.sizeDelta = new Vector2(220 * apRatio, 28);
             if (apBar.text != null) apBar.text.text = playerUnit.currentAP + " / " + playerUnit.maxAP;
-            UpdateStatusIcons();
         }
+
+        // 0.7b-fix: UpdateStatusIcons se ejecuta SIEMPRE (mundo y combate)
+        UpdateStatusIcons();
 
         UpdateBossBar();
     }
 
-    // --- 2.2-fix: iconos de estado detallados, UI Unity pura (sin UIFactory con anclas null) ---
+    // --- 2.2-fix + 0.7b-fix: iconos de estado detallados, independientes de playerUnit ---
     void UpdateStatusIcons()
     {
-        if (playerUnit == null) return;
-
         string sig = "";
-        if (playerUnit.buffTurns > 0)
+
+        if (playerUnit != null && playerUnit.buffTurns > 0)
         {
             sig += "B" + playerUnit.buffDamage + "." + playerUnit.buffDefense + "." + playerUnit.buffCrit + "." + playerUnit.buffTurns;
         }
-        if (playerUnit.debuffTurns > 0)
+
+        if (CharacterData.Instance != null && CharacterData.Instance.hasWorldBuff)
+        {
+            sig += "W" + CharacterData.Instance.worldBuffDamage + "." + CharacterData.Instance.worldBuffDefense + "." + CharacterData.Instance.worldBuffCrit;
+        }
+
+        if (playerUnit != null && playerUnit.debuffTurns > 0)
         {
             sig += "D" + playerUnit.debuffAccuracy + "." + playerUnit.debuffTurns;
         }
+
         if (sig == lastStatusSig) return;
         lastStatusSig = sig;
 
@@ -243,27 +229,40 @@ public class HUDUI : MonoBehaviour
         foreach (var g in activeDebuffIcons) Destroy(g);
         activeDebuffIcons.Clear();
 
-        if (playerUnit.buffTurns > 0)
+        if (playerUnit != null && playerUnit.buffTurns > 0)
         {
             if (playerUnit.buffDamage > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "+" + playerUnit.buffDamage + " DMG", Color.blue, playerUnit.buffTurns));
             if (playerUnit.buffDefense > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "+" + playerUnit.buffDefense + " DEF", Color.cyan, playerUnit.buffTurns));
             if (playerUnit.buffCrit > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "+" + playerUnit.buffCrit + " CRIT", Color.yellow, playerUnit.buffTurns));
         }
-        if (playerUnit.debuffTurns > 0)
+
+        if (CharacterData.Instance != null && CharacterData.Instance.hasWorldBuff)
+        {
+            if (CharacterData.Instance.worldBuffDamage > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "+5 DMG", new Color(1f, 0.6f, 0.2f), 9999));
+            if (CharacterData.Instance.worldBuffDefense > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "+5 DEF", new Color(0.2f, 1f, 0.8f), 9999));
+            if (CharacterData.Instance.worldBuffCrit > 0) activeBuffIcons.Add(CreateStatusIcon(buffContainer, "+10 CRIT", new Color(1f, 1f, 0.3f), 9999));
+        }
+
+        if (playerUnit != null && playerUnit.debuffTurns > 0)
         {
             activeDebuffIcons.Add(CreateStatusIcon(debuffContainer, "-" + playerUnit.debuffAccuracy + " PREC", Color.magenta, playerUnit.debuffTurns));
         }
     }
 
-    // FIX: un GameObject solo admite UN Graphic → fondo (Image) en el padre, texto (Text) en un hijo
+    // 0.7c-fix: icono con tamaño GARANTIZADO (LayoutElement) y texto informativo
     GameObject CreateStatusIcon(Transform parent, string label, Color color, int turns)
     {
         GameObject go = new GameObject("StatusIcon");
         go.transform.SetParent(parent, false);
         RectTransform rt = go.AddComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(56, 30);
+
+        // Evita que el LayoutGroup colapse el icono a un puntito
+        LayoutElement le = go.AddComponent<LayoutElement>();
+        le.preferredWidth = 76;
+        le.preferredHeight = 30;
+
         Image img = go.AddComponent<Image>();
-        img.color = new Color(color.r * 0.35f, color.g * 0.35f, color.b * 0.35f, 0.9f);
+        img.color = new Color(color.r * 0.25f, color.g * 0.25f, color.b * 0.25f, 0.95f);
 
         GameObject txtObj = new GameObject("Label");
         txtObj.transform.SetParent(go.transform, false);
@@ -273,11 +272,16 @@ public class HUDUI : MonoBehaviour
         trt.offsetMin = Vector2.zero;
         trt.offsetMax = Vector2.zero;
         Text t = txtObj.AddComponent<Text>();
-        t.text = label + "\n" + turns + "t";
+        t.text = label + "\n" + (turns >= 9999 ? "PERMANENTE" : turns + " turnos");
         t.font = GetTrackerFont();
         t.fontSize = 10;
         t.alignment = TextAnchor.MiddleCenter;
         t.color = color;
+
+        // Borde negro para máxima legibilidad
+        Outline o = txtObj.AddComponent<Outline>();
+        o.effectColor = Color.black;
+        o.effectDistance = new Vector2(1, 1);
         return go;
     }
 
@@ -358,35 +362,7 @@ public class HUDUI : MonoBehaviour
 
     void UpdateBossBar()
     {
-        // 0.2-fix: Priorizar el enemigo seleccionado por el jugador
-        Unit target = InputController.SelectedEnemy;
-
-        // Fallback: si no hay selección válida, buscar cualquier jefe/élite vivo
-        if (target == null || !target.isEnemy || target.currentHealth <= 0)
-        {
-            Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
-            foreach (Unit u in units)
-            {
-                if (u.isEnemy && (u.isBoss || u.isElite || u.maxHealth >= 50) && u.currentHealth > 0)
-                {
-                    target = u;
-                    break;
-                }
-            }
-        }
-
-        // Mostrar u ocultar la barra según el target válido
-        if (target != null && target.isEnemy && target.currentHealth > 0)
-        {
-            if (!bossBarRoot.activeSelf) bossBarRoot.SetActive(true);
-            if (bossNameText != null) bossNameText.text = (target.isBoss ? "JEFE: " : "ELITE: ") + target.gameObject.name;
-            float ratio = Mathf.Clamp01((float)target.currentHealth / target.maxHealth);
-            if (bossHpFill != null) bossHpFill.anchorMax = new Vector2(ratio, 1f);
-            if (bossHpText != null) bossHpText.text = target.currentHealth + " / " + target.maxHealth;
-        }
-        else if (bossBarRoot != null && bossBarRoot.activeSelf)
-        {
-            bossBarRoot.SetActive(false);
-        }
+        // ELIMINADO: BossHealthBarUI.cs ya maneja la barra épica de jefes
+        // HUDUI solo actualiza la barra del jugador (HP/AP) arriba
     }
-}
+   } 
