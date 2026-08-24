@@ -94,6 +94,8 @@ public class CaptainBossAI : MonoBehaviour
 
     IEnumerator DoEmbestida()
     {
+        if (targetUnit == null) yield break;
+        
         Debug.Log("[Capitán] ¡Embestida hacia el Renacido!");
         List<Vector2Int> path = Pathfinding.FindPath(selfUnit.currentGridPos, targetUnit.currentGridPos, 99);
         if (path != null && path.Count > 1)
@@ -103,12 +105,18 @@ public class CaptainBossAI : MonoBehaviour
             Vector3 wp = GridManager.Instance.GetWorldPosition(dest);
             while (Vector3.Distance(transform.position, wp) > 0.05f)
             {
+                // FIX: Si el jugador muere mientras me acerco, aborto la embestida
+                if (targetUnit == null) yield break; 
+                
                 transform.position = Vector3.MoveTowards(transform.position, wp, 8f * Time.deltaTime);
                 yield return null;
             }
             transform.position = wp;
             selfUnit.currentGridPos = dest;
         }
+
+        // FIX: Doble chequeo antes de intentar atacar
+        if (targetUnit == null) yield break;
 
         if (Dist(selfUnit.currentGridPos, targetUnit.currentGridPos) <= 1)
         {
@@ -133,6 +141,9 @@ public class CaptainBossAI : MonoBehaviour
 
     void DoJuicio()
     {
+        // FIX: Evitar leer posición de un jugador que ya fue destruido
+        if (targetUnit == null) return; 
+        
         Debug.Log("[Capitán] ¡JUICIO DEL CAPITAN! Zona 5x5 roja - ¡sal del área!");
         TelegraphArea(targetUnit.currentGridPos, 2, 60, new Color(0.9f, 0.7f, 0.1f, 0.5f));
     }
@@ -192,8 +203,11 @@ public class CaptainBossAI : MonoBehaviour
 
     void Update()
     {
+        // FIX: Si el jugador murió, no intentar revisar trampas sobre él
+        if (targetUnit == null) return;
+
         // Si Valerius pisa una trampa invisible, se activa
-        if (trapTurnsLeft > 0 && targetUnit != null && !dotActive && dotCooldown <= 0)
+        if (trapTurnsLeft > 0 && !dotActive && dotCooldown <= 0)
         {
             if (traps.Contains(targetUnit.currentGridPos))
             {
