@@ -89,27 +89,28 @@ public static class ItemGenerator
 
     static List<System.Action> BuildPool(ClassData cd, ItemData item)
     {
+        // 1.2: rangos reducidos para que el loot genérico sea inferior al equipo de set
         List<System.Action> pool = new List<System.Action>();
-        pool.Add(() => item.stats.maxHP += Random.Range(2, 6));
-        pool.Add(() => item.stats.defense += Random.Range(1, 4));
-        pool.Add(() => item.stats.damage += Random.Range(1, 4));
-        pool.Add(() => item.stats.accuracy += Random.Range(2, 6));
-        pool.Add(() => item.stats.critChance += Random.Range(1, 6));
-        pool.Add(() => item.stats.apMove += 1);
+        pool.Add(() => item.stats.maxHP += Random.Range(1, 4));        // antes: 2-6
+        pool.Add(() => item.stats.defense += Random.Range(1, 2));      // antes: 1-4
+        pool.Add(() => item.stats.damage += Random.Range(1, 2));       // antes: 1-4
+        pool.Add(() => item.stats.accuracy += Random.Range(1, 3));     // antes: 2-6
+        pool.Add(() => item.stats.critChance += Random.Range(1, 3));   // antes: 1-6
+        // AP eliminado del pool genérico (solo espadones reliquia dan AP)
 
         if (cd != null)
         {
             if (cd.role == ClassRole.Healer)
             {
-                pool.Add(() => item.stats.healingPower += Random.Range(5, 16));
+                pool.Add(() => item.stats.healingPower += Random.Range(2, 6)); // antes: 5-16
             }
             else
             {
-                pool.Add(() => item.stats.lifesteal += Random.Range(2, 8));
+                pool.Add(() => item.stats.lifesteal += Random.Range(1, 2));    // antes: 2-8
             }
 
-            if (cd.role == ClassRole.DPS) pool.Add(() => item.stats.critChance += Random.Range(2, 8));
-            if (cd.role == ClassRole.Tank) pool.Add(() => item.stats.maxHP += Random.Range(3, 8));
+            if (cd.role == ClassRole.DPS) pool.Add(() => item.stats.critChance += Random.Range(1, 2)); // antes: 2-8
+            if (cd.role == ClassRole.Tank) pool.Add(() => item.stats.maxHP += Random.Range(2, 4));     // antes: 3-8
         }
 
         return pool;
