@@ -15,6 +15,7 @@ public class EnemyAI : MonoBehaviour
     public EnemyBehavior behavior = EnemyBehavior.Normal;
     public int baseDefense = 0;
     public string unitName = "";
+    public bool applyBleed = false; // 0.8-fix: Cruzado (sangrado)
 
     private Unit selfUnit;
     private Unit targetUnit;
@@ -23,21 +24,6 @@ public class EnemyAI : MonoBehaviour
     void Awake()
     {
         selfUnit = GetComponent<Unit>();
-        if (selfUnit != null)
-        {
-            selfUnit.stats.accuracy = 70;
-            selfUnit.stats.evasion = 5;
-            selfUnit.stats.defense = 1 + baseDefense; // ← aplica defensa del arquetipo
-            selfUnit.stats.critChance = 5;
-            selfUnit.stats.lifesteal = 0;
-            selfUnit.stats.threatMult = 1f;
-
-            // Hook de muerte para Penitente de la Ceniza
-            if (behavior == EnemyBehavior.ExplodeOnDeath)
-            {
-                selfUnit.onDeath += OnExplodeDeath;
-            }
-        }
     }
 
     void OnDestroy()
@@ -48,8 +34,25 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
+    // 0.8-fix: Start corre DESPUÉS de que EnemyFactory asigna behavior/baseDefense.
+    // Por eso los stats y el hook de muerte van aquí (en Awake no funcionaban).
     void Start()
     {
+        if (selfUnit != null)
+        {
+            selfUnit.stats.accuracy = 70;
+            selfUnit.stats.evasion = 5;
+            selfUnit.stats.defense = 1 + baseDefense; // ← Autómata ahora sí recibe +5 DEF
+            selfUnit.stats.critChance = 5;
+            selfUnit.stats.lifesteal = 0;
+            selfUnit.stats.threatMult = 1f;
+
+            // Hook de muerte para Penitente de la Ceniza (ahora sí se registra)
+            if (behavior == EnemyBehavior.ExplodeOnDeath)
+            {
+                selfUnit.onDeath += OnExplodeDeath;
+            }
+        }
         targetUnit = FindTarget();
     }
 
@@ -93,6 +96,37 @@ public class EnemyAI : MonoBehaviour
         }
 
         int distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
+
+        // === 0.8-fix RANGED: kiting, el Censor retrocede si te acercas ===
+        if (behavior == EnemyBehavior.Ranged && distance <= 2)
+        {
+            Vector2Int away = selfUnit.currentGridPos + new Vector2Int(
+                Mathf.Clamp(selfUnit.currentGridPos.x - targetUnit.currentGridPos.x, -1, 1),
+                Mathf.Clamp(selfUnit.currentGridPos.y - targetUnit.currentGridPos.y, -1, 1));
+            if (Pathfinding.IsFreeCell(away))
+            {
+                yield return MoveToPosition(GridManager.Instance.GetWorldPosition(away), away);
+                distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
+                Debug.Log(unitName + " mantiene la distancia (kiting).");
+            }
+        }
+
+        // === 0.8-fix BACKSTABBER: el Heraldo rodea activamente para buscar tu espalda ===
+        if (behavior == EnemyBehavior.Backstabber && distance > attackRange)
+        {
+            Vector2Int behind = targetUnit.currentGridPos - new Vector2Int(
+                Mathf.RoundToInt(targetUnit.facing.x), Mathf.RoundToInt(targetUnit.facing.y));
+            yield return MoveTowardsCell(behind, moveRange);
+            distance = Dist(selfUnit.currentGridPos, targetUnit.currentGridPos);
+            if (distance <= attackRange)
+            {
+                FaceTarget();
+                yield return new WaitForSeconds(0.25f);
+                Attack(0);
+                yield return new WaitForSeconds(0.5f);
+            }
+            yield break;
+        }
 
         // === RANGED: ataca a distancia sin moverse ===
         if (behavior == EnemyBehavior.Ranged && distance <= attackRange)
@@ -165,12 +199,18 @@ public class EnemyAI : MonoBehaviour
 
     IEnumerator MoveTowardsTarget(int maxSteps)
     {
+        yield return MoveTowardsCell(targetUnit.currentGridPos, maxSteps);
+    }
+
+    // 0.8-fix: movimiento hacia celda objetivo (kiting y backstab)
+    IEnumerator MoveTowardsCell(Vector2Int goal, int maxSteps)
+    {
         List<Vector2Int> walkPath = Pathfinding.FindPath(
-            selfUnit.currentGridPos, targetUnit.currentGridPos, 99);
+            selfUnit.currentGridPos, goal, 99);
         if (walkPath != null && walkPath.Count > 0)
         {
             int stepsToTake = Mathf.Min(walkPath.Count, maxSteps);
-            if (walkPath[walkPath.Count - 1] == targetUnit.currentGridPos)
+            if (walkPath[walkPath.Count - 1] == goal)
             {
                 stepsToTake = Mathf.Min(stepsToTake, walkPath.Count - 1);
             }
@@ -233,6 +273,27 @@ public class EnemyAI : MonoBehaviour
         {
             targetUnit.ApplyDebuff(10, 2);
         }
+
+        // 0.8-fix: Cruzado deja sangrado pequeño (3 HP/turno, 2 turnos)
+        if (hit && applyBleed)
+        {
+            targetUnit.ApplyDot(3, 2, "SANGRADO");
+        }
+
+        // 0.8-fix: Censor reduce tu defensa al impactar (-5 DEF, 2 turnos)
+        if (hit && behavior == EnemyBehavior.Ranged)
+        {
+            targetUnit.ApplyDefenseDebuff(5, 2);
+        }
+
+        // 0.8-fix: Flagelante bloquea 1 habilidad de Valerius por 1 turno
+        if (hit && behavior == EnemyBehavior.SelfDamage && CharacterData.Instance != null)
+        {
+            int slot = Random.Range(0, 4);
+            CharacterData.Instance.BlockSkillSlot(slot, 1);
+            CombatFeedback.SpawnText(targetUnit.transform.position, "HABILIDAD " + (slot + 1) + " BLOQUEADA", Color.magenta);
+            Debug.Log(unitName + " bloquea la habilidad " + (slot + 1) + " de Valerius este turno.");
+        }
     }
 
     bool IsAttackingFromBehind()
@@ -264,10 +325,12 @@ public class EnemyAI : MonoBehaviour
                 wounded = u;
             }
         }
-        if (wounded != null && maxWound >= 10)
+        // 0.8-fix: cura 20 HP a cualquier aliado herido (antes exigía herida >= 10)
+        if (wounded != null && maxWound > 0)
         {
-            int healAmount = Mathf.Min(10, maxWound);
-            wounded.currentHealth += healAmount;
+            int healAmount = Mathf.Min(20, maxWound);
+            wounded.currentHealth = Mathf.Min(wounded.maxHealth, wounded.currentHealth + healAmount);
+            CombatFeedback.SpawnText(wounded.transform.position, "+" + healAmount, Color.green);
             Debug.Log(unitName + " cura " + healAmount + " HP a " + wounded.name + ".");
             yield return new WaitForSeconds(0.4f);
         }
@@ -286,6 +349,8 @@ public class EnemyAI : MonoBehaviour
             {
                 int dmg = u.isEnemy ? 10 : 20; // menos daño a aliados
                 u.TakeRawDamage(dmg, "explosión de ceniza");
+                // 0.8-fix: deja QUEMADURA 5 HP/turno por 2 turnos
+                if (!u.isEnemy) u.ApplyDot(5, 2, "QUEMADURA");
             }
         }
     }

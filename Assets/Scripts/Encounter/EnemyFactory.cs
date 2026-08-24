@@ -28,6 +28,7 @@ public static class EnemyFactory
         EnemyBehavior behavior = EnemyBehavior.Normal;
         bool canCharge = false;
         bool applyCurse = false;
+        bool applyBleed = false;
 
         switch (archetype)
         {
@@ -99,8 +100,10 @@ public static class EnemyFactory
 
             case "penitent":
             default:
-                baseHp = 85; baseDamage = 16; art = "penitent";
+                // 0.8-fix: Cruzado con lanza (rango 2) y sangrado pequeño
+                baseHp = 85; baseDamage = 16; baseAttackRange = 2; art = "penitent";
                 name = "Cruzado"; scale = 0.8f;
+                applyBleed = true;
                 break;
         }
 
@@ -133,6 +136,7 @@ public static class EnemyFactory
             ai.baseDefense = baseDefense;
             ai.canCharge = canCharge;
             ai.applyCurse = applyCurse;
+            ai.applyBleed = applyBleed;
             ai.unitName = name;
         }
 
@@ -144,6 +148,12 @@ public static class EnemyFactory
         else if (tier == EnemyTier.Elite || tier == EnemyTier.EliteFuerte)
         {
             unit.isElite = true;
+        }
+
+        // 0.8-fix: Autómata de Reliquias inmune a control
+        if (behavior == EnemyBehavior.CCImmune)
+        {
+            unit.isCCImmune = true;
         }
 
         return unit;

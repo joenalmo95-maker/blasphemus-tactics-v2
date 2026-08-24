@@ -158,7 +158,8 @@ public class CombatController : MonoBehaviour
                     }
 
                     int passiveBonus = CalculatePassiveBonus();
-                    int raw = Mathf.RoundToInt((armedSkill.damage + passiveBonus + playerUnit.stats.damage + playerUnit.buffDamage) * flankMult);
+                    int worldDmg = (CharacterData.Instance != null) ? CharacterData.Instance.worldBuffDamage : 0;
+                    int raw = Mathf.RoundToInt((armedSkill.damage + passiveBonus + playerUnit.stats.damage + playerUnit.buffDamage + worldDmg) * flankMult);
                     bool hit = target.ReceiveAttack(playerUnit, raw, armedSkill.bonusCrit + flankCrit, armedSkill.threatMult);
 
                     if (ft == FlankType.Lateral) CombatFeedback.SpawnText(target.transform.position, "FLANK +10%", Color.yellow);
@@ -323,6 +324,14 @@ public class CombatController : MonoBehaviour
 
     void TryToggleSkill(int slot)
     {
+        // 0.8-fix: habilidad bloqueada por el Flagelante
+        if (CharacterData.Instance != null && CharacterData.Instance.blockedSkillTurns > 0
+            && CharacterData.Instance.blockedSkillSlot == slot)
+        {
+            Debug.Log("Habilidad " + (slot + 1) + " BLOQUEADA por el Flagelante este turno.");
+            return;
+        }
+
         SkillData skill = LoadoutSystem.GetActive(slot);
         if (skill == null)
         {
@@ -371,7 +380,7 @@ public class CombatController : MonoBehaviour
             case "knockback":
                 {
                     if (target == null || target.currentHealth <= 0) break;
-                    if (target.isBoss) { CombatFeedback.ShowImmune(target.transform.position); break; }
+                    if (target.isBoss || target.isCCImmune) { CombatFeedback.ShowImmune(target.transform.position); break; }
                     Vector2Int dir = SignVec(target.currentGridPos - playerUnit.currentGridPos);
                     Vector2Int dest = target.currentGridPos + dir;
                     if (Pathfinding.IsFreeCell(dest))
@@ -385,7 +394,7 @@ public class CombatController : MonoBehaviour
             case "pull":
                 {
                     if (target == null || target.currentHealth <= 0) break;
-                    if (target.isBoss) { CombatFeedback.ShowImmune(target.transform.position); break; }
+                    if (target.isBoss || target.isCCImmune) { CombatFeedback.ShowImmune(target.transform.position); break; }
                     Vector2Int dir = SignVec(playerUnit.currentGridPos - target.currentGridPos);
                     Vector2Int dest = target.currentGridPos + dir;
                     if (Pathfinding.IsFreeCell(dest))
@@ -501,6 +510,18 @@ public class CombatController : MonoBehaviour
     public void EndPlayerTurn()
     {
         if (ultimateCooldown > 0) ultimateCooldown--;
+
+        // 0.8-fix: el bloqueo del Flagelante dura 1 turno
+        if (CharacterData.Instance != null && CharacterData.Instance.blockedSkillTurns > 0)
+        {
+            CharacterData.Instance.blockedSkillTurns--;
+            if (CharacterData.Instance.blockedSkillTurns == 0)
+            {
+                CharacterData.Instance.blockedSkillSlot = -1;
+                Debug.Log("El bloqueo de habilidad ha expirado.");
+            }
+        }
+
         ClearAllOverlays();
         lastAP = -1;
     }

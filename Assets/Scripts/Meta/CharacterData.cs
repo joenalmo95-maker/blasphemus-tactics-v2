@@ -101,6 +101,45 @@ public class CharacterData : MonoBehaviour
         return Mathf.RoundToInt(30 * Mathf.Pow(1.22f, level));
     }
 
+    // 0.7-fix: Buffs del mundo (Santuarios) persistentes entre escenas
+    public int worldBuffDamage = 0;
+    public int worldBuffDefense = 0;
+    public int worldBuffCrit = 0;
+    public bool hasWorldBuff = false;
+
+    // 0.8-fix: habilidad bloqueada por el Flagelante
+    public int blockedSkillSlot = -1;
+    public int blockedSkillTurns = 0;
+
+    public void BlockSkillSlot(int slot, int turns)
+    {
+        blockedSkillSlot = slot;
+        blockedSkillTurns = turns;
+    }
+
+    public void ApplyWorldBuff(string type)
+    {
+        // Los buffs del mundo son acumulativos y permanentes hasta morir
+        switch (type)
+        {
+            case "dmg": worldBuffDamage += 5; break;
+            case "def": worldBuffDefense += 5; break;
+            case "crit": worldBuffCrit += 10; break;
+            case "ap": /* AP se maneja aparte */ break;
+        }
+        hasWorldBuff = true;
+        Debug.Log("[WorldBuff] +" + type + " aplicado. Totales: DMG+" + worldBuffDamage + " DEF+" + worldBuffDefense + " CRIT+" + worldBuffCrit);
+    }
+
+    public void ClearWorldBuffs()
+    {
+        worldBuffDamage = 0;
+        worldBuffDefense = 0;
+        worldBuffCrit = 0;
+        hasWorldBuff = false;
+        Debug.Log("[WorldBuff] Buffs del mundo limpiados (muerte/reset).");
+    }
+
     public void GainXP(int amount)
     {
         if (level >= 20) { xp = 0; return; }

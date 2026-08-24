@@ -27,6 +27,16 @@ public class Unit : MonoBehaviour
     public int debuffAccuracy = 0;
     public int debuffTurns = 0;
 
+    // 0.8-fix: defensa reducida (Censor) y DoT (sangrado/quemadura)
+    public int debuffDefense = 0;
+    public int debuffDefTurns = 0;
+    public int dotDamage = 0;
+    public int dotTurns = 0;
+    public string dotLabel = "";
+
+    // 0.8-fix: inmunidad a control (Autómata de Reliquias)
+    public bool isCCImmune = false;
+
     public int pendingApPenalty = 0;
     // 1.1-E: dirección de mirada e intención telegrafiada
 
@@ -124,6 +134,45 @@ public class Unit : MonoBehaviour
                 Debug.Log("La maldición se disipa.");
             }
         }
+
+        // 0.8-fix: tick de defensa reducida (Censor)
+        if (debuffDefTurns > 0)
+        {
+            debuffDefTurns--;
+            if (debuffDefTurns == 0) debuffDefense = 0;
+        }
+
+        // 0.8-fix: tick de DoT (sangrado/quemadura), nunca mata
+        if (dotTurns > 0)
+        {
+            int real = Mathf.Min(dotDamage, currentHealth - 1);
+            if (real > 0)
+            {
+                currentHealth -= real;
+                CombatFeedback.SpawnText(transform.position, "-" + real + " " + dotLabel, Color.red);
+            }
+            dotTurns--;
+            if (dotTurns == 0) { dotDamage = 0; dotLabel = ""; }
+        }
+    }
+
+    // 0.8-fix: aplicar DoT (Cruzado = sangrado, Ceniza = quemadura)
+    public void ApplyDot(int dmg, int turns, string label)
+    {
+        dotDamage = dmg;
+        dotTurns = Mathf.Max(dotTurns, turns);
+        dotLabel = label;
+        CombatFeedback.SpawnText(transform.position, label, Color.red);
+        Debug.Log(gameObject.name + " sufre " + label + " (" + dmg + " HP/turno, " + turns + " turnos).");
+    }
+
+    // 0.8-fix: aplicar defensa reducida (Censor)
+    public void ApplyDefenseDebuff(int amount, int turns)
+    {
+        debuffDefense = amount;
+        debuffDefTurns = Mathf.Max(debuffDefTurns, turns);
+        CombatFeedback.SpawnText(transform.position, "-" + amount + " DEF", Color.magenta);
+        Debug.Log(gameObject.name + " pierde " + amount + " DEF por " + turns + " turnos.");
     }
 
     public bool ReceiveAttack(Unit attacker, int rawDamage, int bonusCrit = 0, float skillThreat = 1f)
@@ -134,6 +183,15 @@ public class Unit : MonoBehaviour
         int healOnHit = attacker != null ? attacker.stats.healOnHit : 0;
         float threatMult = attacker != null ? attacker.stats.threatMult : 1f;
 
+        // 0.7-fix: sumar buffs del mundo cuando el atacante es el jugador
+        int worldDmgBonus = 0;
+        int worldCritBonus = 0;
+        if (attacker != null && !attacker.isEnemy && CharacterData.Instance != null)
+        {
+            worldDmgBonus = CharacterData.Instance.worldBuffDamage;
+            worldCritBonus = CharacterData.Instance.worldBuffCrit;
+        }
+
         int hitChance = Mathf.Clamp(atk - stats.evasion, 5, 95);
         if (Random.Range(0, 100) >= hitChance)
         {
@@ -142,8 +200,10 @@ public class Unit : MonoBehaviour
             return false;
         }
 
-        bool isCrit = Random.Range(0, 100) < crit;
-        int mitigated = Mathf.Max(1, rawDamage - (stats.defense + buffDefense));
+        bool isCrit = Random.Range(0, 100) < (crit + worldCritBonus);
+        int worldDefBonus = 0;
+        if (!isEnemy && CharacterData.Instance != null) worldDefBonus = CharacterData.Instance.worldBuffDefense;
+        int mitigated = Mathf.Max(1, rawDamage - (stats.defense + buffDefense - debuffDefense));
         int final = isCrit ? mitigated * 2 : mitigated;
 
         currentHealth -= final;
