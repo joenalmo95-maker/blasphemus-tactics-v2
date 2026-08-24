@@ -135,38 +135,33 @@ public class EncounterUI : MonoBehaviour
         float y = 100;
         ClassData cd = CharacterData.Instance != null ? CharacterData.Instance.classData : null;
         
-        // 1.1b-fix: Generar 5 items con probabilidades específicas para ambulante
         for (int i = 0; i < 5; i++)
         {
             int roll = Random.Range(0, 100);
             ItemData item = null;
             string prefix = "";
             
-            if (roll < 2) // 2% espadón épico
+            if (roll < 2)
             {
                 item = ItemGenerator.GenerateEspadon(Rarity.Epic);
                 prefix = "★ ";
-                Debug.Log("[Encounters] ★ ESPADÓN ÉPICO en mercader ambulante");
             }
-            else if (roll < 3) // 1% espadón legendario
+            else if (roll < 3)
             {
                 item = ItemGenerator.GenerateEspadon(Rarity.Legendary);
                 prefix = "★★ ";
-                Debug.Log("[Encounters] ★★ ESPADÓN LEGENDARIO en mercader ambulante");
             }
-            else if (roll < 5) // 2% armadura épica
+            else if (roll < 5)
             {
                 item = ItemGenerator.GenerateWithRarity(cd, Rarity.Epic);
                 prefix = "★ ";
-                Debug.Log("[Encounters] ★ ARMADURA ÉPICA en mercader ambulante");
             }
-            else if (roll < 8) // 3% armadura legendaria
+            else if (roll < 8)
             {
                 item = ItemGenerator.GenerateWithRarity(cd, Rarity.Legendary);
                 prefix = "★★ ";
-                Debug.Log("[Encounters] ★★ ARMADURA LEGENDARIA en mercader ambulante");
             }
-            else // 92% aleatorio (solo Common/Rare)
+            else
             {
                 Rarity rar = Random.Range(0, 100) < 70 ? Rarity.Common : Rarity.Rare;
                 item = ItemGenerator.GenerateWithRarity(cd, rar);
@@ -174,30 +169,80 @@ public class EncounterUI : MonoBehaviour
             
             if (item != null)
             {
-                int price = ItemGenerator.BuyPrice(item.rarity) * 2; // recargo de errante
-                string label = prefix + item.itemName + " - " + price + " oro";
-                ItemData captured = item;
-                int capturedPrice = price;
+                int price = ItemGenerator.BuyPrice(item.rarity) * 2;
                 Color textColor = item.rarity == Rarity.Legendary ? Color.yellow 
                                 : item.rarity == Rarity.Epic ? Color.magenta 
                                 : Color.white;
-                MakeButton(root.transform, label, 0, y, 500, 40, textColor, () => {
+                
+                // Captura para el closure
+                ItemData captured = item;
+                int capturedPrice = price;
+                
+                // Crear el botón
+                GameObject btn = MakeButtonObj(root.transform, prefix + item.itemName + " - " + price + " oro", 0, y, 500, 40, textColor);
+                
+                // FIX B: Añadir tooltip de estadísticas al pasar el mouse
+                ItemTooltipTrigger itt = btn.AddComponent<ItemTooltipTrigger>();
+                itt.item = item;
+                itt.compareWithEquipped = false;
+                
+                // Capturar el botón para desactivarlo después de comprar
+                GameObject capturedBtn = btn;
+                Button btnComponent = btn.GetComponent<Button>();
+                
+                btnComponent.onClick.AddListener(() => {
                     if (CharacterData.Instance != null && CharacterData.Instance.gold >= capturedPrice)
                     {
                         CharacterData.Instance.gold -= capturedPrice;
                         InventorySystem.Instance.items.Add(captured);
                         Debug.Log("[Encounters] Comprado: " + captured.itemName);
+                        
+                        // FIX A: Desactivar el botón después de comprar
+                        capturedBtn.SetActive(false);
                     }
                     else
                     {
                         Debug.Log("[Encounters] Oro insuficiente.");
                     }
                 });
+                
                 y -= 50;
             }
         }
 
         MakeButton(root.transform, "CERRAR", 0, -200, 200, 40, Color.gray, () => Close());
+    }
+
+    // Método auxiliar que retorna el GameObject del botón (en vez de void)
+    GameObject MakeButtonObj(Transform parent, string label, float x, float y, float w, float h, Color textColor)
+    {
+        GameObject go = new GameObject("Btn");
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(x, y);
+        rt.sizeDelta = new Vector2(w, h);
+        Image img = go.AddComponent<Image>();
+        img.sprite = SpriteFactory.Square();
+        img.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
+        Button btn = go.AddComponent<Button>();
+
+        GameObject txtObj = new GameObject("Label");
+        txtObj.transform.SetParent(go.transform, false);
+        RectTransform trt = txtObj.AddComponent<RectTransform>();
+        trt.anchorMin = Vector2.zero;
+        trt.anchorMax = Vector2.one;
+        trt.offsetMin = Vector2.zero;
+        trt.offsetMax = Vector2.zero;
+        Text t = txtObj.AddComponent<Text>();
+        t.text = label;
+        t.font = GetFont();
+        t.fontSize = 14;
+        t.alignment = TextAnchor.MiddleCenter;
+        t.color = textColor;
+        
+        return go;
     }
     
     void BuildHunter()
