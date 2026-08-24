@@ -63,7 +63,8 @@ public class WorldBossSystem : MonoBehaviour
                     
                     // 0.5-fix: Re-inyectar la misión del Capitán si no está en el tablón
                     long savedTicks = long.Parse(PlayerPrefs.GetString("BossSpawnTicks", "0"));
-                    if (savedTicks > 0) QuestSystem.InjectWorldBossQuest(savedTicks);
+                    if (savedTicks <= 0) savedTicks = System.DateTime.UtcNow.Ticks;
+                    QuestSystem.InjectWorldBossQuest(savedTicks);
                 }
                 return; // Ya está activo y restaurado visualmente
             }

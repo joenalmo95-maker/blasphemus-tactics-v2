@@ -150,11 +150,21 @@ public class TurnManager : MonoBehaviour
             {
                 ForceGameOver();
                 Debug.Log("=== VICTORIA ===");
-                // 2.1: progreso de misiones (mazmorra completada)
-                QuestSystem.NotifyDungeonCompleted();
-                // 0.7-E.4: drop de pieza de set según zona completada
-                LootSystem.OnDungeonVictory(GameFlow.pendingZone);
-                GameFlow.pendingZone = null;
+
+                // 0.5c-fix: hook de victoria del Boss Mundial
+                if (GameFlow.pendingWorldBoss)
+                {
+                    WorldBossSystem.OnBossDefeated();
+                    GameFlow.pendingWorldBoss = false;
+                }
+                else
+                {
+                    // 2.1: progreso de misiones (mazmorra completada)
+                    QuestSystem.NotifyDungeonCompleted();
+                    // 0.7-E.4: drop de pieza de set según zona completada
+                    LootSystem.OnDungeonVictory(GameFlow.pendingZone);
+                    GameFlow.pendingZone = null;
+                }
                 ShowGameOver(true);
             }
         }

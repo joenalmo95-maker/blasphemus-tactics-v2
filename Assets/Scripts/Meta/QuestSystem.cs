@@ -461,15 +461,26 @@ public static class QuestSystem
     public static void InjectWorldBossQuest(long bossSpawnTicks)
     {
         EnsureInitialized();
-        // Si ya existe la misión del Capitán, no duplicar
-        foreach (QuestState q in actives) if (q.id == "e_worldboss") return;
-        
-        long expiry = bossSpawnTicks + 24 * HOUR_TICKS; // 24h desde el spawn
-        actives.Add(new QuestState 
-        { 
-            id = "e_worldboss", 
-            accepted = true, // aceptada automáticamente para el tracker J
-            expiry = expiry 
+        long expiry = bossSpawnTicks + 24 * HOUR_TICKS;
+
+        // FIX 0.5c: si ya existe, refrescar accepted, progreso Y contador
+        // (cada spawn del Capitán reinicia el timer y el progreso)
+        foreach (QuestState q in actives)
+        {
+            if (q.id == "e_worldboss")
+            {
+                q.accepted = true;
+                q.progress = 0;
+                q.expiry = expiry; // FIX: el contador se reinicia con cada spawn
+                return;
+            }
+        }
+
+        actives.Add(new QuestState
+        {
+            id = "e_worldboss",
+            accepted = true,
+            expiry = expiry
         });
         Debug.Log("[Quests] Misión del Capitán inyectada en el Tablón (24h).");
     }
