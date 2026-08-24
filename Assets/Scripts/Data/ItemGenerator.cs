@@ -74,14 +74,8 @@ public static class ItemGenerator
 
     static string WeaponName(ClassData cd)
     {
-        if (cd == null) return "Arma";
-        switch (cd.role)
-        {
-            case ClassRole.Tank: return "Espada y escudo";
-            case ClassRole.Healer: return "Cetro";
-            case ClassRole.DPS: return "Látigo";
-            default: return "Arma";
-        }
+        // 1.1: Valerius usa solo espadón (eliminado Cetro/Espada y escudo/Látigo)
+        return "Espadón";
     }
 
     static Rarity RollRarityBasic()
@@ -157,34 +151,26 @@ public static class ItemGenerator
         }
     }
 
-    // --- 4.3: tipos de armadura por clase ---
+    // --- 1.1: unificación de armaduras (solo Placas para Valerius) ---
     public static ArmorType ArmorFor(ClassData cd)
     {
-        if (cd == null) return ArmorType.Ninguna;
-        switch (cd.role)
-        {
-            case ClassRole.Tank: return ArmorType.Placas;
-            case ClassRole.DPS: return ArmorType.Cuero;
-            default: return ArmorType.Ropa;
-        }
+        return ArmorType.Placas;
     }
 
     static ArmorType RollArmorType(ClassData cd)
     {
-        ArmorType own = ArmorFor(cd);
-        if (own == ArmorType.Ninguna) return (ArmorType)Random.Range(1, 4);
-        if (Random.Range(0f, 1f) < 0.7f) return own;
-        return (ArmorType)Random.Range(1, 4);
+        // 1.1: 100% Placas, eliminado Cuero/Ropa del loot pool
+        return ArmorType.Placas;
     }
 
     static string ArmorName(ItemSlot slot, ArmorType t, ClassData cd)
     {
         if (slot == ItemSlot.Weapon) return WeaponName(cd);
-        string baseN = slot == ItemSlot.Chest ? "Peto"
-                     : slot == ItemSlot.Legs ? "Pantalón"
-                     : slot == ItemSlot.Helm ? "Casco" : "Guantes";
-        if (t == ArmorType.Ninguna) return baseN;
-        return baseN + " de " + t;
+        // 1.1: nombres lore-friendly (siempre Placas, pero con sufijo épico)
+        string baseN = slot == ItemSlot.Chest ? "Coraza"
+                     : slot == ItemSlot.Legs ? "Grebas"
+                     : slot == ItemSlot.Helm ? "Yelmo" : "Guanteletes";
+        return baseN + " de Placas";
     }
 
     // 0.7-E.2: sin clases — toda armadura es equipable; ArmorType queda como sabor visual
