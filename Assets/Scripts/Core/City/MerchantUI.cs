@@ -23,17 +23,50 @@ public class MerchantUI : MonoBehaviour
     }
 
     // Renovado al entrar a la ciudad (CityBootstrap.Awake)
+    // 1.1b-fix: Renovado cada 1 hora real (persistente con PlayerPrefs)
     public static void RefreshStock()
     {
+        // Check de reset por timestamp (1 hora = 3600 segundos)
+        long lastRefresh = long.Parse(PlayerPrefs.GetString("CityMerchantLastRefresh", "0"));
+        long currentTime = System.DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        bool needsRefresh = (currentTime - lastRefresh) >= 3600;
+        
+        // Si ya hay stock y no ha pasado 1 hora, no regenerar
+        if (equipmentStock.Count > 0 && !needsRefresh) return;
+        
         equipmentStock.Clear();
         ClassData cd = CharacterData.Instance != null ? CharacterData.Instance.classData : null;
-        Rarity[] rars = { Rarity.Common, Rarity.Rare, Rarity.Epic };
-        for (int i = 0; i < rars.Length; i++)
+        
+        // Generar 5 items con probabilidades específicas
+        for (int i = 0; i < 5; i++)
         {
-            equipmentStock.Add(ItemGenerator.GenerateWithRarity(cd, rars[i]));
+            int roll = Random.Range(0, 100);
+            ItemData item = null;
+            
+            if (roll < 1) // 1% espadón épico
+            {
+                item = ItemGenerator.GenerateEspadon(Rarity.Epic);
+                Debug.Log("[MerchantUI] ★ ESPADÓN ÉPICO en stock");
+            }
+            else if (roll < 2) // 1% armadura épica
+            {
+                item = ItemGenerator.GenerateWithRarity(cd, Rarity.Epic);
+                Debug.Log("[MerchantUI] ★ ARMADURA ÉPICA en stock");
+            }
+            else // 98% aleatorio (solo Common/Rare, SIN épico)
+            {
+                Rarity rar = Random.Range(0, 100) < 70 ? Rarity.Common : Rarity.Rare;
+                item = ItemGenerator.GenerateWithRarity(cd, rar);
+            }
+            
+            if (item != null) equipmentStock.Add(item);
         }
+        
+        // Guardar timestamp de refresh
+        PlayerPrefs.SetString("CityMerchantLastRefresh", currentTime.ToString());
+        PlayerPrefs.Save();
+        Debug.Log("[MerchantUI] Stock renovado. Próximo reset en 1 hora.");
     }
-
     public static void Toggle()
     {
         if (Instance == null) new GameObject("MerchantUI").AddComponent<MerchantUI>();

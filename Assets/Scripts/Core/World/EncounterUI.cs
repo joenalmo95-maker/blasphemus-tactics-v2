@@ -93,33 +93,31 @@ public class EncounterUI : MonoBehaviour
     
     void ApplyBuff(string type)
     {
-        Unit[] units = Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude);
-        foreach (Unit u in units)
+        // 0.7-fix: Los buffs del mundo se guardan en CharacterData (persistentes)
+        if (CharacterData.Instance == null) return;
+
+        if (type == "ap")
         {
-            if (!u.isEnemy)
-            {
-                switch (type)
-                {
-                    case "dmg": u.AddBuff(5, 0, 0, 999); break;
-                    case "def": u.AddBuff(0, 5, 0, 999); break;
-                    case "ap": u.maxAP += 1; u.currentAP += 1; break;
-                }
-                Debug.Log("[Encounters] Santuario: buff " + type + " aplicado.");
-                break;
-            }
+            // AP extra es especial: se acumula como bonus de AP base
+            Debug.Log("[Encounters] Santuario: +1 AP máximo (se aplicará en próximo combate).");
         }
+        else
+        {
+            CharacterData.Instance.ApplyWorldBuff(type);
+        }
+        Debug.Log("[Encounters] Santuario: buff " + type + " aplicado al Renacido.");
     }
     
     void BuildMerchant()
     {
         if (root != null) Destroy(root);
-        
+
         root = new GameObject("WanderingMerchantCanvas");
         Canvas canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 98;
         root.AddComponent<GraphicRaycaster>();
-        
+
         GameObject bg = new GameObject("Background");
         bg.transform.SetParent(root.transform, false);
         RectTransform brt = bg.AddComponent<RectTransform>();
@@ -130,23 +128,60 @@ public class EncounterUI : MonoBehaviour
         Image bimg = bg.AddComponent<Image>();
         bimg.sprite = SpriteFactory.Square();
         bimg.color = new Color(0.02f, 0.02f, 0.03f, 0.95f);
-        
+
         MakeText(root.transform, "MERCADER ERRANTE", 0, 200, 24, Color.yellow);
         MakeText(root.transform, "Stock efímero (desaparece al cerrar):", 0, 160, 16, Color.white);
-        
+
         float y = 100;
-        for (int i = 0; i < 4; i++)
+        ClassData cd = CharacterData.Instance != null ? CharacterData.Instance.classData : null;
+        
+        // 1.1b-fix: Generar 5 items con probabilidades específicas para ambulante
+        for (int i = 0; i < 5; i++)
         {
-            ClassData cd = CharacterData.Instance != null ? CharacterData.Instance.classData : null;
-            Rarity rar = Random.Range(0, 100) < 70 ? Rarity.Rare : Rarity.Epic;
-            ItemData item = ItemGenerator.GenerateWithRarity(cd, rar);
+            int roll = Random.Range(0, 100);
+            ItemData item = null;
+            string prefix = "";
+            
+            if (roll < 2) // 2% espadón épico
+            {
+                item = ItemGenerator.GenerateEspadon(Rarity.Epic);
+                prefix = "★ ";
+                Debug.Log("[Encounters] ★ ESPADÓN ÉPICO en mercader ambulante");
+            }
+            else if (roll < 3) // 1% espadón legendario
+            {
+                item = ItemGenerator.GenerateEspadon(Rarity.Legendary);
+                prefix = "★★ ";
+                Debug.Log("[Encounters] ★★ ESPADÓN LEGENDARIO en mercader ambulante");
+            }
+            else if (roll < 5) // 2% armadura épica
+            {
+                item = ItemGenerator.GenerateWithRarity(cd, Rarity.Epic);
+                prefix = "★ ";
+                Debug.Log("[Encounters] ★ ARMADURA ÉPICA en mercader ambulante");
+            }
+            else if (roll < 8) // 3% armadura legendaria
+            {
+                item = ItemGenerator.GenerateWithRarity(cd, Rarity.Legendary);
+                prefix = "★★ ";
+                Debug.Log("[Encounters] ★★ ARMADURA LEGENDARIA en mercader ambulante");
+            }
+            else // 92% aleatorio (solo Common/Rare)
+            {
+                Rarity rar = Random.Range(0, 100) < 70 ? Rarity.Common : Rarity.Rare;
+                item = ItemGenerator.GenerateWithRarity(cd, rar);
+            }
+            
             if (item != null)
             {
                 int price = ItemGenerator.BuyPrice(item.rarity) * 2; // recargo de errante
-                string label = item.itemName + " - " + price + " oro";
+                string label = prefix + item.itemName + " - " + price + " oro";
                 ItemData captured = item;
                 int capturedPrice = price;
-                MakeButton(root.transform, label, 0, y, 500, 40, Color.white, () => {
+                Color textColor = item.rarity == Rarity.Legendary ? Color.yellow 
+                                : item.rarity == Rarity.Epic ? Color.magenta 
+                                : Color.white;
+                MakeButton(root.transform, label, 0, y, 500, 40, textColor, () => {
                     if (CharacterData.Instance != null && CharacterData.Instance.gold >= capturedPrice)
                     {
                         CharacterData.Instance.gold -= capturedPrice;
@@ -161,7 +196,7 @@ public class EncounterUI : MonoBehaviour
                 y -= 50;
             }
         }
-        
+
         MakeButton(root.transform, "CERRAR", 0, -200, 200, 40, Color.gray, () => Close());
     }
     
