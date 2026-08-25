@@ -7,14 +7,15 @@ public static class EnemyFactory
     {
         cell = FindFreeCell(cell);
 
+        // 1.4-B: tiers más agresivos (los enemigos escalan mejor que antes)
         float hpMult = 1f;
         int dmgBonus = 0;
         switch (tier)
         {
-            case EnemyTier.Medio: hpMult = 1.4f; dmgBonus = 5; break;
-            case EnemyTier.Elite: hpMult = 1.8f; dmgBonus = 10; break;
-            case EnemyTier.EliteFuerte: hpMult = 2.2f; dmgBonus = 15; break;
-            case EnemyTier.Jefe: hpMult = 3f; dmgBonus = 20; break;
+            case EnemyTier.Medio: hpMult = 1.5f; dmgBonus = 8; break;
+            case EnemyTier.Elite: hpMult = 2.2f; dmgBonus = 15; break;
+            case EnemyTier.EliteFuerte: hpMult = 3f; dmgBonus = 25; break;
+            case EnemyTier.Jefe: hpMult = 4.5f; dmgBonus = 35; break;
         }
 
         int baseHp = 100;
@@ -34,14 +35,16 @@ public static class EnemyFactory
         {
             // === ARQUETIPOS BASE (existentes) === — 0.7: rebalance daño/HP
             case "boss":
-            case "angel":  // FIX 0.7-D.2b: alias para el Ángel (usado en ZonesConfig.json)
-                baseHp = 500; baseDamage = 30; art = "angel";
+            case "angel":
+                // 1.4-B: Ángel más amenazante (más HP/daño, gana DEF)
+                baseHp = 900; baseDamage = 65; baseDefense = 10; art = "angel";
                 name = "Ángel de la Vigilia"; scale = 1.6f;
                 tint = new Color(1f, 0.95f, 0.6f);
                 break;
             // 0.7-F.1d: Capitán del Boss Mundial (HP 1200, gate de set Reliquia completo)
             case "capitan_mundial":
-                baseHp = 1200; baseDamage = 30; baseDefense = 20;
+                // 1.4-B: Capitán con más HP/daño pero menos DEF (Valerius puede dañarlo)
+                baseHp = 1800; baseDamage = 55; baseDefense = 15;
                 art = "capitan"; name = "Capitán de la Cruzada"; scale = 1.7f;
                 tint = new Color(1f, 0.85f, 0.3f); // Dorado
                 break;
