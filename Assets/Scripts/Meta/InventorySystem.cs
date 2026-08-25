@@ -83,6 +83,11 @@ public class InventorySystem : MonoBehaviour
         consumables.Add(new ConsumableData { type = t, count = count });
     }
 
+    // 1.4-fix: Poción de Vida cuesta 3 AP (o se cura o se mueve)
+    // 1.4-fix: Comidas con cooldown global de 10 minutos (tiempo real)
+    private static long lastFoodUseTimestamp = 0;
+    private const long FOOD_COOLDOWN_TICKS = 10L * 60L * 10000000L; // 10 minutos en ticks
+
     public bool UseConsumable(ConsumableType t)
     {
         if (TurnManager.Instance != null && !TurnManager.Instance.IsPlayerTurn())
@@ -111,21 +116,48 @@ public class InventorySystem : MonoBehaviour
         }
         if (player == null) return false;
 
-        switch (t)
+        // 1.4-fix: Poción de Vida requiere 3 AP
+        if (t == ConsumableType.PocionHP)
         {
-            case ConsumableType.PocionHP:
-                player.Heal(8);
-                break;
-            case ConsumableType.PocionAP:
-                player.currentAP = Mathf.Min(player.maxAP, player.currentAP + 2);
-                Debug.Log("AP restaurados: " + player.currentAP);
-                break;
-            case ConsumableType.ComidaDano:
-                player.AddBuff(2, 0, 3);
-                break;
-            default:
-                player.AddBuff(0, 2, 3);
-                break;
+            if (player.currentAP < 3)
+            {
+                Debug.Log("Poción de Vida requiere 3 AP. Tienes: " + player.currentAP);
+                return false;
+            }
+            player.currentAP -= 3;
+            player.Heal(8);
+            Debug.Log("Poción de Vida usada (-3 AP). HP curado: 8. AP restantes: " + player.currentAP);
+        }
+        // 1.4-fix: Comidas con cooldown global de 10 minutos
+        else if (t == ConsumableType.ComidaDano || t == ConsumableType.ComidaDefensa)
+        {
+            long now = System.DateTime.UtcNow.Ticks;
+            long elapsed = now - lastFoodUseTimestamp;
+            if (elapsed < FOOD_COOLDOWN_TICKS)
+            {
+                long remainingTicks = FOOD_COOLDOWN_TICKS - elapsed;
+                int remainingMinutes = (int)(remainingTicks / 10000000L / 60L);
+                int remainingSeconds = (int)((remainingTicks / 10000000L) % 60L);
+                Debug.Log("Comida en cooldown: " + remainingMinutes + "m " + remainingSeconds + "s restantes.");
+                CombatFeedback.SpawnText(player.transform.position, "COMIDA EN CD: " + remainingMinutes + "m", Color.red);
+                return false;
+            }
+
+            // Aplicar buff de comida (dura 10 minutos en tiempo real, no turnos)
+            if (t == ConsumableType.ComidaDano)
+            {
+                player.worldBuffDamage = 2;
+                player.worldBuffDamageExpiry = now + FOOD_COOLDOWN_TICKS;
+                Debug.Log("Comida Picante usada: +2 daño por 10 minutos.");
+            }
+            else
+            {
+                player.worldBuffDefense = 2;
+                player.worldBuffDefenseExpiry = now + FOOD_COOLDOWN_TICKS;
+                Debug.Log("Comida de Hierro usada: +2 defensa por 10 minutos.");
+            }
+
+            lastFoodUseTimestamp = now;
         }
 
         entry.count--;

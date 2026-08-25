@@ -64,6 +64,7 @@ public class TurnManager : MonoBehaviour
 
          playerUnit.TickBuffs();
          playerUnit.TickDebuffs();
+         playerUnit.TickCooldowns(); // 1.4: reducir cooldowns al inicio del turno
      }
 
      // 1.1-E: telegrafía la intención enemiga durante el turno del jugador

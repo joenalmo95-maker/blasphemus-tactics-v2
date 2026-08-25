@@ -9,7 +9,6 @@ public class CombatController : MonoBehaviour
 
     private SkillData armedSkill = null;
     private Unit playerUnit;
-    private int ultimateCooldown = 0;
     private Unit lastFlankTarget = null;
 
     // Indicadores persistentes (movimiento azul / rango naranja)
@@ -20,9 +19,6 @@ public class CombatController : MonoBehaviour
     private int lastAP = -1;
     private Vector2Int lastPos = new Vector2Int(int.MinValue, int.MinValue);
     private SkillData lastArmed = null;
-
-    public int UltimateCooldown { get { return ultimateCooldown; } }
-    public SkillData ArmedSkill { get { return armedSkill; } }
 
     void Awake()
     {
@@ -108,11 +104,10 @@ public class CombatController : MonoBehaviour
         // Ultimate (slot 5)
         if (Input.GetKeyDown(KeyCode.Alpha5)) TryUseUltimate();
 
-        // Consumibles
+        // Consumibles (Poción de Energía eliminada)
         if (Input.GetKeyDown(KeyCode.Alpha6)) TryUse(ConsumableType.PocionHP);
-        if (Input.GetKeyDown(KeyCode.Alpha7)) TryUse(ConsumableType.PocionAP);
-        if (Input.GetKeyDown(KeyCode.Alpha8)) TryUse(ConsumableType.ComidaDano);
-        if (Input.GetKeyDown(KeyCode.Alpha9)) TryUse(ConsumableType.ComidaDefensa);
+        if (Input.GetKeyDown(KeyCode.Alpha7)) TryUse(ConsumableType.ComidaDano);
+        if (Input.GetKeyDown(KeyCode.Alpha8)) TryUse(ConsumableType.ComidaDefensa);
 
         // ÚNICO bloque de clic de movimiento (1 clic = 1 ruta = 1 AP por casilla)
         if (Input.GetMouseButtonDown(0) && armedSkill == null && !isMoving)
@@ -125,13 +120,12 @@ public class CombatController : MonoBehaviour
             }
         }
 
-        // Ataque con skill armada (click derecho)
+        // 1.4: Ataque con skill armada (click derecho) - usa Cooldown en vez de AP
         if (armedSkill != null && Input.GetMouseButtonDown(1))
         {
             Vector3 world = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             Vector2Int cell = new Vector2Int(Mathf.RoundToInt(world.x), Mathf.RoundToInt(world.y));
             Unit target = Pathfinding.UnitAt(cell);
-            // FIX 1: rango 0 = autocast sobre sí mismo; apoyo sobre aliado/uno mismo
             if (armedSkill.range <= 0) target = playerUnit;
             if (target != null && !target.isEnemy)
             {
@@ -139,13 +133,13 @@ public class CombatController : MonoBehaviour
             }
             if (target != null && target.isEnemy)
             {
-                // Distancia Chebyshev (diagonal = 1)
                 int distance = Pathfinding.GridDistance(target.currentGridPos, playerUnit.currentGridPos);
+                string usedId = ArmedSkillId();
+                SkillMeta meta = SkillPool.Meta(usedId);
+                int currentCd = playerUnit.GetSkillCooldown(usedId);
 
-                if (distance <= armedSkill.range && playerUnit.currentAP >= armedSkill.actionPointCost)
+                if (distance <= armedSkill.range && currentCd == 0)
                 {
-                    playerUnit.currentAP -= armedSkill.actionPointCost;
-
                     // Flanking (solo melee)
                     float flankMult = 1f;
                     int flankCrit = 0;
@@ -159,7 +153,31 @@ public class CombatController : MonoBehaviour
 
                     int passiveBonus = CalculatePassiveBonus();
                     int worldDmg = (CharacterData.Instance != null) ? CharacterData.Instance.worldBuffDamage : 0;
-                    int raw = Mathf.RoundToInt((armedSkill.damage + passiveBonus + playerUnit.stats.damage + playerUnit.buffDamage + worldDmg) * flankMult);
+                    int baseDamage = Mathf.RoundToInt((armedSkill.damage + passiveBonus + playerUnit.stats.damage + playerUnit.buffDamage + worldDmg) * flankMult);
+
+                    // 1.4: Sistema de ejecución heroica (Halo Roto)
+                    float executeMult = 1f;
+                    if (meta != null && meta.executeMultiplier > 1f && meta.executeThreshold > 0)
+                    {
+                        float hpPercent = (float)playerUnit.currentHealth / playerUnit.maxHealth * 100f;
+                        if (hpPercent < meta.executeThreshold)
+                        {
+                            int roll = Random.Range(0, 100);
+                            if (roll < meta.executeChance)
+                            {
+                                executeMult = meta.executeMultiplier;
+                                CombatFeedback.SpawnText(playerUnit.transform.position, "¡EJECUCIÓN!", new Color(1f, 0.3f, 0.1f));
+                                Debug.Log("[Ejecución] ¡El Halo responde! x" + meta.executeMultiplier + " daño.");
+                            }
+                            else
+                            {
+                                CombatFeedback.SpawnText(playerUnit.transform.position, "el Halo no responde", Color.gray);
+                                Debug.Log("[Ejecución] El Halo no respondió (roll " + roll + " vs " + meta.executeChance + "%).");
+                            }
+                        }
+                    }
+
+                    int raw = Mathf.RoundToInt(baseDamage * executeMult);
                     bool hit = target.ReceiveAttack(playerUnit, raw, armedSkill.bonusCrit + flankCrit, armedSkill.threatMult);
 
                     if (ft == FlankType.Lateral) CombatFeedback.SpawnText(target.transform.position, "FLANK +10%", Color.yellow);
@@ -170,22 +188,21 @@ public class CombatController : MonoBehaviour
 
                     if (hit) ResolveEffectKey(target);
 
-                    // FIX: cooldown del ultimate por ID (no por referencia) + CD por defecto 3
-                    string usedId = ArmedSkillId();
-                    if (usedId != "" && usedId == LoadoutSystem.UltimateId())
-                    {
-                        SkillMeta meta = SkillPool.Meta(usedId);
-                        ultimateCooldown = (meta != null && meta.cooldown > 0) ? meta.cooldown : 3;
-                        Debug.Log("[Cooldown] Ultimate en CD: " + ultimateCooldown + " turnos.");
-                    }
+                    // 1.4-fix: cooldown 0 = siempre disponible (Golpe Básico)
+                    int cdToApply = (meta != null) ? meta.cooldown : 0;
+                    if (cdToApply > 0) playerUnit.SetSkillCooldown(usedId, cdToApply);
+                    Debug.Log("[Cooldown] " + armedSkill.skillName + " en CD: " + cdToApply + " turnos.");
 
-                    // 2.1: progreso de misiones
                     QuestSystem.NotifySkillUsed();
                     armedSkill = null;
                 }
+                else if (currentCd > 0)
+                {
+                    Debug.Log(armedSkill.skillName + " en cooldown: " + currentCd + " turnos.");
+                }
                 else
                 {
-                    Debug.Log("Objetivo fuera de rango o AP insuficientes.");
+                    Debug.Log("Objetivo fuera de rango.");
                 }
             }
         }
@@ -338,14 +355,20 @@ public class CombatController : MonoBehaviour
             Debug.Log("Slot " + (slot + 1) + " vacío.");
             return;
         }
+
+        // 1.4-fix2: permitir ARMAR cualquier skill (para ver rango, tooltip, etc.)
+        // El check de cooldown solo se hace al EJECUTAR (clic derecho)
         ToggleSkill(skill);
     }
 
     public void TryUseUltimate()
     {
-        if (ultimateCooldown > 0)
+        if (playerUnit == null) return;
+        string ultId = LoadoutSystem.UltimateId();
+        int cd = playerUnit.GetSkillCooldown(ultId);
+        if (cd > 0)
         {
-            Debug.Log("Ultimate en cooldown: " + ultimateCooldown + " turnos.");
+            Debug.Log("Ultimate en cooldown: " + cd + " turnos.");
             return;
         }
 
@@ -356,6 +379,14 @@ public class CombatController : MonoBehaviour
             return;
         }
         ToggleSkill(ult);
+    }
+
+    // 1.4: Helper para obtener el ID de la skill armada
+    public int GetCooldownForArmed()
+    {
+        if (armedSkill == null || playerUnit == null) return 0;
+        string id = ArmedSkillId();
+        return playerUnit.GetSkillCooldown(id);
     }
 
     string ArmedSkillId()
@@ -436,14 +467,15 @@ public class CombatController : MonoBehaviour
             Debug.Log("Aliado fuera de rango.");
             return;
         }
-        if (playerUnit.currentAP < armedSkill.actionPointCost)
+        string usedId = ArmedSkillId();
+        int currentCd = playerUnit.GetSkillCooldown(usedId);
+        if (currentCd > 0)
         {
-            Debug.Log("AP insuficientes.");
+            Debug.Log(armedSkill.skillName + " en cooldown: " + currentCd + " turnos.");
             return;
         }
-        playerUnit.currentAP -= armedSkill.actionPointCost;
 
-        SkillMeta meta = SkillPool.Meta(ArmedSkillId());
+        SkillMeta meta = SkillPool.Meta(usedId);
         if (meta != null && meta.heal > 0)
         {
             target.Heal(meta.heal + playerUnit.stats.healingPower / 2);
@@ -454,12 +486,15 @@ public class CombatController : MonoBehaviour
         }
         else if (meta == null || meta.heal <= 0)
         {
-            target.AddBuff(2, 0, 0, 3); // buff genérico si la skill no define efecto
+            target.AddBuff(2, 0, 0, 3);
         }
 
-            QuestSystem.NotifySkillUsed();
-            Debug.Log(armedSkill.skillName + " usado sobre " + target.gameObject.name + ". AP: " + playerUnit.currentAP);
-            armedSkill = null;
+        int cdToApply = (meta != null) ? meta.cooldown : 0;
+        if (cdToApply > 0) playerUnit.SetSkillCooldown(usedId, cdToApply);
+        Debug.Log("[Cooldown] " + armedSkill.skillName + " en CD: " + cdToApply + " turnos.");
+
+        QuestSystem.NotifySkillUsed();
+        armedSkill = null;
     }
 
 
@@ -509,8 +544,6 @@ public class CombatController : MonoBehaviour
 
     public void EndPlayerTurn()
     {
-        if (ultimateCooldown > 0) ultimateCooldown--;
-
         // 0.8-fix: el bloqueo del Flagelante dura 1 turno
         if (CharacterData.Instance != null && CharacterData.Instance.blockedSkillTurns > 0)
         {

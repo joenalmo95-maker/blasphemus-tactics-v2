@@ -25,6 +25,10 @@ public class SkillMeta
     public int heal;
     public float threatMult;
     public int unlockLevel;
+    // 1.4: Sistema de ejecución (ultimates del Halo)
+    public float executeMultiplier = 1f;   // multiplicador si se ejecuta (1 = sin execute)
+    public int executeThreshold = 0;       // % HP de Valerius para poder ejecutar (0 = sin execute)
+    public int executeChance = 0;          // % probabilidad de ejecutar (0 = sin execute)
 }
 
 public static class SkillPool
@@ -66,49 +70,36 @@ public static class SkillPool
         dataCache = new Dictionary<string, SkillData>();
         List<SkillMeta> l = new List<SkillMeta>();
 
-        // 0.3: Starter único de Valerius (nivel 1)
-        l.Add(C("golpe_basico", "Golpe Básico", SkillType.Activa, "Universal", "Common", "Daño", "0,0", "", "Starter", "Ataque básico con el espadón.", 1, 3, 1, 0, 0, 0, 0, 0, 1));
+        // 1.4: Sistema de Cooldown - todos los CDs y datos de ejecución definidos aquí
+        // Format: C(id, name, type, affinity, rarity, tag, pattern, effectKey, origin, desc, ap, damage, range, cooldown, bonusCrit, cost, heal, threat, unlockLevel, execMult, execThreshold, execChance)
 
-        // Nivel 3
-        l.Add(C("empuje", "Empuje", SkillType.Activa, "Universal", "Common", "Control", "0,0", "knockback", "Nivel 3", "Ataca y empuja 1 celda.", 1, 2, 1, 0, 0, 0, 0, 0, 3));
+        // === STARTER ===
+        // 1.4-fix2: Golpe Básico con CD 1 (evita spam, mantiene desafío táctico)
+        l.Add(C("golpe_basico", "Golpe Básico", SkillType.Activa, "Universal", "Common", "Daño", "0,0", "", "Starter", "Ataque básico con el espadón.", 1, 3, 1, 1, 0, 0, 0, 0, 1));
 
-        // Nivel 5
-        l.Add(C("barrido", "Barrido", SkillType.Activa, "Universal", "Rare", "Daño en Área", "0,0", "sweep", "Nivel 5", "Daño en cruz (4 celdas adyacentes).", 2, 4, 1, 0, 0, 0, 0, 0, 5));
-
-        // Nivel 7 (Pasiva)
+        // === POR NIVEL ===
+        l.Add(C("empuje", "Empuje", SkillType.Activa, "Universal", "Common", "Control", "0,0", "knockback", "Nivel 3", "Ataca y empuja 1 celda.", 1, 2, 1, 2, 0, 0, 0, 0, 3));
+        l.Add(C("barrido", "Barrido", SkillType.Activa, "Universal", "Rare", "Daño en Área", "0,0", "sweep", "Nivel 5", "Daño en cruz (4 celdas adyacentes).", 2, 4, 1, 3, 0, 0, 0, 0, 5));
         l.Add(C("piel_hierro", "Piel de Hierro", SkillType.Pasiva, "Universal", "Rare", "", "", "piel", "Nivel 7", "+2 DEF.", 0, 0, 0, 0, 0, 400, 0, 0, 7));
-
-        // Nivel 10
-        l.Add(C("embestida", "Embestida", SkillType.Activa, "Universal", "Rare", "DAÑO + Desplazamiento", "0,0", "lunge", "Nivel 10", "Ataca y avanza 2 celdas hacia el objetivo.", 2, 6, 1, 0, 0, 300, 0, 0, 10));
-
-        // Nivel 12 (Pasiva)
+        l.Add(C("embestida", "Embestida", SkillType.Activa, "Universal", "Rare", "DAÑO + Desplazamiento", "0,0", "lunge", "Nivel 10", "Ataca y avanza 2 celdas hacia el objetivo.", 2, 6, 1, 3, 0, 300, 0, 0, 10));
         l.Add(C("furia", "Furia", SkillType.Pasiva, "Universal", "Rare", "", "", "furia", "Nivel 12", "+5% crítico.", 0, 0, 0, 0, 0, 400, 0, 0, 12));
-
-        // Nivel 15 (Ultimate)
-        l.Add(C("ira_halo", "Ira del Halo", SkillType.Ultimate, "Universal", "Legendary", "DAÑO Devastador", "0,0", "execute", "Nivel 15", "Daño doble si el objetivo está por debajo del 50%.", 0, 20, 2, 3, 0, 500, 0, 0, 15));
-
-        // Nivel 18 (Pasiva)
+        // 1.4: Ira del Halo - ejecución heroica (25% prob si Valerius <20% HP)
+        l.Add(C("ira_halo", "Ira del Halo", SkillType.Ultimate, "Universal", "Legendary", "DAÑO Devastador", "0,0", "execute", "Nivel 15", "x1.5 daño si estás <20% HP (25% prob).", 0, 20, 2, 6, 0, 500, 0, 0, 15, 1.5f, 20, 25));
         l.Add(C("vampirismo", "Vampirismo", SkillType.Pasiva, "Universal", "Epic", "", "", "vampirismo", "Nivel 18", "10% de robo de vida.", 0, 0, 0, 0, 0, 400, 0, 0, 18));
-
-        // === 1.5: HABILIDADES DE ENDGAME (Nivel 20-30) ===
-        // Nivel 20 (Pasiva)
         l.Add(C("voluntad_hierro", "Voluntad de Hierro", SkillType.Pasiva, "Universal", "Epic", "", "", "voluntad", "Nivel 20", "+10 Daño base y +10% Crítico.", 0, 0, 0, 0, 0, 0, 0, 0, 20));
+        l.Add(C("carga_sacrificial", "Carga Sacrificial", SkillType.Activa, "Universal", "Epic", "DAÑO + Desplazamiento", "0,0", "lunge", "Nivel 25", "Embiste 3 celdas e inflige 15 de daño.", 2, 15, 1, 4, 15, 0, 0, 0, 25));
+        // 1.4: Sentencia del Halo - ejecución suprema (20% prob si Valerius <10% HP)
+        l.Add(C("sentencia_halo", "Sentencia del Halo", SkillType.Ultimate, "Universal", "Legendary", "DAÑO EJECUCIÓN", "0,0", "execute", "Nivel 30", "x2.5 daño si estás <10% HP (20% prob).", 3, 25, 2, 10, 50, 0, 0, 0, 30, 2.5f, 10, 20));
 
-        // Nivel 25 (Activa)
-        l.Add(C("carga_sacrificial", "Carga Sacrificial", SkillType.Activa, "Universal", "Epic", "DAÑO + Desplazamiento", "0,0", "lunge", "Nivel 25", "Embiste 3 celdas e inflige 15 de daño.", 2, 15, 1, 2, 15, 0, 0, 0, 25));
-
-        // Nivel 30 (Ultimate)
-        l.Add(C("sentencia_halo", "Sentencia del Halo", SkillType.Ultimate, "Universal", "Legendary", "DAÑO EJECUCIÓN", "0,0", "execute", "Nivel 30", "Daño cuádruple si el objetivo está por debajo del 30% HP.", 3, 25, 2, 4, 50, 0, 0, 0, 30));
-
-        // Skills del Entrenador (comprables con oro)
-        l.Add(C("tiro_preciso", "Tiro Preciso", SkillType.Activa, "Universal", "Common", "Daño", "0,0", "", "Entrenador", "Ataque a distancia (rango 3).", 1, 3, 3, 0, 0, 150, 0, 0, 1));
-        l.Add(C("impacto_pesado", "Impacto Pesado", SkillType.Activa, "Universal", "Rare", "Daño", "0,0", "", "Entrenador", "Golpe contundente con +50% daño.", 2, 5, 1, 0, 0, 300, 0, 0, 1));
-        l.Add(C("marca", "Marca", SkillType.Activa, "Universal", "Rare", "Debuff de Daño", "0,0", "mark", "Entrenador", "El objetivo marcado recibe +15% daño.", 1, 0, 3, 0, 0, 300, 0, 0, 1));
-        l.Add(C("tiron", "Tirón", SkillType.Activa, "Universal", "Epic", "Control", "0,0", "pull", "Entrenador", "Ataca a distancia y atrae al enemigo 1 celda.", 2, 4, 3, 0, 0, 400, 0, 0, 1));
-        l.Add(C("curar", "Curar", SkillType.Activa, "Universal", "Common", "Curación", "0,0", "", "Entrenador", "Restaura 4 HP.", 2, 0, 3, 0, 0, 150, 4, 0, 1));
-        l.Add(C("escudo", "Escudo", SkillType.Activa, "Universal", "Common", "Defensa", "0,0", "shield", "Entrenador", "+2 DEF durante 3 turnos.", 1, 0, 0, 0, 0, 150, 0, 0, 1));
-        l.Add(C("provocacion", "Provocación", SkillType.Activa, "Universal", "Common", "Amenaza", "0,0", "taunt", "Entrenador", "Aumenta tu amenaza y reduce el ataque enemigo 1 turno.", 1, 0, 0, 0, 0, 150, 0, 0, 1));
-        l.Add(C("maldicion", "Maldición", SkillType.Activa, "Universal", "Rare", "Debuff", "0,0", "curse", "Entrenador", "-2 ataque enemigo por 3 turnos.", 2, 0, 3, 0, 0, 300, 0, 0, 1));
+        // === ENTRENADOR (comprables) ===
+        l.Add(C("tiro_preciso", "Tiro Preciso", SkillType.Activa, "Universal", "Common", "Daño", "0,0", "", "Entrenador", "Ataque a distancia (rango 3).", 1, 3, 3, 2, 0, 150, 0, 0, 1));
+        l.Add(C("impacto_pesado", "Impacto Pesado", SkillType.Activa, "Universal", "Rare", "Daño", "0,0", "", "Entrenador", "Golpe contundente con +50% daño.", 2, 5, 1, 3, 0, 300, 0, 0, 1));
+        l.Add(C("marca", "Marca", SkillType.Activa, "Universal", "Rare", "Debuff de Daño", "0,0", "mark", "Entrenador", "El objetivo marcado recibe +15% daño.", 1, 0, 3, 4, 0, 300, 0, 0, 1));
+        l.Add(C("tiron", "Tirón", SkillType.Activa, "Universal", "Epic", "Control", "0,0", "pull", "Entrenador", "Ataca a distancia y atrae al enemigo 1 celda.", 2, 4, 3, 3, 0, 400, 0, 0, 1));
+        l.Add(C("curar", "Curar", SkillType.Activa, "Universal", "Common", "Curación", "0,0", "", "Entrenador", "Restaura 4 HP.", 2, 0, 3, 3, 0, 150, 4, 0, 1));
+        l.Add(C("escudo", "Escudo", SkillType.Activa, "Universal", "Common", "Defensa", "0,0", "shield", "Entrenador", "+2 DEF durante 3 turnos.", 1, 0, 0, 4, 0, 150, 0, 0, 1));
+        l.Add(C("provocacion", "Provocación", SkillType.Activa, "Universal", "Common", "Amenaza", "0,0", "taunt", "Entrenador", "Aumenta tu amenaza y reduce el ataque enemigo 1 turno.", 1, 0, 0, 3, 0, 150, 0, 0, 1));
+        l.Add(C("maldicion", "Maldición", SkillType.Activa, "Universal", "Rare", "Debuff", "0,0", "curse", "Entrenador", "-2 ataque enemigo por 3 turnos.", 2, 0, 3, 4, 0, 300, 0, 0, 1));
         l.Add(C("reflejos", "Reflejos", SkillType.Pasiva, "Universal", "Rare", "", "", "reflejos", "Entrenador", "+10% evasión.", 0, 0, 0, 0, 0, 400, 0, 0, 1));
         l.Add(C("impetu", "Ímpetu", SkillType.Pasiva, "Universal", "Rare", "", "", "impetu", "Entrenador", "+1 movimiento.", 0, 0, 0, 0, 0, 400, 0, 0, 1));
         l.Add(C("ejecutor", "Ojos del Ejecutor", SkillType.Pasiva, "Universal", "Epic", "", "", "ejecutor", "Entrenador", "+1 daño por cada 5% de crítico.", 0, 0, 0, 0, 0, 400, 0, 0, 1));
@@ -135,10 +126,11 @@ public static class SkillPool
         d.range = m.range;
         d.bonusCrit = m.bonusCrit;
         d.unlockLevel = m.unlockLevel;
+        d.cooldown = m.cooldown; // 1.4: propagar cooldown
         return d;
     }
 
-    static SkillMeta C(string id, string name, SkillType type, string affinity, string rarity, string tag, string pattern, string effectKey, string origin, string desc, int ap, int damage, int range, int cooldown, int bonusCrit, int cost, int heal, int threat, int unlockLevel)
+    static SkillMeta C(string id, string name, SkillType type, string affinity, string rarity, string tag, string pattern, string effectKey, string origin, string desc, int ap, int damage, int range, int cooldown, int bonusCrit, int cost, int heal, int threat, int unlockLevel, float execMult = 1f, int execThreshold = 0, int execChance = 0)
     {
         SkillMeta m = new SkillMeta();
         m.id = id;
@@ -160,6 +152,9 @@ public static class SkillPool
         m.heal = heal;
         m.threatMult = 1f + threat * 0.1f;
         m.unlockLevel = unlockLevel;
+        m.executeMultiplier = execMult;
+        m.executeThreshold = execThreshold;
+        m.executeChance = execChance;
         return m;
     }
 }

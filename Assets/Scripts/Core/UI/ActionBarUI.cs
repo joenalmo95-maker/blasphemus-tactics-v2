@@ -226,10 +226,12 @@ public class ActionBarUI : MonoBehaviour
         {
             SkillData ult = LoadoutSystem.GetUltimate();
             if (ult == null) { HideTip(); return; }
-            CombatController cc = Object.FindAnyObjectByType<CombatController>();
-            int cd = cc != null ? cc.UltimateCooldown : 0;
             string uid = LoadoutSystem.UltimateId();
             SkillMeta meta = uid != "" ? SkillPool.Meta(uid) : null;
+            Unit pu = Object.FindAnyObjectByType<Unit>();
+            foreach (Unit u in Object.FindObjectsByType<Unit>(FindObjectsInactive.Exclude))
+                if (!u.isEnemy) { pu = u; break; }
+            int cd = (pu != null) ? pu.GetSkillCooldown(uid) : 0;
 
             titleColor = Color.magenta;
             title = "ULTIMATE: " + ult.skillName;
@@ -237,6 +239,10 @@ public class ActionBarUI : MonoBehaviour
             sb.AppendLine("Cooldown: " + (meta != null ? meta.cooldown : 3) + " turnos");
             sb.AppendLine(cd > 0 ? "Recarga: " + cd + " turnos restantes" : "LISTO PARA USAR");
             sb.AppendLine("Daño: " + ult.damage + " · Rango: " + ult.range);
+            if (meta != null && meta.executeMultiplier > 1f)
+            {
+                sb.AppendLine("EJECUCIÓN: x" + meta.executeMultiplier + " si HP < " + meta.executeThreshold + "% (" + meta.executeChance + "% prob)");
+            }
         }
         else if (btn.actionType == "consumable")
         {
@@ -269,14 +275,15 @@ public class ActionBarUI : MonoBehaviour
             tipRoot.SetActive(false);
     }
 
-    static ConsumableType ConsumableForSlot(int i)
+    // 1.4-fix: Poción de Energía eliminada (las skills ya no usan AP)
+    static ConsumableType? ConsumableForSlot(int i)
     {
         switch (i)
         {
             case 5: return ConsumableType.PocionHP;
-            case 6: return ConsumableType.PocionAP;
-            case 7: return ConsumableType.ComidaDano;
-            default: return ConsumableType.ComidaDefensa;
+            case 6: return ConsumableType.ComidaDano;
+            case 7: return ConsumableType.ComidaDefensa;
+            default: return null; // slot 8 libre
         }
     }
 
@@ -295,11 +302,15 @@ public class ActionBarUI : MonoBehaviour
                 SkillData sk = LoadoutSystem.GetActive(i);
                 if (sk != null)
                 {
+                    string skillId = LoadoutSystem.ActiveId(i);
+                    int cd = (playerUnit != null) ? playerUnit.GetSkillCooldown(skillId) : 0;
                     btn.label.text = sk.skillName;
-                    btn.costText.text = sk.actionPointCost + " AP";
+                    btn.costText.text = (cd > 0) ? "CD: " + cd : "LISTO";
+                    btn.costText.color = (cd > 0) ? Color.red : Color.green;
                     btn.actionType = "skill";
                     btn.actionIndex = i;
-                    if (armed != null && sk == armed) btn.background.color = new Color(0.1f, 0.5f, 0.1f, 0.9f);
+                    if (cd > 0) btn.background.color = new Color(0.4f, 0.2f, 0.2f, 0.9f);
+                    else if (armed != null && sk == armed) btn.background.color = new Color(0.1f, 0.5f, 0.1f, 0.9f);
                 }
                 else
                 {
@@ -312,17 +323,18 @@ public class ActionBarUI : MonoBehaviour
             else if (i == 4)
             {
                 SkillData ult = LoadoutSystem.GetUltimate();
-                CombatController cc = Object.FindAnyObjectByType<CombatController>();
-                int cd = cc != null ? cc.UltimateCooldown : 0;
+                string ultId = LoadoutSystem.UltimateId();
+                int cd = (playerUnit != null) ? playerUnit.GetSkillCooldown(ultId) : 0;
 
                 if (ult != null)
                 {
                     btn.label.text = "ULT: " + ult.skillName;
                     btn.costText.text = (cd > 0) ? "CD: " + cd : "LISTO";
+                    btn.costText.color = (cd > 0) ? Color.red : Color.magenta;
                     btn.actionType = "ultimate";
                     btn.actionIndex = 4;
                     if (cd > 0) btn.background.color = new Color(0.4f, 0.2f, 0.2f, 0.9f);
-                    if (armed != null && ult == armed) btn.background.color = new Color(0.1f, 0.5f, 0.1f, 0.9f);
+                    else if (armed != null && ult == armed) btn.background.color = new Color(0.1f, 0.5f, 0.1f, 0.9f);
                 }
                 else
                 {
@@ -334,12 +346,23 @@ public class ActionBarUI : MonoBehaviour
             }
             else
             {
-                ConsumableType t = ConsumableForSlot(i);
-                int count = InventorySystem.Instance != null ? InventorySystem.Instance.GetConsumableCount(t) : 0;
-                btn.label.text = ConsumableCatalog.Name(t);
-                btn.costText.text = "x" + count;
-                btn.actionType = "consumable";
-                btn.actionIndex = (int)t;
+                ConsumableType? t = ConsumableForSlot(i);
+                if (t == null)
+                {
+                    btn.label.text = "(libre)";
+                    btn.costText.text = "";
+                    btn.actionType = "";
+                    btn.actionIndex = -1;
+                }
+                else
+                {
+                    ConsumableType ct = t.Value;
+                    int count = InventorySystem.Instance != null ? InventorySystem.Instance.GetConsumableCount(ct) : 0;
+                    btn.label.text = ConsumableCatalog.Name(ct);
+                    btn.costText.text = "x" + count;
+                    btn.actionType = "consumable";
+                    btn.actionIndex = (int)ct;
+                }
             }
         }
     }
@@ -357,18 +380,19 @@ public class ActionBarUI : MonoBehaviour
         {
             case "skill":
                 {
+                    string skillId = LoadoutSystem.ActiveId(btn.actionIndex);
                     SkillData sk = LoadoutSystem.GetActive(btn.actionIndex);
-                    if (sk != null && playerUnit.currentAP >= sk.actionPointCost)
+                    int cd = (playerUnit != null) ? playerUnit.GetSkillCooldown(skillId) : 0;
+                    if (sk != null && cd == 0)
                         cc.ToggleSkill(sk);
+                    else if (cd > 0)
+                        Debug.Log(sk.skillName + " en cooldown: " + cd + " turnos.");
                 }
                 break;
 
             case "ultimate":
                 {
-                    if (cc.UltimateCooldown == 0)
-                        cc.TryUseUltimate();
-                    else
-                        Debug.Log("Ultimate en cooldown: " + cc.UltimateCooldown + " turnos.");
+                    cc.TryUseUltimate();
                 }
                 break;
 

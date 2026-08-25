@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 // 1.1-E: sector de ataque relativo al facing del objetivo
 public enum FlankType { Frontal, Lateral, Espalda }
@@ -34,8 +35,47 @@ public class Unit : MonoBehaviour
     public int dotTurns = 0;
     public string dotLabel = "";
 
+    // 1.4-fix: Buffs de comida por tiempo real (10 minutos)
+    [System.NonSerialized] public int worldBuffDamage = 0;
+    [System.NonSerialized] public int worldBuffDefense = 0;
+    [System.NonSerialized] public long worldBuffDamageExpiry = 0;
+    [System.NonSerialized] public long worldBuffDefenseExpiry = 0;
+
     // 0.8-fix: inmunidad a control (Autómata de Reliquias)
     public bool isCCImmune = false;
+
+    // 1.4: Sistema de cooldown por habilidad (diccionario skillId -> turnos restantes)
+    [System.NonSerialized] public Dictionary<string, int> skillCooldowns = new Dictionary<string, int>();
+
+    public void SetSkillCooldown(string skillId, int turns)
+    {
+        if (string.IsNullOrEmpty(skillId)) return;
+        skillCooldowns[skillId] = Mathf.Max(0, turns);
+    }
+
+    public int GetSkillCooldown(string skillId)
+    {
+        if (string.IsNullOrEmpty(skillId)) return 0;
+        return skillCooldowns.TryGetValue(skillId, out int cd) ? cd : 0;
+    }
+
+    public void TickCooldowns()
+    {
+        // 1.4-fix3: iterar sobre una copia de las claves para no modificar el diccionario durante el foreach
+        List<string> keys = new List<string>(skillCooldowns.Keys);
+        foreach (string id in keys)
+        {
+            int val = skillCooldowns[id];
+            if (val <= 1)
+            {
+                skillCooldowns.Remove(id);
+            }
+            else
+            {
+                skillCooldowns[id] = val - 1;
+            }
+        }
+    }
 
     public int pendingApPenalty = 0;
     // 1.1-E: dirección de mirada e intención telegrafiada
@@ -110,8 +150,22 @@ public class Unit : MonoBehaviour
                 buffDamage = 0;
                 buffDefense = 0;
                 buffCrit = 0;
-                Debug.Log("Los buffs han expirado.");
             }
+        }
+
+        // 1.4-fix: tick de buffs de comida por tiempo real
+        long now = System.DateTime.UtcNow.Ticks;
+        if (worldBuffDamageExpiry > 0 && now >= worldBuffDamageExpiry)
+        {
+            worldBuffDamage = 0;
+            worldBuffDamageExpiry = 0;
+            Debug.Log("Buff de Comida Picante ha expirado.");
+        }
+        if (worldBuffDefenseExpiry > 0 && now >= worldBuffDefenseExpiry)
+        {
+            worldBuffDefense = 0;
+            worldBuffDefenseExpiry = 0;
+            Debug.Log("Buff de Comida de Hierro ha expirado.");
         }
     }
 

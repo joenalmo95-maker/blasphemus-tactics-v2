@@ -11,4 +11,5 @@ public class SkillData : ScriptableObject
     public int bonusCrit = 0;
     public float threatMult = 1f;
     public int unlockLevel = 0;
+    public int cooldown = 0; // 1.4: cooldown de la habilidad en turnos (0 = siempre disponible)
 }
