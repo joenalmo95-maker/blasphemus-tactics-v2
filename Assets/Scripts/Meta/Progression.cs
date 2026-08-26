@@ -8,15 +8,15 @@ public static class Progression
         return (level - 1) * 3;
     }
 
-    // Escalado de HP de enemigos (+4% por nivel)
+    // 1.4-B: Escalado de HP de enemigos (+7% por nivel → x3.03 al nivel 30)
     public static float EnemyHpMult(int playerLevel)
     {
-        return 1f + (playerLevel - 1) * 0.04f;
+        return 1f + (playerLevel - 1) * 0.07f;
     }
 
-    // Escalado de daño de enemigos (+1 cada 3 niveles)
+    // 1.4-B: Escalado de daño de enemigos (+1 cada 2 niveles → +14 al nivel 30)
     public static int EnemyDamageBonus(int playerLevel)
     {
-        return (playerLevel - 1) / 3;
+        return (playerLevel - 1) / 2;
     }
 }

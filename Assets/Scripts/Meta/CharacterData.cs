@@ -14,22 +14,22 @@ public class CharacterData : MonoBehaviour
     // 0.3: ClassData por defecto (Inquisidor = DPS)
     public ClassData classData;
 
-    // Stats base de Valerius (nivel 1) — 0.7: rebalance daño
-    public int baseHP = 250;
+    // 1.4-B: Valerius rebalanceado (más frágil al inicio, más resistente al final)
+    public int baseHP = 200;
     public int baseDamage = 18;
-    public int baseDefense = 0;
+    public int baseDefense = 5;
     public int baseCritChance = 5;
     public int baseEvasion = 0;
     public int baseAP = 3;
-    public int baseAccuracy = 80;
+    public int baseAccuracy = 85;
     public int baseHealingPower = 0;
     public int baseLifesteal = 0;
     public int baseThreatMult = 1;
 
-    // Crecimiento por nivel — 0.7: crecimiento más lento
-    public int hpPerLevel = 20;
-    public int damagePerLevel = 2;
-    public int defensePerLevel = 1;
+    // 1.4-B: HP y daño escalan mejor; la DEF NO escala (se gana solo con equipo)
+    public int hpPerLevel = 35;
+    public int damagePerLevel = 3;
+    public int defensePerLevel = 0;
 
     void Awake()
     {
