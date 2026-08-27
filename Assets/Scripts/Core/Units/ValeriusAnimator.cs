@@ -15,8 +15,23 @@ public class ValeriusAnimator : MonoBehaviour
     private const int ROW_DEATH = 4;
 
     // 1.7-arte fix7: FPS subidos para mas fluidez (idle/caminar/ataque/dano/muerte)
-    private readonly float[] fps  = { 8f, 12f, 18f, 10f, 8f };
+    // 1.7-arte fix10: idle mas pausado (respiracion solemne)
+    private readonly float[] fps  = { 4f, 10f, 18f, 10f, 8f };
     private readonly bool[] loopA = { true, true, false, false, false };
+
+    // 1.7-arte fix8: orden personalizado de frames por fila (null = orden natural por X)
+    // Fila 3 (heridas): indices detectados 0=A 1=B 2=C 3=D 4=E 5=F
+    // Secuencia: cae y se levanta = A,B,E,C,D,F,D,E,B
+    private readonly int[][] customOrder = new int[][]
+    {
+        // 1.7-arte fix9: idle = frames 1,2,3 en ping-pong (1-2-3-2-1...) para respiracion suave
+        new int[] { 0, 1, 2, 1 },
+        // 1.7-arte fix11: caminar = solo los 4 frames marcados (0,2,4,5 detectados) en ciclo
+        new int[] { 0, 2, 4, 5 },
+        null,
+        new int[] { 0, 1, 4, 2, 3, 5, 3, 4, 1 },
+        null
+    };
 
     private SpriteRenderer sr;
     private readonly List<Sprite>[] rows = new List<Sprite>[5];
@@ -147,6 +162,21 @@ public class ValeriusAnimator : MonoBehaviour
     }
 
     int Frames(int r) { return rows[r] != null ? rows[r].Count : 0; }
+
+    // Frames a reproducir (con orden personalizado si existe)
+    int Count(int r)
+    {
+        if (rows[r] == null) return 0;
+        return customOrder[r] != null ? customOrder[r].Length : rows[r].Count;
+    }
+
+    Sprite GetSprite(int r, int i)
+    {
+        int idx = i;
+        if (customOrder[r] != null) idx = customOrder[r][Mathf.Clamp(i, 0, customOrder[r].Length - 1)];
+        idx = Mathf.Clamp(idx, 0, rows[r].Count - 1);
+        return rows[r][idx];
+    }
         // Calcula la X del "cuerpo" del caballero: las columnas con mas pixeles opacos
     // (el torso domina sobre la espada/sangre, que son delgadas)
     static float ComputeBodyPivotX(Color[] px, int texWidth, Rect rect)
@@ -243,7 +273,7 @@ public class ValeriusAnimator : MonoBehaviour
         if (oneShot)
         {
             target = oneShotRow;
-            if (frameIndex >= Frames(oneShotRow))
+            if (frameIndex >= Count(oneShotRow))
             {
                 oneShot = false;
                 frameIndex = 0;
@@ -259,7 +289,7 @@ public class ValeriusAnimator : MonoBehaviour
         if (target != currentRow) { currentRow = target; frameIndex = 0; frameTimer = 0f; }
 
         // Avanzar frame
-        int count = Frames(currentRow);
+        int count = Count(currentRow);
         if (count > 0)
         {
             frameTimer += Time.deltaTime;
@@ -274,8 +304,7 @@ public class ValeriusAnimator : MonoBehaviour
         }
 
         // Aplicar sprite + volteo
-        int idx = Mathf.Min(frameIndex, count - 1);
-        Sprite s = rows[currentRow][idx];
+        Sprite s = GetSprite(currentRow, Mathf.Min(frameIndex, count - 1));
         if (s != null && sr.sprite != s) sr.sprite = s;
 
         float desired = baseScale * (flipX ? -1f : 1f);
