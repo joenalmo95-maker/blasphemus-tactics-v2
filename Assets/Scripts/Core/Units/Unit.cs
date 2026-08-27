@@ -115,6 +115,7 @@ public class Unit : MonoBehaviour
      if (!isEnemy)
      {
          go.AddComponent<SelectionIndicator>();
+         go.AddComponent<ValeriusAnimator>(); // 1.7-arte: Valerius animado en combate
      }
 
         return unit;
@@ -265,6 +266,10 @@ public class Unit : MonoBehaviour
         CombatFeedback.SpawnText(transform.position, (isCrit ? "CRIT -" : "-") + final, isCrit ? Color.yellow : Color.red);
         CombatFeedback.SpawnImpact(transform.position, isEnemy ? Color.yellow : Color.red);
         StartCoroutine(Flash());
+
+        // 1.7-arte: animacion de recibir daño (solo Valerius tiene el animador)
+        ValeriusAnimator vaHit = GetComponent<ValeriusAnimator>();
+        if (vaHit != null) vaHit.PlayOneShot("hit");
 
         if (attacker != null)
         {

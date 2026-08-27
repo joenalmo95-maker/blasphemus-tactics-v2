@@ -334,6 +334,7 @@ public class WorldBootstrap : MonoBehaviour
         p.transform.localScale = Vector3.one * 0.8f;
         p.AddComponent<SelectionIndicator>();
         p.AddComponent<WorldPlayerController>();
+        p.AddComponent<ValeriusAnimator>(); // 1.7-arte: Valerius animado en el mundo
     }
 
     void BuildUI()

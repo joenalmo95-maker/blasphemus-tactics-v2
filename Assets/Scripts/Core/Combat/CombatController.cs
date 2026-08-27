@@ -34,6 +34,9 @@ public class CombatController : MonoBehaviour
     void Start()
     {
         playerUnit = GetPlayer();
+        // 1.7-arte: red de seguridad por si el jugador no se creo via Unit.Create
+        if (playerUnit != null && playerUnit.GetComponent<ValeriusAnimator>() == null)
+            playerUnit.gameObject.AddComponent<ValeriusAnimator>();
         DetectAndShowBossBar();
     }
     
@@ -178,6 +181,11 @@ public class CombatController : MonoBehaviour
                     }
 
                     int raw = Mathf.RoundToInt(baseDamage * executeMult);
+
+                    // 1.7-arte: animacion de ataque de Valerius
+                    ValeriusAnimator vaAtk = playerUnit.GetComponent<ValeriusAnimator>();
+                    if (vaAtk != null) vaAtk.PlayOneShot("attack");
+
                     bool hit = target.ReceiveAttack(playerUnit, raw, armedSkill.bonusCrit + flankCrit, armedSkill.threatMult);
 
                     if (ft == FlankType.Lateral) CombatFeedback.SpawnText(target.transform.position, "FLANK +10%", Color.yellow);
