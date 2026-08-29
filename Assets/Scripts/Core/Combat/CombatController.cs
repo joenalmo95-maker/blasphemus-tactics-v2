@@ -158,24 +158,32 @@ public class CombatController : MonoBehaviour
                     int worldDmg = (CharacterData.Instance != null) ? CharacterData.Instance.worldBuffDamage : 0;
                     int baseDamage = Mathf.RoundToInt((armedSkill.damage + passiveBonus + playerUnit.stats.damage + playerUnit.buffDamage + worldDmg) * flankMult);
 
-                    // 1.4: Sistema de ejecución heroica (Halo Roto)
+                    // 1.4 + 1.7: Sistema de ejecución heroica (Halo Roto) + bonos del Set Amarillo
                     float executeMult = 1f;
-                    if (meta != null && meta.executeMultiplier > 1f && meta.executeThreshold > 0)
+                    if (meta != null && meta.executeMultiplier > 1f)
                     {
+                        // 1.7: Set Amarillo sobrescribe umbral y probabilidad
+                        float threshold = SetBonusSystem.Has2Pieces(SetType.Amarillo)
+                            ? SetBonusSystem.AmarilloExecuteThreshold()
+                            : meta.executeThreshold;
+                        int chance = SetBonusSystem.Has2Pieces(SetType.Amarillo)
+                            ? SetBonusSystem.AmarilloExecuteChance()
+                            : meta.executeChance;
+
                         float hpPercent = (float)playerUnit.currentHealth / playerUnit.maxHealth * 100f;
-                        if (hpPercent < meta.executeThreshold)
+                        if (hpPercent < threshold)
                         {
                             int roll = Random.Range(0, 100);
-                            if (roll < meta.executeChance)
+                            if (roll < chance)
                             {
                                 executeMult = meta.executeMultiplier;
                                 CombatFeedback.SpawnText(playerUnit.transform.position, "¡EJECUCIÓN!", new Color(1f, 0.3f, 0.1f));
-                                Debug.Log("[Ejecución] ¡El Halo responde! x" + meta.executeMultiplier + " daño.");
+                                Debug.Log("[Ejecución] ¡El Halo responde! x" + meta.executeMultiplier + " (umbral " + threshold + "%, prob " + chance + "%).");
                             }
                             else
                             {
                                 CombatFeedback.SpawnText(playerUnit.transform.position, "el Halo no responde", Color.gray);
-                                Debug.Log("[Ejecución] El Halo no respondió (roll " + roll + " vs " + meta.executeChance + "%).");
+                                Debug.Log("[Ejecución] El Halo no respondió (roll " + roll + " vs " + chance + "%).");
                             }
                         }
                     }

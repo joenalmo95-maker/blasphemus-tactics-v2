@@ -92,16 +92,21 @@ public class CharacterData : MonoBehaviour
             }
         }
 
-        // 0.7-E: bonuses de set completo (4/4)
-        if (SetBonusSystem.HasFullSet(SetType.Rojo))
-            s.damage = Mathf.RoundToInt(s.damage * 1.15f);
-        if (SetBonusSystem.HasFullSet(SetType.Amarillo))
-            s.critChance += 25;
-        if (SetBonusSystem.HasFullSet(SetType.Verde))
-        {
-            s.maxHP += 50;
-            s.healOnHit += 2;
-        }
+        // 1.7: Bonos de sets (2 y 4 piezas) balanceados
+        // ROJO: DPS sostenido (daño + crítico + lifesteal)
+        s.damage = Mathf.RoundToInt(s.damage * SetBonusSystem.RojoDamageMult());
+        s.critChance += SetBonusSystem.RojoCritBonus();
+        s.lifesteal += SetBonusSystem.RojoLifestealBonus();
+
+        // AMARILLO: crítico (la ejecución se aplica en combate)
+        s.critChance += SetBonusSystem.AmarilloCritBonus();
+
+        // VERDE: supervivencia (HP + DEF + evasión + curación)
+        s.maxHP += SetBonusSystem.VerdeMaxHPBonus();
+        s.defense += SetBonusSystem.VerdeDefenseBonus();
+        s.healOnHit += SetBonusSystem.VerdeHealOnHitBonus();
+        s.evasion += SetBonusSystem.VerdeEvasionBonus();
+
         return s;
     }
 

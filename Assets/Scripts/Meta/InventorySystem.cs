@@ -116,7 +116,7 @@ public class InventorySystem : MonoBehaviour
         }
         if (player == null) return false;
 
-        // 1.4-B: Poción de Vida requiere 3 AP y cura 30% HP máx + 30
+        // 1.4-B + 1.7: Poción de Vida requiere 3 AP y cura 30% HP máx + 30 (+15% con Set Verde completo)
         if (t == ConsumableType.PocionHP)
         {
             if (player.currentAP < 3)
@@ -125,9 +125,11 @@ public class InventorySystem : MonoBehaviour
                 return false;
             }
             player.currentAP -= 3;
-            int healAmount = Mathf.RoundToInt(player.maxHealth * 0.3f) + 30;
+            int baseHeal = Mathf.RoundToInt(player.maxHealth * 0.3f) + 30;
+            float potionBonus = 1f + SetBonusSystem.VerdePotionBonus();
+            int healAmount = Mathf.RoundToInt(baseHeal * potionBonus);
             player.Heal(healAmount);
-            Debug.Log("Poción de Vida usada (-3 AP). HP curado: " + healAmount + ". AP restantes: " + player.currentAP);
+            Debug.Log("Poción de Vida usada (-3 AP). HP curado: " + healAmount + (potionBonus > 1f ? " (+15% Set Verde)" : "") + ". AP restantes: " + player.currentAP);
         }
         // 1.4-fix: Comidas con cooldown global de 10 minutos
         else if (t == ConsumableType.ComidaDano || t == ConsumableType.ComidaDefensa)

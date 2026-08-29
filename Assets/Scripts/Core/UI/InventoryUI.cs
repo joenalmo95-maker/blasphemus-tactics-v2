@@ -117,7 +117,6 @@ public class InventoryUI : MonoBehaviour
         MakeText(root.transform, "INVENTARIO Y EQUIPO  (I/C cerrar, L simular drop)", 0, 260, 20);
         MakeText(root.transform, "EQUIPADO (clic para desequipar)", -260, 190, 16);
 
-
         float ey = 150;
         foreach (ItemSlot slot in System.Enum.GetValues(typeof(ItemSlot)))
         {
@@ -197,18 +196,36 @@ public class InventoryUI : MonoBehaviour
                            "  PREC: " + stats.accuracy + "  CRIT: " + stats.critChance + "%  EVA: " + stats.evasion +
                            "%  AP: " + apText + "  CUR: " + stats.healingPower + "%  ROBO: " + stats.lifesteal + "%";
         MakeText(root.transform, statsText, 0, -120, 12);
-        
-        // 0.7-E.4b2: resumen de sets activos (debajo de estadísticas, nombres completos)
-        string setsInfo = "SETS ACTIVOS: ";
+
+        // 1.7: resumen de sets activos con bonos visibles (color del set)
+        MakeText(root.transform, "SETS ACTIVOS:", 0, -150, 12);
         SetType[] allSets = { SetType.Rojo, SetType.Amarillo, SetType.Verde };
+        float sy = -175;
         foreach (SetType st in allSets)
         {
             int c = SetBonusSystem.CountPieces(st);
+            string shortName = st == SetType.Rojo ? "Juicio" : (st == SetType.Amarillo ? "Halo" : "Plegaria");
             string mark = c >= 4 ? " ★" : "";
-            string fullName = SetBonusSystem.SetName(st);
-            setsInfo += fullName + " " + c + "/4" + mark + "  ";
+            string bonus = "";
+            Color bonusColor = Color.gray;
+
+            if (c >= 4)
+            {
+                // Bonos 4/4
+                bonus = " [4/4] " + SetBonusSystem.BonusDescription(st).Split('|')[1].Trim();
+                bonusColor = SetBonusSystem.SetColor(st);
+            }
+            else if (c >= 2)
+            {
+                // Bonos 2/4
+                bonus = " [2/4] " + SetBonusSystem.BonusDescription(st).Split('|')[0].Trim();
+                bonusColor = SetBonusSystem.SetColor(st);
+            }
+
+            string line = "  " + shortName + " " + c + "/4" + mark + bonus;
+            MakeText(root.transform, line, 0, sy, 11, bonusColor);
+            sy -= 20;
         }
-        MakeText(root.transform, setsInfo, 0, -150, 12);
     }
 
     string SlotLabel(ItemSlot s)
@@ -256,6 +273,7 @@ public class InventoryUI : MonoBehaviour
         return go;
     }
 
+    // MakeText original (5 parámetros, color blanco por defecto)
     void MakeText(Transform parent, string content, float x, float y, int size)
     {
         GameObject go = new GameObject("Text");
@@ -271,6 +289,24 @@ public class InventoryUI : MonoBehaviour
         t.fontSize = size;
         t.alignment = TextAnchor.MiddleCenter;
         t.color = Color.white;
+    }
+
+    // MakeText con color personalizado (6 parámetros, para bonos de sets)
+    void MakeText(Transform parent, string content, float x, float y, int size, Color color)
+    {
+        GameObject go = new GameObject("Text");
+        go.transform.SetParent(parent, false);
+        RectTransform rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2(x, y);
+        rt.sizeDelta = new Vector2(900, 24);
+        Text t = go.AddComponent<Text>();
+        t.text = content;
+        t.font = GetFont();
+        t.fontSize = size;
+        t.alignment = TextAnchor.MiddleCenter;
+        t.color = color;
     }
 
     Font GetFont()
