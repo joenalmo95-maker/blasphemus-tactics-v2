@@ -201,6 +201,13 @@ public static class ItemGenerator
         int dmgBase = Random.Range(tier.dañoMin, tier.dañoMax + 1);
         item.stats.damage = dmgBase;
 
+        // 1.8: Espadón Reliquia otorga +1 AP exclusivo (único item que da AP)
+        if (tier.rareza == Rarity.Reliquia)
+        {
+            item.stats.apMove = 1;
+            Debug.Log("[ItemGenerator] ★ ESPADÓN RELIQUIA: +1 AP exclusivo");
+        }
+
         // 1.3: Precisión de arma reducida (10 base + 5 por rareza). 
         // Sumado a los 80 base de Valerius, da un rango perfecto de 90-110 (cap 95% hit chance).
         item.stats.accuracy = 10 + (int)tier.rareza * 5;
