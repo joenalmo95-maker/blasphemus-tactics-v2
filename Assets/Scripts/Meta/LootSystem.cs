@@ -136,9 +136,9 @@ public static class LootSystem
         string pityKey = "SetPity_" + zone.name;
         int pity = PlayerPrefs.GetInt(pityKey, 0);
 
-        // Probabilidades gacha extremo: 3% fija, 1% aleatoria
+        // 2.3: probabilidades rebalanceadas (pity 80 INTACTO): 8% fija, 4% aleatoria
         bool isFixed = zone.setId != SetType.Ninguno;
-        float baseProb = isFixed ? 0.03f : 0.01f;
+        float baseProb = isFixed ? 0.08f : 0.04f;
         int pityCap = 80;
 
         // Forzar drop si se alcanzó el pity gacha
@@ -146,7 +146,7 @@ public static class LootSystem
         float totalProb = force ? 1f : baseProb;
 
         bool dropMain = Random.Range(0f, 1f) < totalProb;
-        bool dropBonus = Random.Range(0f, 1f) < 0.03f; // 3% bonus aleatorio
+        bool dropBonus = Random.Range(0f, 1f) < 0.05f; // 5% bonus aleatorio
 
         if (dropMain)
         {
