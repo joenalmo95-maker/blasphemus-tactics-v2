@@ -116,6 +116,20 @@ public static class EnemyFactory
 
         Unit unit = Unit.Create(name, cell, true, tint, scale, hp, 3, art);
 
+        // 1.9: Stats de combate de enemigos (accuracy, evasion, defense)
+        int baseAccuracy = 75;  // Enemigos golpean más consistentemente
+        int baseEvasion = 0;    // Enemigos básicos no evaden
+        
+        // Escalado por tier
+        if (tier == EnemyTier.Medio) { baseAccuracy += 5; baseEvasion += 3; }
+        if (tier == EnemyTier.Elite) { baseAccuracy += 10; baseEvasion += 8; baseDefense += 5; }
+        if (tier == EnemyTier.EliteFuerte) { baseAccuracy += 15; baseEvasion += 12; baseDefense += 8; }
+        if (tier == EnemyTier.Jefe) { baseAccuracy += 20; baseEvasion += 15; baseDefense += 12; }
+
+        unit.stats.accuracy = baseAccuracy;
+        unit.stats.evasion = baseEvasion;
+        unit.stats.defense = baseDefense;
+
         if (archetype == "capitan_mundial")
         {
             // 0.7-F.1d: el Capitán usa IA propia con mecánicas

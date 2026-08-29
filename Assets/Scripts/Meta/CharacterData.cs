@@ -14,12 +14,12 @@ public class CharacterData : MonoBehaviour
     // 0.3: ClassData por defecto (Inquisidor = DPS)
     public ClassData classData;
 
-    // Stats base de Valerius (nivel 1) — 0.7: rebalance daño
+    // Stats base de Valerius (nivel 1) — 1.9: balance completo
     public int baseHP = 250;
     public int baseDamage = 18;
-    public int baseDefense = 0;
+    public int baseDefense = 8;        // 1.9: DEF base para supervivencia sin equipo
     public int baseCritChance = 5;
-    public int baseEvasion = 0;
+    public int baseEvasion = 0;        // Valerius NO evade (tanque pesado)
     public int baseAP = 3;
     public int baseAccuracy = 80;
     public int baseHealingPower = 0;

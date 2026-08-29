@@ -258,7 +258,10 @@ public class Unit : MonoBehaviour
         bool isCrit = Random.Range(0, 100) < (crit + worldCritBonus);
         int worldDefBonus = 0;
         if (!isEnemy && CharacterData.Instance != null) worldDefBonus = CharacterData.Instance.worldBuffDefense;
-        int mitigated = Mathf.Max(1, rawDamage - (stats.defense + buffDefense - debuffDefense));
+        // 1.9: Fórmula de daño mejorada (DEF reduce % del daño, no plano)
+        int totalDef = stats.defense + buffDefense - debuffDefense;
+        float defReduction = Mathf.Clamp(totalDef * 0.02f, 0f, 0.75f); // Máx 75% reducción
+        int mitigated = Mathf.Max(1, Mathf.RoundToInt(rawDamage * (1f - defReduction)));
         int final = isCrit ? mitigated * 2 : mitigated;
 
         currentHealth -= final;
